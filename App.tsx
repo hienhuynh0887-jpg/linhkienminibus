@@ -812,75 +812,56 @@ async function taoFilePDF(htmlContent, tenFile="BaoCao", soHangMoiTrang=25){
   return pdf.output("blob");
 }
 
-// Xuất báo cáo: tạo file PDF thật rồi mở hộp thoại chia sẻ file (Zalo, Gmail, Messenger...).
-// Nếu máy/trình duyệt không hỗ trợ tạo hoặc chia sẻ file, sẽ tự tải file PDF về máy,
-// và nếu tệ hơn nữa (html2canvas/jspdf lỗi) thì rơi về mở cửa sổ in như cách cũ.
+// Xuất báo cáo: tạo file PDF thật rồi chia sẻ dạng file (Zalo, Gmail, Messenger...) hoặc
+// tải về máy nếu không chia sẻ trực tiếp được.
 //
-// QUAN TRỌNG (chống lỗi "Đã chặn cửa sổ bật lên"): trình duyệt chỉ cho phép window.open()
-// chạy NGAY trong lúc xử lý cú bấm (user gesture), không cho chạy sau một `await`. Vì vậy
-// cửa sổ dự phòng (winDuTru) phải được mở NGAY DÒNG ĐẦU TIÊN của hàm này — trước bất kỳ await
-// nào (kể cả await taoFilePDF/navigator.share) — rồi mới điền nội dung vào sau. Nếu tạo/chia sẻ
-// file PDF thành công thì đóng cửa sổ dự phòng lại (người dùng sẽ không thấy nó chớp lên).
+// QUAN TRỌNG: KHÔNG mở thêm tab/cửa sổ nào trong lúc xử lý. Mở thêm 1 tab (kể cả tab trắng
+// "đang chuẩn bị...") sẽ đẩy tab hiện tại xuống làm việc "ở nền" — mà trình duyệt di động
+// luôn cố tình làm chậm/tạm dừng các tab chạy nền để tiết kiệm pin, khiến việc tạo PDF có
+// thể bị "treo" vô thời hạn (kể cả các timeout cũng bị đóng băng theo). Toàn bộ xử lý ở đây
+// vì vậy được giữ nguyên trên tab hiện tại — không có bất kỳ window.open() nào.
 async function xuatPDF(htmlContent, tenFile="BaoCao"){
-  const winDuTru = window.open("", "_blank", "width=1000,height=700");
-  if(winDuTru){
-    try{ winDuTru.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${tenFile}</title></head><body style="font-family:Arial,sans-serif;padding:24px;color:#6b7280">Đang chuẩn bị báo cáo…</body></html>`); }catch(e){}
-  }
-
   let file=null;
   let loiTaoPDF=null;
   try{
-    const timeoutMs = 15000;
+    const timeoutMs = 25000;
     const blob = await Promise.race([
       taoFilePDF(htmlContent, tenFile),
-      new Promise((_, reject)=>setTimeout(()=>reject(new Error(`Quá ${timeoutMs/1000}s không phản hồi (có thể bị treo khi tạo ảnh/PDF)`)), timeoutMs)),
+      new Promise((_, reject)=>setTimeout(()=>reject(new Error(`Quá ${timeoutMs/1000}s không phản hồi (có thể máy xử lý quá chậm với báo cáo này)`)), timeoutMs)),
     ]);
     if(blob) file=new File([blob], `${tenFile}_${new Date().toISOString().slice(0,10)}.pdf`, {type:"application/pdf"});
-  }catch(e){ file=null; loiTaoPDF = (e && (e.message||String(e))) || "Lỗi không rõ"; console.error("Lỗi tạo file PDF:", e); }
-
-  // TẠM THỜI: hiện lỗi thật NGAY TRONG popup này (không dùng alert(), vì alert() sẽ hiện ở
-  // tab gốc chứ không phải tab popup đang xem, nên bị "mất tích" không thấy được).
-  if(loiTaoPDF && winDuTru){
-    try{
-      winDuTru.document.open();
-      winDuTru.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lỗi</title></head><body style="font-family:Arial,sans-serif;padding:24px;color:#b91c1c;font-size:16px;line-height:1.6"><b>Không tạo được file PDF.</b><br><br>Lỗi: ${String(loiTaoPDF).replace(/</g,"&lt;")}</body></html>`);
-      winDuTru.document.close();
-    }catch(e){}
-    return; // dừng lại ở đây để bạn kịp đọc/chụp lỗi, không rơi tiếp xuống bản in
+  }catch(e){
+    loiTaoPDF = (e && (e.message||String(e))) || "Lỗi không rõ";
+    console.error("Lỗi tạo file PDF:", e);
   }
 
+  if(!file){
+    // Không mở tab nào nên alert() chắc chắn hiện ngay trên màn hình đang xem, không bị "mất tích".
+    alert("Không tạo được file PDF.\n\nLỗi: " + loiTaoPDF + "\n\nBạn có thể thử lại, hoặc dùng nút Xuất Excel thay thế.");
+    return;
+  }
+
+  // Thử chia sẻ trực tiếp dạng file (Zalo/Gmail/Messenger...) nếu máy hỗ trợ
   let coHoTroChiaSeFile=false;
-  try{ coHoTroChiaSeFile = !!(file && navigator.canShare && navigator.canShare({files:[file]})); }catch(e){ coHoTroChiaSeFile=false; }
+  try{ coHoTroChiaSeFile = !!(navigator.canShare && navigator.canShare({files:[file]})); }catch(e){ coHoTroChiaSeFile=false; }
 
   if(coHoTroChiaSeFile){
-    if(winDuTru) winDuTru.close(); // không cần cửa sổ dự phòng nữa
     try{
       await navigator.share({files:[file], title:tenFile, text:tenFile});
-    }catch(e){ /* user hủy hộp thoại chia sẻ -> không làm gì thêm */ }
-    return;
+      return;
+    }catch(e){
+      // navigator.share thất bại (user hủy, hoặc quá lâu nên mất "quyền chia sẻ theo cú bấm")
+      // -> không sao cả, tự động rơi xuống tải file về máy bên dưới thay vì báo lỗi.
+      console.warn("navigator.share thất bại, chuyển sang tải file:", e);
+    }
   }
 
-  if(file){
-    // Không hỗ trợ chia sẻ file trực tiếp -> tải file PDF về máy để người dùng tự gửi qua Zalo/Gmail
-    if(winDuTru) winDuTru.close();
-    const url=URL.createObjectURL(file);
-    const a=document.createElement("a");
-    a.href=url; a.download=file.name; a.click();
-    URL.revokeObjectURL(url);
-    return;
-  }
-
-  // Không tạo được file PDF -> dùng cửa sổ đã mở sẵn từ đầu để hiện bản in (không bị chặn popup
-  // vì cửa sổ này đã mở đồng bộ ngay trong lúc bấm, ở trên).
-  if(winDuTru){
-    winDuTru.document.open();
-    winDuTru.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${tenFile}</title><style>${BAO_CAO_STYLE}</style></head><body>${htmlContent}<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div></body></html>`);
-    winDuTru.document.close();
-    setTimeout(()=>{ try{ winDuTru.print(); }catch(e){} },400);
-  } else {
-    // Trình duyệt chặn ngay từ đầu, kể cả cửa sổ dự phòng -> báo rõ cho người dùng cách gỡ chặn
-    alert("Trình duyệt đang chặn cửa sổ bật lên cho trang này.\nHãy bấm vào biểu tượng cửa sổ bị chặn trên thanh địa chỉ (hoặc menu ⋮ > Cài đặt trang > Popup) rồi chọn \"Luôn hiển thị\" cho trang này, sau đó bấm lại nút Xuất & Chia sẻ.");
-  }
+  // Tải file PDF về máy — luôn hoạt động, không phụ thuộc trạng thái "cử chỉ người dùng"
+  // như window.open()/navigator.share(), nên đây là phương án chắc chắn nhất.
+  const url=URL.createObjectURL(file);
+  const a=document.createElement("a");
+  a.href=url; a.download=file.name; a.click();
+  URL.revokeObjectURL(url);
 }
 
 // Nút xuất dùng chung
