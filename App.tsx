@@ -601,6 +601,7 @@ function LoginScreen({onLogin}){
 
 // ─── Users Management Panel ────────────────────────────────────
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH}){
+  const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
