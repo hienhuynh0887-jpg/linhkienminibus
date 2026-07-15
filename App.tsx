@@ -368,6 +368,56 @@ const APP_I18N = {
   titleTk:      {vi:"📊 Thống kê",                  zh:"📊 统计"},
   titleBomMau:  {vi:"🗂️ BOM Mẫu",                 zh:"🗂️ BOM 模板"},
   titleUsers:   {vi:"👥 Người dùng",                zh:"👥 用户管理"},
+  // Tiêu đề báo cáo khi Xuất PDF (khác chút so với tiêu đề tab để giữ đúng ngữ cảnh in ấn)
+  rpDs:      {vi:"📦 Danh sách Vật Tư BOM",              zh:"📦 BOM物料清单"},
+  rpSoan:    {vi:"📋 Danh sách Soạn Hàng",               zh:"📋 备料清单"},
+  rpDuyet:   {vi:"✅ Danh Sách Đơn Hàng",                zh:"✅ 订单清单"},
+  rpPgn:     {vi:"📄 Phiếu Giao Nhận — Bảng Tích Lũy",   zh:"📄 收发单 — 累计表"},
+  rpLs:      {vi:"🕓 Lịch Sử Giao Dịch",                 zh:"🕓 交易历史记录"},
+  rpTk:      {vi:"📊 Thống Kê Vật Tư Theo Vị Trí",       zh:"📊 按位置统计物料"},
+  // Tiêu đề các popup/modal
+  modalAdd:          {vi:"➕ Thêm vật tư",              zh:"➕ 添加物料"},
+  modalUpdate:       {vi:"✏️ Cập nhật",                 zh:"✏️ 更新"},
+  modalNhap:         {vi:"📥 Nhập kho",                  zh:"📥 入库"},
+  modalXuat:         {vi:"📤 Xuất kho",                  zh:"📤 出库"},
+  modalNewProj:      {vi:"🆕 Thêm dự án mới",            zh:"🆕 新增项目"},
+  modalTaoPGN:       {vi:"📋 Tạo Phiếu Giao Nhận",       zh:"📋 创建收发单"},
+  modalImportExcel:  {vi:"📊 Import BOM từ Excel",       zh:"📊 从Excel导入BOM"},
+  modalImportProj:   {vi:"📥 Import BOM vào dự án",      zh:"📥 导入BOM到项目"},
+  // Bảng người dùng
+  thHoTen:    {vi:"Họ tên",    zh:"姓名"},
+  thMatKhau:  {vi:"Mật khẩu",  zh:"密码"},
+  // Bảng thống kê theo vị trí
+  thSoMa:     {vi:"Số mã",     zh:"编号数"},
+  thTongDM:   {vi:"Tổng ĐM",   zh:"总定额"},
+  thTiLe:     {vi:"Tỉ lệ",     zh:"比例"},
+  // Bảng lịch sử
+  thThoiGian: {vi:"Thời gian",  zh:"时间"},
+  thDuAn:     {vi:"Dự án",      zh:"项目"},
+  thMaVT:     {vi:"Mã VT",      zh:"物料编号"},
+  thTenVT:    {vi:"Tên VT",     zh:"物料名称"},
+  thLoai:     {vi:"Loại",       zh:"类型"},
+  thSL:       {vi:"SL",         zh:"数量"},
+  thSoSoan:   {vi:"SL soạn",    zh:"备料数量"},
+  thTinhTrang:{vi:"Tình trạng", zh:"状况"},
+  // Nhãn ô nhập liệu (form vật tư)
+  lbMa:      {vi:"Mã số",      zh:"编号"},
+  lbMaReq:   {vi:"Mã số *",    zh:"编号 *"},
+  lbTen:     {vi:"Tên vật tư", zh:"物料名称"},
+  lbTenReq:  {vi:"Tên vật tư *", zh:"物料名称 *"},
+  lbDV:      {vi:"Đơn vị",     zh:"单位"},
+  lbVT:      {vi:"Vị trí",     zh:"位置"},
+  lbDM1XE:   {vi:"ĐM/1XE",     zh:"定额/每车"},
+  // Nhãn bảng còn lại
+  thDuyet:      {vi:"Duyệt",         zh:"审批"},
+  thSLThucNhan: {vi:"SL thực nhận",  zh:"实收数量"},
+  thThieu:      {vi:"Thiếu",         zh:"缺少"},
+  thXoa:        {vi:"Xóa",           zh:"删除"},
+  thSoLuong:    {vi:"Số lượng",      zh:"数量"},
+  thSLThieu:    {vi:"SL thiếu",      zh:"缺少数量"},
+  statMaVT:     {vi:"Mã vật tư",     zh:"物料编号"},
+  statTongDM:   {vi:"Tổng ĐM/1XE",   zh:"总定额/每车"},
+  statCoAnh:    {vi:"Có ảnh",        zh:"有图片"},
 };
 const LangCtx = createContext({lang:"vi", t:(k)=>APP_I18N[k]?.vi||k, setLang:()=>{}});
 const useLang = ()=>useContext(LangCtx);
@@ -662,7 +712,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-                  {["","ID","Họ tên","Đơn vị","Trạng thái","Mật khẩu","","",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
+                  {["","ID",t("thHoTen"),t("lbDV"),t("thTrangThai"),t("thMatKhau"),"","",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {grpList.map((u,i)=>(
@@ -2357,9 +2407,9 @@ Bạn có chắc chắn không?`;
                       <td style="text-align:center;font-weight:700;color:#065f46">${fmt(v.dm*soXe)}</td>
                       <td>${v.ng}</td><td>${v.vt||""}</td><td>${v.jig||""}</td><td>${v.gc||""}</td>
                     </tr>`).join("");
-                    xuatPDF(`<h2>📦 Danh sách Vật Tư BOM</h2>
+                    xuatPDF(`<h2>${t("rpDs")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${filtered.length}/${bom.length} mã · ${soXe} xe</p>
-                      <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>ĐM</th><th>Cần×${soXe}</th><th>Nguồn gốc</th><th>Vị trí</th><th>JIG</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table>`,
+                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thDM")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thNguonGoc")}</th><th>${t("lbVT")}</th><th>JIG</th><th>${t("thGhiChu")}</th></tr></thead><tbody>${rows}</tbody></table>`,
                       `VatTu_${proj.ten}`);
                   }}
                 />
@@ -2405,7 +2455,7 @@ Bạn có chắc chắn không?`;
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     <div style={{flex:"1 1 80px",minWidth:70}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>ĐVT</div>
+                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>{t("thDVT")}</div>
                       <select value={themMaForm.dv} onChange={e=>setThemMaForm(f=>({...f,dv:e.target.value}))} style={{...inp,width:"100%",fontSize:12}}>
                         {["Cái","Bộ","Chiếc","Tấm","m","m²","kg","Cuộn","Thanh","Hộp","Lọ","Gói","Đôi"].map(u=><option key={u}>{u}</option>)}
                       </select>
@@ -2480,7 +2530,7 @@ Bạn có chắc chắn không?`;
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                      {[["stt","STT"],["ma","Mã số"],["ten","Tên vật tư"],["ng","Nguồn gốc"],["vt","Vị trí"],["jig","JIG"],["dv","ĐVT"],["dm","ĐM/1XE"]].map(([col,lb])=>(
+                      {[["stt",t("thSTT")],["ma",t("thMa")],["ten",t("thTen")],["ng",t("thNguonGoc")],["vt",t("lbVT")],["jig","JIG"],["dv",t("thDVT")],["dm",t("lbDM1XE")]].map(([col,lb])=>(
                         <th key={col} onClick={()=>sortBy(col)} style={{padding:"8px 10px",textAlign:col==="dm"?"center":"left",fontWeight:700,color:"#374151",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none"}}>
                           {lb}<Arr col={col}/>
                         </th>
@@ -2620,9 +2670,9 @@ Bạn có chắc chắn không?`;
                           <td>${v.jig||""}</td>
                           <td><span class="badge ${ok?"ok":"warn"}">${ok?"✓ Đã soạn":"⏳ Chưa soạn"}</span></td>
                         </tr>`;
-                        xuatPDF(`<h2>📋 Danh sách Soạn Hàng</h2>
+                        xuatPDF(`<h2>${t("rpSoan")}</h2>
                           <p class="sub">${proj.icon} ${proj.ten} · ${daSoan2.length}/${bom.length} mã đã soạn · ${soXe} xe</p>
-                          <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Cần×${soXe}</th><th>SL soạn</th><th>Nguồn gốc</th><th>JIG</th><th>Trạng thái</th></tr></thead><tbody>
+                          <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thSoSoan")}</th><th>${t("thNguonGoc")}</th><th>JIG</th><th>${t("thTrangThai")}</th></tr></thead><tbody>
                           ${[...daSoan2.map(v=>mkRow(v,true)),...chuaSoan2.map(v=>mkRow(v,false))].join("")}
                           </tbody></table>`,`SoanHang_${proj.ten}`);
                       }}
@@ -2770,7 +2820,7 @@ Bạn có chắc chắn không?`;
                             <td>${ph.gc||""}</td>
                           </tr>`;
                         }).join("");
-                        xuatPDF(`<h2>✅ Danh Sách Đơn Hàng</h2>
+                        xuatPDF(`<h2>${t("rpDuyet")}</h2>
                           <p class="sub">Dự án ${proj.ten} · ${allPh.length} phiếu · ${choXN.length} chờ duyệt · ${daXNAll.length} đã duyệt</p>
                           <table><thead><tr><th>Số phiếu</th><th>Dự án</th><th>Ngày</th><th>Tổng mã</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table>`,
                           `DuyetDon_${proj.ten}`);
@@ -2819,8 +2869,8 @@ Bạn có chắc chắn không?`;
                           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                             <thead>
                               <tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-                                {["STT","Mã vật tư","Tên vật tư","ĐVT","SL soạn","SL thực nhận","Trạng thái","Duyệt"].map(h=>(
-                                  <th key={h} style={{padding:"7px 10px",textAlign:["SL soạn","SL thực nhận"].includes(h)?"center":"left",fontWeight:700,color:h==="SL thực nhận"?"#1d4ed8":"#374151",fontSize:11}}>{h}</th>
+                                {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoSoan"),t("thSLThucNhan"),t("thTrangThai"),t("thDuyet")].map(h=>(
+                                  <th key={h} style={{padding:"7px 10px",textAlign:[t("thSoSoan"),t("thSLThucNhan")].includes(h)?"center":"left",fontWeight:700,color:h===t("thSLThucNhan")?"#1d4ed8":"#374151",fontSize:11}}>{h}</th>
                                 ))}
                               </tr>
                             </thead>
@@ -3069,9 +3119,9 @@ Bạn có chắc chắn không?`;
                         <td>${v.ng||""}</td>
                         <td><span class="badge ${v.done?"ok":v.chuaSoan?"":"warn"}">${v.done?"✅ Đã nhận":v.chuaSoan?"📭 Chưa soạn":"⚠️ Thiếu"}</span></td>
                       </tr>`).join("");
-                      xuatPDF(`<h2>📄 Phiếu Giao Nhận — Bảng Tích Lũy</h2>
+                      xuatPDF(`<h2>${t("rpPgn")}</h2>
                         <p class="sub">${proj.icon} ${proj.ten} · ${soXe} xe · ${phList.length} phiếu · ${f2.length} mã</p>
-                        <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Cần×${soXe}</th><th>Đã nhận</th><th>Còn thiếu</th><th>%</th><th>Nguồn gốc</th><th>Trạng thái</th></tr></thead><tbody>${rows}</tbody>
+                        <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thDaNhan")}</th><th>${t("thConThieu")}</th><th>%</th><th>${t("thNguonGoc")}</th><th>${t("thTrangThai")}</th></tr></thead><tbody>${rows}</tbody>
                         <tfoot><tr style="background:#f8fafc;font-weight:700"><td colspan="4">Tổng (${f2.length} mã)</td><td style="text-align:center">${fmt(f2.reduce((s,v)=>s+v.cn,0))}</td><td style="text-align:center;color:#065f46">${fmt(f2.reduce((s,v)=>s+v.dn,0))}</td><td style="text-align:center;color:#dc2626">${fmt(f2.reduce((s,v)=>s+v.ct,0))}</td><td colspan="3"></td></tr></tfoot>
                         </table>`,`PhieuGN_${proj.ten}`);
                     }}
@@ -3088,8 +3138,8 @@ Bạn có chắc chắn không?`;
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead>
                       <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                        {["STT","Mã số","Tên vật tư","ĐVT","ĐM",`Cần(×${soXe})`,"Đã nhận","Còn thiếu","Tiến độ","Nguồn gốc"].map((h,i)=>(
-                          <th key={i} style={{padding:"8px 10px",textAlign:i>=4?"center":"left",fontWeight:700,color:h==="Đã nhận"?"#065f46":h==="Còn thiếu"?"#dc2626":"#374151",whiteSpace:"nowrap",fontSize:11}}>{h}</th>
+                        {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thDM"),`${t("thCan")}(×${soXe})`,t("thDaNhan"),t("thConThieu"),t("thTienDo"),t("thNguonGoc")].map((h,i)=>(
+                          <th key={i} style={{padding:"8px 10px",textAlign:i>=4?"center":"left",fontWeight:700,color:h===t("thDaNhan")?"#065f46":h===t("thConThieu")?"#dc2626":"#374151",whiteSpace:"nowrap",fontSize:11}}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -3279,7 +3329,7 @@ Bạn có chắc chắn không?`;
                     </tr>`).join("");
                     xuatPDF(`<h2>${t("titleBc")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${soXe} xe · ${phList.length} phiếu · Tiến độ: ${pctT}% · Đã nhận đủ: ${maDone}/${bom.length} mã</p>
-                      <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Cần×${soXe}</th><th>Đã nhận</th><th>Còn thiếu</th><th>%</th><th>Nguồn gốc</th><th>Tình trạng</th></tr></thead><tbody>${rows}</tbody></table>`,
+                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thDaNhan")}</th><th>${t("thConThieu")}</th><th>%</th><th>${t("thNguonGoc")}</th><th>${t("thTinhTrang")}</th></tr></thead><tbody>${rows}</tbody></table>`,
                       `BaoCao_${proj.ten}`);
                   }}
                 />
@@ -3307,7 +3357,7 @@ Bạn có chắc chắn không?`;
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                           <thead>
                             <tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-                              {["STT","Mã số","Tên","ĐVT","ĐM",`Cần(×${soXe})`,"Đã nhận","Thiếu","Vượt","Tiến độ","Nguồn gốc","Phiếu"].map((h,i)=>(
+                              {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thDM"),`${t("thCan")}(×${soXe})`,t("thDaNhan"),t("thThieu"),t("thVuot"),t("thTienDo"),t("thNguonGoc"),t("thPhieu")].map((h,i)=>(
                                 <th key={i} style={{padding:"7px 10px",textAlign:i>=4?"center":"left",fontWeight:700,color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{h}</th>
                               ))}
                             </tr>
@@ -3448,9 +3498,9 @@ Bạn có chắc chắn không?`;
                           <td>${r.gc||""}</td>
                         </tr>`;
                       }).join("");
-                      xuatPDF(`<h2>🕓 Lịch Sử Giao Dịch</h2>
+                      xuatPDF(`<h2>${t("rpLs")}</h2>
                         <p class="sub">${lsAll.length} giao dịch</p>
-                        <table><thead><tr><th>Thời gian</th>${showProj?"<th>Dự án</th>":""}<th>Mã VT</th><th>Tên VT</th><th>Loại</th><th>SL</th><th>Người duyệt</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table>`,
+                        <table><thead><tr><th>${t("thThoiGian")}</th>${showProj?`<th>${t("thDuAn")}</th>`:""}<th>${t("thMaVT")}</th><th>${t("thTenVT")}</th><th>${t("thLoai")}</th><th>${t("thSL")}</th><th>${t("thNguoiDuyet")}</th><th>${t("thGhiChu")}</th></tr></thead><tbody>${rows}</tbody></table>`,
                         `LichSu_TatCa`);
                     }}
                   />
@@ -3459,7 +3509,7 @@ Bạn có chắc chắn không?`;
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead>
                       <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                        {["Thời gian",...(showProj?["Dự án"]:[]),"Mã VT","Tên VT","Loại","SL","Người duyệt","Ghi chú"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:h==="Người duyệt"?"#7c3aed":"#374151"}}>{h}</th>)}
+                        {[t("thThoiGian"),...(showProj?[t("thDuAn")]:[]),t("thMaVT"),t("thTenVT"),t("thLoai"),t("thSL"),t("thNguoiDuyet"),t("thGhiChu")].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:h===t("thNguoiDuyet")?"#7c3aed":"#374151"}}>{h}</th>)}
                       </tr>
                     </thead>
                     <tbody>
@@ -3518,7 +3568,7 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
-              {[["📦","Mã vật tư",fmt(bom.length),mauP],["📍","Vị trí",[...new Set(bom.map(v=>v.vt))].length,"#7c3aed"],["🔩","Tổng ĐM/1XE",fmt(bom.reduce((s,v)=>s+v.dm,0)),"#16a34a"],["🖼️","Có ảnh",fmt(bom.filter(v=>v.anh).length),"#ea580c"]].map(([ic,l,v,c])=>(
+              {[["📦",t("statMaVT"),fmt(bom.length),mauP],["📍",t("lbVT"),[...new Set(bom.map(v=>v.vt))].length,"#7c3aed"],["🔩",t("statTongDM"),fmt(bom.reduce((s,v)=>s+v.dm,0)),"#16a34a"],["🖼️",t("statCoAnh"),fmt(bom.filter(v=>v.anh).length),"#ea580c"]].map(([ic,l,v,c])=>(
                 <div key={l} style={{background:"#fff",borderRadius:10,padding:"12px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",borderLeft:`4px solid ${c}`}}>
                   <div style={{fontSize:20,marginBottom:5}}>{ic}</div>
                   <div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div>
@@ -3554,7 +3604,7 @@ Bạn có chắc chắn không?`;
                       <td style="text-align:right;font-weight:700;color:#065f46">${fmt(s.t*soXe)}</td>
                       <td style="text-align:right">${(s.t/tot*100).toFixed(1)}%</td>
                     </tr>`).join("");
-                    xuatPDF(`<h2>📊 Thống Kê Vật Tư Theo Vị Trí</h2>
+                    xuatPDF(`<h2>${t("rpTk")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${bom.length} mã · ${soXe} xe · ${statDM.length} vị trí</p>
                       <table><thead><tr><th>Vị trí</th><th style="text-align:right">Số mã</th><th style="text-align:right">Tổng ĐM</th><th style="text-align:right">Cần×${soXe}</th><th style="text-align:right">Tỉ lệ%</th></tr></thead><tbody>${rows}</tbody></table>`,
                       `ThongKe_${proj.ten}`);
@@ -3563,7 +3613,7 @@ Bạn có chắc chắn không?`;
               </div>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                  {["Vị trí","Số mã","Tổng ĐM","Tỉ lệ"].map(h=><th key={h} style={{padding:"8px 14px",textAlign:h==="Vị trí"?"left":"right",fontWeight:700,color:"#374151"}}>{h}</th>)}
+                  {[t("lbVT"),t("thSoMa"),t("thTongDM"),t("thTiLe")].map(h=><th key={h} style={{padding:"8px 14px",textAlign:h===t("lbVT")?"left":"right",fontWeight:700,color:"#374151"}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {statDM.map(([dm,s],i)=>{
@@ -3725,14 +3775,14 @@ Bạn có chắc chắn không?`;
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                       {[
-                        {lb:"Mã số *",k:"id",tp:"text",dis:bmModal==="edit",col:"1/3"},
-                        {lb:"Tên vật tư *",k:"ten",tp:"text",dis:false,col:"1/3"},
-                        {lb:"Đơn vị",k:"dv",tp:"text",dis:false,col:"auto"},
-                        {lb:"ĐM/1XE",k:"dm",tp:"number",dis:false,col:"auto"},
-                        {lb:"Nguồn gốc",k:"ng",tp:"text",dis:false,col:"1/3"},
-                        {lb:"Vị trí",k:"vt",tp:"text",dis:false,col:"1/3"},
+                        {lb:t("lbMaReq"),k:"id",tp:"text",dis:bmModal==="edit",col:"1/3"},
+                        {lb:t("lbTenReq"),k:"ten",tp:"text",dis:false,col:"1/3"},
+                        {lb:t("lbDV"),k:"dv",tp:"text",dis:false,col:"auto"},
+                        {lb:t("lbDM1XE"),k:"dm",tp:"number",dis:false,col:"auto"},
+                        {lb:t("thNguonGoc"),k:"ng",tp:"text",dis:false,col:"1/3"},
+                        {lb:t("lbVT"),k:"vt",tp:"text",dis:false,col:"1/3"},
                         {lb:"JIG",k:"jig",tp:"text",dis:false,col:"1/3"},
-                        {lb:"Ghi chú",k:"gc",tp:"text",dis:false,col:"1/3"},
+                        {lb:t("thGhiChu"),k:"gc",tp:"text",dis:false,col:"1/3"},
                       ].map(({lb,k,tp,dis,col})=>(
                         <div key={k} style={{gridColumn:col}}>
                           <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>{lb}</label>
@@ -3805,9 +3855,9 @@ Bạn có chắc chắn không?`;
 
             {(modal==="add"||modal==="edit")&&(
               <div>
-                <h3 style={{margin:"0 0 16px",fontSize:15}}>{modal==="add"?"➕ Thêm vật tư":"✏️ Cập nhật"} — {proj.icon} {proj.ten}</h3>
+                <h3 style={{margin:"0 0 16px",fontSize:15}}>{modal==="add"?t("modalAdd"):t("modalUpdate")} — {proj.icon} {proj.ten}</h3>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[["Mã số *","ma","text",modal==="edit"],["Tên vật tư *","ten","text",false],["Đơn vị","dv","text",false],["Vị trí","vt","text",false],["JIG","jig","text",false],["ĐM/1XE","dm","number",false]].map(([lb,k,tp,dis])=>(
+                  {[[t("lbMaReq"),"ma","text",modal==="edit"],[t("lbTenReq"),"ten","text",false],[t("lbDV"),"dv","text",false],[t("lbVT"),"vt","text",false],["JIG","jig","text",false],[t("lbDM1XE"),"dm","number",false]].map(([lb,k,tp,dis])=>(
                     <div key={k} style={{gridColumn:(k==="ten"||k==="dm")?"1/3":"auto"}}>
                       <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>{lb}</label>
                       <input type={tp} value={cur[k]||""} disabled={dis} onChange={e=>setCur(c=>({...c,[k]:tp==="number"?Number(e.target.value):e.target.value}))}
@@ -3847,7 +3897,7 @@ Bạn có chắc chắn không?`;
 
             {(modal==="nhap"||modal==="xuat")&&(
               <div>
-                <h3 style={{margin:"0 0 6px"}}>{modal==="nhap"?"📥 Nhập kho":"📤 Xuất kho"}</h3>
+                <h3 style={{margin:"0 0 6px"}}>{modal==="nhap"?t("modalNhap"):t("modalXuat")}</h3>
                 <p style={{margin:"0 0 12px",color:"#6b7280",fontSize:11,fontFamily:"monospace"}}>{cur.stt}. {cur.ma} — {cur.ten}</p>
                 <div style={{background:"#f8fafc",borderRadius:8,padding:"9px 13px",marginBottom:12,fontSize:12}}>
                   <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#6b7280"}}>ĐM/1XE:</span><b>{fmt(cur.dm)} {cur.dv}</b></div>
@@ -3869,7 +3919,7 @@ Bạn có chắc chắn không?`;
 
             {newP&&(
               <div>
-                <h3 style={{margin:"0 0 16px",fontSize:15}}>🆕 Thêm dự án mới</h3>
+                <h3 style={{margin:"0 0 16px",fontSize:15}}>{t("modalNewProj")}</h3>
                 <div style={{display:"grid",gap:11}}>
                   <div>
                     <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Tên dự án *</label>
@@ -3945,7 +3995,7 @@ Bạn có chắc chắn không?`;
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:12}}
           onClick={e=>{if(e.target===e.currentTarget)setShowPh(false);}}>
           <div style={{background:"#fff",borderRadius:12,padding:22,width:"100%",maxWidth:600,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",maxHeight:"92vh",overflowY:"auto"}}>
-            <h3 style={{margin:"0 0 16px",fontSize:15}}>📋 Tạo Phiếu Giao Nhận</h3>
+            <h3 style={{margin:"0 0 16px",fontSize:15}}>{t("modalTaoPGN")}</h3>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
               <div>
                 <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Số phiếu</label>
@@ -3981,7 +4031,7 @@ Bạn có chắc chắn không?`;
               <div style={{border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden",marginBottom:16}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead><tr style={{background:"#f8fafc"}}>
-                    {["STT","Mã số","Tên","ĐVT","SL",""].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontWeight:700,color:"#6b7280"}}>{h}</th>)}
+                    {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSL"),""].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontWeight:700,color:"#6b7280"}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {phIt.map((it,i)=>(
@@ -4052,7 +4102,7 @@ Bạn có chắc chắn không?`;
             <div style={{overflowX:"auto",marginBottom:14}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                  {["STT","Mã số","Tên vật tư","ĐVT","Số lượng",editPh?"":isXH?"SL Thực nhận":"",editPh?"":"SL thiếu",editPh?"Xóa":"Duyệt",editPh?null:"Người duyệt"].filter(h=>h!==null&&h!=="").map(h=><th key={h} style={{padding:"8px 10px",textAlign:["Số lượng","SL Thực nhận","SL thiếu"].includes(h)?"right":"left",fontWeight:700,color:h==="SL Thực nhận"?"#1d4ed8":h==="SL thiếu"?"#dc2626":"#374151",whiteSpace:"nowrap"}}>{h}</th>)}
+                  {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoLuong"),editPh?"":isXH?t("thSLThucNhan"):"",editPh?"":t("thSLThieu"),editPh?t("thXoa"):t("thDuyet"),editPh?null:t("thNguoiDuyet")].filter(h=>h!==null&&h!=="").map(h=><th key={h} style={{padding:"8px 10px",textAlign:[t("thSoLuong"),t("thSLThucNhan"),t("thSLThieu")].includes(h)?"right":"left",fontWeight:700,color:h===t("thSLThucNhan")?"#1d4ed8":h===t("thSLThieu")?"#dc2626":"#374151",whiteSpace:"nowrap"}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {(editPh?editPh.ct:freshVP.ct||[]).map((c,i)=>(
@@ -4192,7 +4242,7 @@ Bạn có chắc chắn không?`;
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:12}}
           onClick={e=>{if(e.target===e.currentTarget){setShowXlsImport(false);setXlsPreview([]);setXlsErr("");importPidRef.current=null;}}}>
           <div style={{background:"#fff",borderRadius:12,padding:22,width:"100%",maxWidth:560,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",maxHeight:"92vh",overflowY:"auto"}}>
-            <h3 style={{margin:"0 0 6px",fontSize:15}}>📊 Import BOM từ Excel</h3>
+            <h3 style={{margin:"0 0 6px",fontSize:15}}>{t("modalImportExcel")}</h3>
             <p style={{margin:"0 0 14px",color:"#6b7280",fontSize:12}}>File Excel cần có các cột: <b>Mã số, Tên vật tư, ĐVT, ĐM/1XE, Nguồn gốc, Vị trí, Ghi chú</b></p>
             <div style={{background:"#f8fafc",borderRadius:8,padding:"12px 16px",marginBottom:14,fontSize:12,color:"#374151"}}>
               <div style={{fontWeight:700,marginBottom:6}}>Tên cột hợp lệ:</div>
@@ -4209,7 +4259,7 @@ Bạn có chắc chắn không?`;
                 <div style={{overflowX:"auto",maxHeight:220,overflowY:"auto",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:14}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                     <thead><tr style={{background:"#f8fafc",position:"sticky",top:0}}>
-                      {["STT","Mã số","Tên vật tư","ĐVT","ĐM","Nguồn gốc"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",fontWeight:700,color:"#374151",borderBottom:"1px solid #e5e7eb"}}>{h}</th>)}
+                      {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thDM"),t("thNguonGoc")].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",fontWeight:700,color:"#374151",borderBottom:"1px solid #e5e7eb"}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
                       {xlsPreview.slice(0,10).map((v,i)=>(
@@ -4245,7 +4295,7 @@ Bạn có chắc chắn không?`;
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:12}}
           onClick={e=>{if(e.target===e.currentTarget)setShowImport(false);}}>
           <div style={{background:"#fff",borderRadius:12,padding:24,width:"100%",maxWidth:460,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-            <h3 style={{margin:"0 0 6px",fontSize:15}}>📥 Import BOM vào dự án</h3>
+            <h3 style={{margin:"0 0 6px",fontSize:15}}>{t("modalImportProj")}</h3>
             <p style={{margin:"0 0 18px",fontSize:12,color:"#6b7280"}}>Dự án hiện tại: <b>{proj.icon} {proj.ten}</b> ({bom.length} mã đang có)</p>
 
             <div style={{marginBottom:14}}>
