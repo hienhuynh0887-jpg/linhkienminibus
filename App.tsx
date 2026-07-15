@@ -748,53 +748,68 @@ const BAO_CAO_STYLE=`
 
 // Dựng file PDF thật (Blob) từ htmlContent bằng html2canvas + jsPDF, để có thể chia sẻ
 // như 1 tệp đính kèm thực sự (Zalo/Gmail/Messenger sẽ hiện thumbnail ảnh, không phải link chữ).
-async function taoFilePDF(htmlContent, tenFile="BaoCao"){
+//
+// QUAN TRỌNG: nếu báo cáo có bảng rất dài (hàng trăm dòng), chụp toàn bộ bảng thành 1 tấm ảnh
+// khổng lồ trong 1 lần rất dễ làm trình duyệt di động bị treo cứng (không lỗi, không phản hồi).
+// Vì vậy ở đây bảng được CHIA NHỎ thành từng nhóm ít dòng (mặc định 25 dòng/nhóm), chụp riêng
+// từng nhóm rồi ghép thành nhiều trang PDF — mỗi lần chụp nhẹ hơn nhiều, khó bị treo hơn hẳn.
+async function taoFilePDF(htmlContent, tenFile="BaoCao", soHangMoiTrang=25){
   const [{default:html2canvas}, {jsPDF}] = await Promise.all([
     import("html2canvas"),
     import("jspdf"),
   ]);
 
-  const wrap=document.createElement("div");
-  wrap.style.cssText="position:fixed;left:-99999px;top:0;width:900px;background:#fff;";
-  wrap.innerHTML=`<style>${BAO_CAO_STYLE}</style><div style="padding:16px">${htmlContent}<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div></div>`;
-  document.body.appendChild(wrap);
+  // Tách htmlContent thành: tiêu đề/mô tả (phần trước bảng) + bảng (nếu có)
+  const parsed = new DOMParser().parseFromString(htmlContent, "text/html");
+  const bang = parsed.querySelector("table");
 
-  let blob=null;
-  try{
-    // Bảng càng dài (nhiều mã vật tư) thì canvas ở scale cao càng dễ vượt giới hạn
-    // kích thước ảnh mà trình duyệt di động cho phép (thường ~8000-16000px chiều cao),
-    // gây treo hoặc lỗi âm thầm. Tự động giảm độ phân giải (scale) khi nội dung quá dài.
-    const caoNoiDung = wrap.scrollHeight; // chiều cao thực tế ở scale 1 (px)
-    const gioiHanCaoAnh = 8000; // ngưỡng an toàn cho hầu hết điện thoại
-    let scale = 2;
-    if(caoNoiDung * scale > gioiHanCaoAnh){
-      scale = Math.max(1, Math.floor((gioiHanCaoAnh / caoNoiDung) * 10) / 10);
-    }
+  const pdf = new jsPDF({unit:"pt", format:"a4"});
+  const pageW = pdf.internal.pageSize.getWidth();
 
-    const canvas=await html2canvas(wrap, {scale, backgroundColor:"#ffffff", useCORS:true});
-    if(!canvas || !canvas.width || !canvas.height){
-      throw new Error("Không tạo được ảnh báo cáo (canvas rỗng) — có thể bảng quá dài, vượt giới hạn của trình duyệt.");
+  // Hàm dùng chung: chụp 1 khối HTML (nhỏ) rồi vẽ vào PDF thành 1 trang riêng
+  const chupVaThemTrang = async (htmlKhoi, laTrangDau) => {
+    const wrap=document.createElement("div");
+    wrap.style.cssText="position:fixed;left:-99999px;top:0;width:900px;background:#fff;";
+    wrap.innerHTML=`<style>${BAO_CAO_STYLE}</style><div style="padding:16px">${htmlKhoi}</div>`;
+    document.body.appendChild(wrap);
+    try{
+      const canvas=await html2canvas(wrap, {scale:2, backgroundColor:"#ffffff", useCORS:true});
+      if(!canvas || !canvas.width || !canvas.height){
+        throw new Error("Không tạo được ảnh (canvas rỗng).");
+      }
+      const imgData=canvas.toDataURL("image/png");
+      const imgH=(canvas.height*pageW)/canvas.width;
+      if(!laTrangDau) pdf.addPage();
+      pdf.addImage(imgData,"PNG",0,0,pageW,imgH);
+    } finally {
+      document.body.removeChild(wrap);
+      // Nhường lại luồng xử lý cho trình duyệt 1 nhịp, tránh treo khi có nhiều nhóm liên tiếp
+      await new Promise(r=>setTimeout(r,0));
     }
-    const imgData=canvas.toDataURL("image/png");
-    const pdf=new jsPDF({unit:"pt", format:"a4"});
-    const pageW=pdf.internal.pageSize.getWidth();
-    const pageH=pdf.internal.pageSize.getHeight();
-    const imgW=pageW;
-    const imgH=(canvas.height*imgW)/canvas.width;
-    let heightLeft=imgH, position=0;
-    pdf.addImage(imgData,"PNG",0,position,imgW,imgH);
-    heightLeft-=pageH;
-    while(heightLeft>0){
-      position=heightLeft-imgH;
-      pdf.addPage();
-      pdf.addImage(imgData,"PNG",0,position,imgW,imgH);
-      heightLeft-=pageH;
-    }
-    blob=pdf.output("blob");
-  } finally {
-    document.body.removeChild(wrap);
+  };
+
+  if(!bang){
+    // Không có bảng (nội dung ngắn) -> chụp nguyên khối như cũ
+    await chupVaThemTrang(`${htmlContent}<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div>`, true);
+    return pdf.output("blob");
   }
-  return blob;
+
+  // Có bảng -> chia nhỏ theo từng nhóm dòng
+  const tieuDeHtml = [...parsed.body.children].filter(el=>el.tagName!=="TABLE").map(el=>el.outerHTML).join("");
+  const theadHtml = bang.querySelector("thead") ? bang.querySelector("thead").outerHTML : "";
+  const tatCaDong = [...bang.querySelectorAll("tbody tr")];
+  const soNhom = Math.max(1, Math.ceil(tatCaDong.length / soHangMoiTrang));
+
+  for(let i=0;i<soNhom;i++){
+    const nhomDong = tatCaDong.slice(i*soHangMoiTrang, (i+1)*soHangMoiTrang).map(tr=>tr.outerHTML).join("");
+    const laTrangDau = i===0;
+    const tieuDeNhom = laTrangDau ? tieuDeHtml : `<p class="sub">(tiếp theo — trang ${i+1}/${soNhom})</p>`;
+    const chanTrang = (i===soNhom-1) ? `<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div>` : "";
+    const khoiHtml = `${tieuDeNhom}<table>${theadHtml}<tbody>${nhomDong}</tbody></table>${chanTrang}`;
+    await chupVaThemTrang(khoiHtml, laTrangDau);
+  }
+
+  return pdf.output("blob");
 }
 
 // Xuất báo cáo: tạo file PDF thật rồi mở hộp thoại chia sẻ file (Zalo, Gmail, Messenger...).
