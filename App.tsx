@@ -2072,14 +2072,45 @@ Bạn có chắc chắn không?`;
     dbDeletePhieu(phid);
     flash(`✓ Đã hủy duyệt & xóa đơn ${ph?.sp||""}`);
   };
-  const saveEditPh=()=>{
+  const saveEditPh=async()=>{
     if(!editPh)return;
     setPhDB(s=>({...s,[pid]:(s[pid]||[]).map(p=>p.id===editPh.id?{...p,sp:editPh.sp,ngay:editPh.ngay,gc:editPh.gc,tong:editPh.ct.length,ct:editPh.ct}:p)}));
-    supabase.from("phieu").update({sp:editPh.sp,ngay:editPh.ngay,gc:editPh.gc,tong:editPh.ct.length}).eq("id",editPh.id).then(()=>{});
-    supabase.from("phieu_ct").delete().eq("phid",editPh.id).then(()=>{
-      if(editPh.ct.length) supabase.from("phieu_ct").insert(editPh.ct).then(()=>{});
-    });
-    setViewPh(null);setEditPh(null);flash("✓ Đã cập nhật phiếu");
+    setViewPh(null);setEditPh(null);
+    // ⚠️ FIX QUAN TRỌNG: TRƯỚC ĐÂY hàm này xóa hết "phieu_ct" của phiếu rồi mới chèn lại
+    // editPh.ct — nếu editPh.ct (dữ liệu đang có trong bộ nhớ) vì lý do gì đó bị thiếu so
+    // với DB thật (vd. bug giới hạn dòng khi load, hoặc lỗi mạng lúc chèn lại), toàn bộ chi
+    // tiết phiếu bị XÓA VĨNH VIỄN mà không có cảnh báo gì (.then(()=>{}) nuốt luôn lỗi).
+    // Giờ đổi sang: upsert dữ liệu mới TRƯỚC (không mất gì nếu nó thất bại), xác nhận ghi
+    // đủ số dòng, rồi MỚI xóa đúng những id không còn xuất hiện — giống cách dbUpsertBom
+    // đang làm ở trên. Nếu có lỗi ở bất kỳ bước nào, dừng lại và báo cho người dùng biết
+    // ngay, không âm thầm coi như đã lưu xong.
+    try{
+      const {error:phErr}=await supabase.from("phieu").update({sp:editPh.sp,ngay:editPh.ngay,gc:editPh.gc,tong:editPh.ct.length}).eq("id",editPh.id);
+      if(phErr) throw new Error("Lỗi cập nhật phiếu: "+phErr.message);
+
+      const {data:oldData,error:selErr}=await supabase.from("phieu_ct").select("id").eq("phid",editPh.id);
+      if(selErr) throw new Error("Lỗi đọc dữ liệu chi tiết cũ: "+selErr.message);
+      const oldIds=(oldData||[]).map(r=>r.id);
+
+      if(editPh.ct.length){
+        const {data:insData,error:insErr}=await supabase.from("phieu_ct").upsert(editPh.ct,{onConflict:"id"}).select("id");
+        if(insErr) throw new Error("Lỗi lưu chi tiết phiếu: "+insErr.message);
+        if((insData?.length||0)<editPh.ct.length){
+          throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${editPh.ct.length} dòng chi tiết (có thể do Row Level Security chặn quyền ghi) — kiểm tra lại RLS policy trên bảng phieu_ct`);
+        }
+      }
+
+      const newIdSet=new Set(editPh.ct.map(c=>c.id));
+      const idsToDelete=oldIds.filter(oid=>!newIdSet.has(oid));
+      if(idsToDelete.length){
+        const {error:delErr}=await supabase.from("phieu_ct").delete().in("id",idsToDelete);
+        if(delErr) throw new Error("Lỗi xóa dòng chi tiết cũ: "+delErr.message);
+      }
+      flash("✓ Đã cập nhật phiếu");
+    }catch(e:any){
+      console.error("saveEditPh error:",e);
+      flash("❌ Lưu phiếu thất bại: "+(e?.message||"lỗi không xác định")+" — vui lòng thử lại, kiểm tra kỹ dữ liệu trước khi rời trang!");
+    }
   };
   const duyetCt=(phid,ctid,slThucNhan?:number,projId?:string)=>{
     // Dùng projId truyền vào nếu có, không thì tìm trong phDB
