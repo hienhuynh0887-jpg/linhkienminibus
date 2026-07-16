@@ -238,6 +238,67 @@ const BOM_MB2 = [
   {stt:75,id:"K2L2-6200R",ten:"Cửa trượt",dv:"Cái",dm:1,ng:"",vt:"12- Khắc số Vin",gc:""}, 
 ];
 
+// ═══════════════════════════════════════════════════════════════
+//  BOM MẪU — DANH SÁCH LOẠI (động, quản lý được trong app)
+// ═══════════════════════════════════════════════════════════════
+// Trước đây app chỉ có đúng 2 loại BOM Mẫu cứng ("xh"/"mb2") gắn chết trong code.
+// Giờ chuyển sang mô hình động: 1 bảng Supabase DUY NHẤT "bom_mau" (có cột "loai"
+// để phân biệt), cộng thêm bảng "bom_mau_loai" lưu DANH SÁCH các loại (tên/icon/màu),
+// người dùng có thể bấm "➕ Thêm loại BOM mẫu mới" để tạo bao nhiêu loại tùy ý mà
+// không cần sửa code. 2 loại "xh"/"mb2" dưới đây chỉ còn là dữ liệu MẶC ĐỊNH dùng để
+// tạo sẵn (seed) lần đầu khi bảng Supabase chưa có gì — sau khi đã lưu lên Supabase,
+// app sẽ luôn đọc theo dữ liệu thật trong 2 bảng "bom_mau_loai" và "bom_mau".
+//
+// ⚠️ SQL cần chạy 1 lần trên Supabase (SQL Editor) trước khi dùng tính năng này:
+//
+//   create table if not exists bom_mau_loai (
+//     id text primary key,
+//     ten text not null,
+//     icon text default '🚐',
+//     mau text default '#7c3aed',
+//     thu_tu integer default 0
+//   );
+//   insert into bom_mau_loai (id,ten,icon,mau,thu_tu) values
+//     ('xh','XE KIM MAI 9','🚗','#1d4ed8',1),
+//     ('mb2','XE MINIBUS X9','🚐','#b45309',2)
+//   on conflict (id) do nothing;
+//
+//   create table if not exists bom_mau (
+//     loai text not null references bom_mau_loai(id) on delete cascade,
+//     id text not null,
+//     stt integer default 0,
+//     ten text not null,
+//     dv text default 'Cái',
+//     dm numeric default 1,
+//     ng text,
+//     vt text,
+//     jig text,
+//     gc text,
+//     primary key (loai, id)
+//   );
+//
+//   -- Nếu trước đây đã có dữ liệu ở 2 bảng cũ bom_mau_xh / bom_mau_mb2, gộp qua bảng mới:
+//   insert into bom_mau (loai,id,stt,ten,dv,dm,ng,vt,jig,gc)
+//     select 'xh',id,stt,ten,dv,dm,ng,vt,jig,gc from bom_mau_xh
+//     union all
+//     select 'mb2',id,stt,ten,dv,dm,ng,vt,jig,gc from bom_mau_mb2
+//   on conflict (loai,id) do nothing;
+//
+const BOM_MAU_LOAI_DEFAULT = [
+  {id:"xh",  ten:"XE KIM MAI 9",   icon:"🚗", mau:"#1d4ed8", thu_tu:1},
+  {id:"mb2", ten:"XE MINIBUS X9",  icon:"🚐", mau:"#b45309", thu_tu:2},
+];
+const BOM_MAU_SEED = {xh: BOM_XH, mb2: BOM_MB2};
+// Chuyển tên loại BOM mẫu → id (slug) khi tạo loại mới, đảm bảo không trùng.
+const slugifyLoaiId = (ten) => {
+  const base = String(ten||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/đ/gi,"d")
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+  return base || "loai";
+};
+
 const SEED = {proj_xh: BOM_XH, proj_mb2: BOM_MB2};
 const PROJS_DEF = [
   {id:"proj_xh", ten:"XE KIM MAI 9", mo_ta:"BOM XE KIM MAI 9 ( Bản mới ) · Nhà Máy Bus", mau:"#1d4ed8", icon:"🚐", so_xe:1},
@@ -1029,27 +1090,58 @@ export default function App(){
 
   const fRef=useRef();
 
-  // ── BOM Mẫu state ──
-  const [bomMauXH,  setBomMauXH]  = useState(()=>BOM_XH.map((r,i)=>({...r, _id: i+1})));
-  const [bomMauMB2, setBomMauMB2] = useState(()=>BOM_MB2.map((r,i)=>({...r, _id: i+1})));
-  const [bmTab,     setBmTab]     = useState("xh");       // "xh" | "mb2"
+  // ── BOM Mẫu state (động — nhiều loại, không giới hạn) ──
+  // bomMauLoaiList: danh sách các LOẠI BOM mẫu (tên/icon/màu) — quản lý được trong app,
+  // thêm mới bằng nút "➕ Thêm loại BOM mẫu mới", lưu ở bảng Supabase "bom_mau_loai".
+  const [bomMauLoaiList, setBomMauLoaiList] = useState(()=>BOM_MAU_LOAI_DEFAULT.map(x=>({...x})));
+  // bomMauByLoai: { [loaiId]: rows[] } — toàn bộ mã vật tư của từng loại, lưu chung 1 bảng
+  // Supabase "bom_mau" (phân biệt bằng cột "loai").
+  const [bomMauByLoai, setBomMauByLoai] = useState(()=>{
+    const m={};
+    BOM_MAU_LOAI_DEFAULT.forEach(l=>{
+      m[l.id]=(BOM_MAU_SEED[l.id]||[]).map((r,i)=>({...r, _id:`${l.id}-${i+1}`}));
+    });
+    return m;
+  });
+  const [bmTab,     setBmTab]     = useState(()=>BOM_MAU_LOAI_DEFAULT[0]?.id||"xh"); // id loại đang xem
   const [bmSearch,  setBmSearch]  = useState("");
   const [bmModal,   setBmModal]   = useState(null);       // null | "add" | "edit"
   const [bmCur,     setBmCur]     = useState({id:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:""});
   const [bmEditIdx, setBmEditIdx] = useState(null);
   const [bmConfirm, setBmConfirm] = useState(null);       // index to delete
+  const [bmShowImport, setBmShowImport] = useState(false);
+  const [bmXlsPreview, setBmXlsPreview] = useState([]);
+  const [bmXlsErr, setBmXlsErr] = useState("");
+  const bmXlsRef = useRef();
+  // ── Quản lý LOẠI BOM mẫu (thêm/xóa loại) ──
+  const [bmLoaiModal, setBmLoaiModal] = useState(false);
+  const [bmLoaiForm,  setBmLoaiForm]  = useState({ten:"",icon:"🚐",mau:"#7c3aed"});
+  const [bmLoaiDelConfirm, setBmLoaiDelConfirm] = useState(null); // id loại đang chờ xác nhận xóa
+
+  // Helper: lấy/ghi danh sách mã của loại BOM mẫu đang chọn (bmTab), hỗ trợ cả truyền
+  // mảng trực tiếp lẫn hàm cập nhật (updater) như setState thông thường.
+  const getBomMauRows = (loaiId) => bomMauByLoai[loaiId] || [];
+  const setBomMauRows = (loaiId, updater) => {
+    setBomMauByLoai(m=>{
+      const prev = m[loaiId] || [];
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      return {...m, [loaiId]: next};
+    });
+  };
 
   // ── Load dữ liệu từ Supabase khi khởi động ──
   useEffect(()=>{
     const load=async()=>{
       try{
-        const [r1,r2,r3,r4,r5,r6]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8]=await Promise.all([
           supabase.from("users").select("*"),
           supabase.from("projects").select("*"),
           supabase.from("bom_items").select("*").range(0, 9999),
           supabase.from("phieu").select("*").order("ts",{ascending:false}),
           supabase.from("phieu_ct").select("*"),
           supabase.from("lich_su").select("*").order("ts",{ascending:false}).limit(500),
+          supabase.from("bom_mau_loai").select("*").order("thu_tu"),
+          supabase.from("bom_mau").select("*").order("stt"),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -1089,6 +1181,22 @@ export default function App(){
           const grouped={};
           lsData.forEach(v=>{if(!grouped[v.pid])grouped[v.pid]=[];grouped[v.pid].push(v);});
           setLsDB(grouped);
+        }
+        // BOM Mẫu: nếu Supabase đã có dữ liệu (đã từng lưu trước đó) thì dùng bản đó thay
+        // cho danh sách gốc hard-code trong code. Nếu bảng chưa tồn tại/rỗng (lần đầu),
+        // bỏ qua lỗi và tiếp tục dùng seed cũ — không làm ảnh hưởng phần còn lại của app.
+        if(r7.error) console.warn("Chưa đọc được bảng bom_mau_loai (có thể chưa tạo bảng):",r7.error.message);
+        else if(r7.data?.length){
+          setBomMauLoaiList(r7.data);
+          // Nếu loại đang chọn (bmTab) không còn tồn tại trong danh sách thật từ DB,
+          // tự chuyển về loại đầu tiên để tránh màn hình trắng.
+          setBmTab(t=>r7.data.some(l=>l.id===t)?t:r7.data[0].id);
+        }
+        if(r8.error) console.warn("Chưa đọc được bảng bom_mau (có thể chưa tạo bảng):",r8.error.message);
+        else if(r8.data?.length){
+          const grouped={};
+          r8.data.forEach(row=>{if(!grouped[row.loai])grouped[row.loai]=[];grouped[row.loai].push(row);});
+          setBomMauByLoai(grouped);
         }
       }catch(e){console.error("Supabase load error:",e);}
     };
@@ -1224,6 +1332,88 @@ export default function App(){
       throw e;
     }
   };
+  // Đồng bộ toàn bộ 1 BOM Mẫu (theo "loai") lên Supabase — dùng CHUNG 1 bảng "bom_mau"
+  // cho mọi loại (phân biệt bằng cột "loai"), khóa duy nhất là cặp (loai, id).
+  // Nhận "loai" (id của loại BOM mẫu, vd "xh"/"mb2"/loại tự thêm) + TOÀN BỘ mảng hiện
+  // tại (không phải 1 dòng lẻ), rồi upsert + xóa các dòng không còn xuất hiện — cùng
+  // cách làm với dbUpsertBom ở trên.
+  const dbSyncBomMau=async(loai, rows)=>{
+    const cleanRows=(rows||[]).map(r=>({
+      loai:String(loai),
+      id:String(r.id??"").trim().slice(0,200),
+      stt:Number(r.stt)||0,
+      ten:String(r.ten??"").trim().slice(0,500),
+      dv:String(r.dv||"Cái").trim().slice(0,50),
+      dm:Number.isFinite(Number(r.dm))?Number(r.dm):1,
+      ng:r.ng?String(r.ng).trim().slice(0,200):null,
+      vt:r.vt?String(r.vt).trim().slice(0,200):null,
+      jig:r.jig?String(r.jig).trim().slice(0,200):null,
+      gc:r.gc?String(r.gc).trim().slice(0,1000):null,
+    })).filter(r=>r.id&&r.ten);
+
+    const {data:oldData,error:selErr}=await supabase.from("bom_mau").select("id").eq("loai",loai);
+    if(selErr){console.error(`dbSyncBomMau(${loai}) select old error:`,selErr.message,selErr);throw new Error("Lỗi đọc dữ liệu cũ: "+selErr.message);}
+    const oldIds=(oldData||[]).map(r=>r.id);
+
+    try{
+      if(cleanRows.length){
+        const batch=100;
+        for(let i=0;i<cleanRows.length;i+=batch){
+          const chunk=cleanRows.slice(i,i+batch);
+          // ✅ Khóa duy nhất là cặp (loai,id) — xem SQL tạo bảng "bom_mau" ở đầu file.
+          const {data:insData,error:insErr}=await supabase.from("bom_mau").upsert(chunk,{onConflict:"loai,id"}).select("id");
+          if(insErr){
+            console.error(`dbSyncBomMau(${loai}) upsert error:`,insErr.message,insErr,"sample:",chunk[0]);
+            throw new Error(`Lỗi lưu BOM Mẫu (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
+          }
+          if((insData?.length||0)<chunk.length){
+            console.error(`dbSyncBomMau(${loai}): RLS/permission chặn âm thầm — gửi`,chunk.length,"dòng nhưng DB chỉ xác nhận ghi",insData?.length||0,"dòng.");
+            throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng do Row Level Security policy chặn quyền ghi bảng bom_mau) — kiểm tra lại RLS policy trên Supabase`);
+          }
+        }
+      }
+
+      const newIdSet=new Set(cleanRows.map(r=>r.id));
+      const idsToDelete=oldIds.filter(oid=>!newIdSet.has(oid));
+      if(idsToDelete.length){
+        const delBatch=200;
+        for(let i=0;i<idsToDelete.length;i+=delBatch){
+          const idsChunk=idsToDelete.slice(i,i+delBatch);
+          const {error:delErr}=await supabase.from("bom_mau").delete().eq("loai",loai).in("id",idsChunk).select("id");
+          if(delErr){
+            console.error(`dbSyncBomMau(${loai}) delete old error:`,delErr.message,delErr);
+            throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
+          }
+        }
+      }
+      console.log(`dbSyncBomMau(${loai}) OK:`,cleanRows.length,"rows");
+      return {ok:true,count:cleanRows.length};
+    }catch(e){
+      console.error(`dbSyncBomMau(${loai}) exception:`,e);
+      throw e;
+    }
+  };
+  // Thêm/sửa 1 LOẠI BOM mẫu (tên/icon/màu) lên bảng "bom_mau_loai".
+  const dbUpsertBomMauLoai=async(l)=>{
+    const {data,error}=await supabase.from("bom_mau_loai").upsert(l,{onConflict:"id"}).select("id");
+    if(error){
+      console.error("dbUpsertBomMauLoai error:",error.message,error);
+      throw new Error("Lỗi lưu loại BOM mẫu: "+error.message);
+    }
+    if(!data?.length){
+      console.error("dbUpsertBomMauLoai: RLS/permission chặn âm thầm cho loại",l.id);
+      throw new Error("Supabase không xác nhận lưu được loại BOM mẫu (khả năng do Row Level Security policy chặn quyền ghi bảng bom_mau_loai) — kiểm tra lại RLS policy trên Supabase");
+    }
+  };
+  // Xóa 1 loại BOM mẫu — nhờ khóa ngoại "on delete cascade" trên bảng "bom_mau",
+  // toàn bộ mã vật tư thuộc loại đó cũng tự xóa theo.
+  const dbDeleteBomMauLoai=async(id)=>{
+    const {error}=await supabase.from("bom_mau_loai").delete().eq("id",id);
+    if(error){
+      console.error("dbDeleteBomMauLoai error:",error.message,error);
+      throw new Error("Lỗi xóa loại BOM mẫu: "+error.message);
+    }
+  };
   const dbUpsertProj=async(p)=>{
     // ✅ FIX: supabase.from(...).upsert() KHÔNG tự throw khi lưu thất bại — nó trả về
     // {data, error}. Code cũ chỉ try/catch lỗi network/exception, không kiểm tra field
@@ -1353,7 +1543,7 @@ export default function App(){
     if(!nPF.ten.trim())return;
     const id="proj_"+Date.now();
     const p={id,ten:nPF.ten,mo_ta:nPF.moTa||nPF.ten,mau:nPF.mau,icon:nPF.icon,so_xe:parseInt(nPF.so_xe)||1};
-    const seed=nPF.bom==="xh"?bomMauXH:nPF.bom==="mb2"?bomMauMB2:[];
+    const seed=nPF.bom==="import_file"?[]:getBomMauRows(nPF.bom);
     // Nếu chọn "Import BOM (Excel, CSV)" VÀ đã đọc được file → dùng dữ liệu file đó làm BOM ban đầu
     // (dùng CHUNG cách map dữ liệu với doXlsImport: id,pid + các field đã chuẩn hoá từ parseXlsFile)
     const willImport=nPF.bom==="import_file";
@@ -1458,7 +1648,7 @@ export default function App(){
 
   const [selMa,      setSelMa]      = useState(null);  // hàng được click
   const [showImport, setShowImport] = useState(false);
-  const [importSrc,  setImportSrc]  = useState("xh");
+  const [importSrc,  setImportSrc]  = useState(()=>BOM_MAU_LOAI_DEFAULT[0]?.id||"xh");
   const [importMode, setImportMode] = useState("them"); // "them" | "thay"
   const [showXlsImport, setShowXlsImport] = useState(false);
   const [xlsPreview, setXlsPreview] = useState([]);
@@ -1470,7 +1660,7 @@ export default function App(){
   const [newProjXlsErr, setNewProjXlsErr] = useState("");
 
   const doImport=()=>{
-    const seed=importSrc==="xh"?bomMauXH:bomMauMB2;
+    const seed=getBomMauRows(importSrc);
     const rows=mkBom(pid,seed);
     setBomDB(s=>{
       const old=s[pid]||[];
@@ -1486,7 +1676,7 @@ export default function App(){
       return next;
     });
     setShowImport(false);
-    flash(`✓ Import ${rows.length} mã từ ${importSrc==="xh"?"XE KIM MAI 9":"XE MINIBUS X9"}`);
+    flash(`✓ Import ${rows.length} mã từ ${bomMauLoaiList.find(l=>l.id===importSrc)?.ten||importSrc}`);
   };
   // ── CORE: đọc file Excel/CSV và trả kết quả qua callback ──
   // Dùng CHUNG cho cả "Import Excel" (tab Vật tư) và "Import BOM" (modal Tạo dự án mới)
@@ -1601,6 +1791,18 @@ export default function App(){
     e.target.value="";
   };
   // Import BOM ngay trong modal "Thêm dự án mới" — dùng parseXlsFile chung
+  // Import Excel trực tiếp vào BOM Mẫu (tab "BOM Mẫu") — dùng parseXlsFile chung
+  const handleBmXlsFile=e=>{
+    const file=e.target.files[0];
+    setBmXlsErr("");
+    setBmXlsPreview([]);
+    parseXlsFile(file,(rows,err)=>{
+      if(err){setBmXlsErr(err);return;}
+      setBmXlsPreview(rows);
+    });
+    e.target.value="";
+  };
+
   const handleNewProjXlsFile=e=>{
     const file=e.target.files[0];
     setNewProjXlsErr("");
@@ -1610,6 +1812,74 @@ export default function App(){
       setNewProjXlsPreview(rows);
     });
     e.target.value="";
+  };
+
+  // Ghi dữ liệu đã đọc từ Excel vào đúng BOM Mẫu đang chọn (KIM MAI 9 / MINIBUS X9)
+  const doBmImport=(mode)=>{
+    if(!bmXlsPreview.length)return;
+    const setActiveBom = updater=>setBomMauRows(bmTab, updater);
+    const rows = bmXlsPreview.map(v=>({id:v.ma,ten:v.ten,dv:v.dv||"Cái",dm:v.dm||1,ng:v.ng||"",vt:v.vt||"",jig:v.jig||"",gc:v.gc||""}));
+    let finalRows=null;
+    if(mode==="thay"){
+      finalRows=rows.map((r,i)=>({...r,stt:i+1,_id:Date.now()+i}));
+      setActiveBom(finalRows);
+      flash(`✓ Đã thay thế bằng ${finalRows.length} mã từ Excel`);
+    } else {
+      setActiveBom(prev=>{
+        const existingIds=new Set(prev.map(r=>r.id));
+        const newRows=rows.filter(r=>r.id&&!existingIds.has(r.id));
+        const skipped=rows.length-newRows.length;
+        let nextStt=prev.length?Math.max(...prev.map(r=>r.stt||0)):0;
+        const withStt=newRows.map(r=>({...r,stt:++nextStt,_id:Date.now()+Math.random()}));
+        flash(`✓ Đã thêm ${withStt.length} mã mới${skipped?`, bỏ qua ${skipped} mã trùng`:""}`);
+        finalRows=[...prev,...withStt];
+        return finalRows;
+      });
+    }
+    setBmShowImport(false);
+    setBmXlsPreview([]);
+    setBmXlsErr("");
+    // Lưu lên Supabase sau khi state đã cập nhật (finalRows đã tính sẵn ở trên, không cần chờ re-render)
+    setTimeout(()=>{
+      if(finalRows) dbSyncBomMau(bmTab, finalRows).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
+    },0);
+  };
+
+  // ── Thêm / Xóa LOẠI BOM mẫu (danh mục động) ──
+  const addBomMauLoai=async()=>{
+    const ten=bmLoaiForm.ten.trim();
+    if(!ten){alert("Vui lòng nhập tên loại BOM mẫu!");return;}
+    const base=slugifyLoaiId(ten);
+    let id=base,n=2;
+    while(bomMauLoaiList.some(l=>l.id===id)){id=`${base}_${n++}`;}
+    const newLoai={id,ten,icon:bmLoaiForm.icon.trim()||"🚐",mau:bmLoaiForm.mau||"#7c3aed",thu_tu:bomMauLoaiList.length+1};
+    setBomMauLoaiList(l=>[...l,newLoai]);
+    setBomMauByLoai(m=>({...m,[id]:[]}));
+    setBmTab(id);
+    setBmLoaiModal(false);
+    setBmLoaiForm({ten:"",icon:"🚐",mau:"#7c3aed"});
+    try{
+      await dbUpsertBomMauLoai(newLoai);
+      flash(`✓ Đã thêm loại BOM mẫu "${ten}"`);
+    }catch(e){
+      console.error("addBomMauLoai:",e);
+      alert("⚠️ Lưu loại BOM mẫu lên Supabase thất bại: "+e.message+" — loại vẫn hiển thị tạm trên máy bạn, hãy kiểm tra kết nối/RLS rồi thử lại.");
+    }
+  };
+  const deleteBomMauLoai=async(id)=>{
+    if(bomMauLoaiList.length<=1){alert("Phải còn ít nhất 1 loại BOM mẫu!");return;}
+    setBmLoaiDelConfirm(null);
+    const remain=bomMauLoaiList.filter(l=>l.id!==id);
+    setBomMauLoaiList(remain);
+    setBomMauByLoai(m=>{const n={...m};delete n[id];return n;});
+    if(bmTab===id) setBmTab(remain[0]?.id||"");
+    try{
+      await dbDeleteBomMauLoai(id);
+      flash("✓ Đã xóa loại BOM mẫu");
+    }catch(e){
+      console.error("deleteBomMauLoai:",e);
+      alert("⚠️ Xóa loại BOM mẫu trên Supabase thất bại: "+e.message);
+    }
   };
 
   const doXlsImport=async(mode)=>{
@@ -3642,9 +3912,9 @@ Bạn có chắc chắn không?`;
         )}
         {/* ── NGƯỜI DÙNG — chỉ Xưởng Hàn ── */}
         {tab==="bom_mau"&&isXH&&(()=>{
-          const isXh = bmTab==="xh";
-          const activeBom = isXh ? bomMauXH : bomMauMB2;
-          const setActiveBom = isXh ? setBomMauXH : setBomMauMB2;
+          const activeLoai = bomMauLoaiList.find(l=>l.id===bmTab) || bomMauLoaiList[0] || {id:bmTab,ten:bmTab,icon:"🗂️",mau:"#4338ca"};
+          const activeBom = getBomMauRows(bmTab);
+          const setActiveBom = updater=>setBomMauRows(bmTab, updater);
           const filtered = bmSearch.trim()
             ? activeBom.filter(r=>
                 r.id?.toLowerCase().includes(bmSearch.toLowerCase())||
@@ -3667,17 +3937,23 @@ Bạn có chắc chắn không?`;
             if(activeBom.find(r=>r.id===bmCur.id.trim())){alert("Mã số đã tồn tại trong BOM này!");return;}
             const nextStt = activeBom.length ? Math.max(...activeBom.map(r=>r.stt||0))+1 : 1;
             const newRow = {...bmCur, id:bmCur.id.trim(), ten:bmCur.ten.trim(), stt:nextStt, _id:Date.now()};
-            setActiveBom(prev=>[...prev, newRow]);
+            const next=[...activeBom, newRow];
+            setActiveBom(next);
             setBmModal(null);
+            dbSyncBomMau(bmTab, next).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
           };
           const saveEdit=()=>{
             if(!bmCur.ten.trim()){alert("Tên vật tư không được để trống!");return;}
-            setActiveBom(prev=>prev.map((r,i)=>i===bmEditIdx?{...r,...bmCur,id:r.id}:r));
+            const next=activeBom.map((r,i)=>i===bmEditIdx?{...r,...bmCur,id:r.id}:r);
+            setActiveBom(next);
             setBmModal(null);
+            dbSyncBomMau(bmTab, next).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
           };
           const doDelete=(idx)=>{
-            setActiveBom(prev=>prev.filter((_,i)=>i!==idx).map((r,i)=>({...r,stt:i+1})));
+            const next=activeBom.filter((_,i)=>i!==idx).map((r,i)=>({...r,stt:i+1}));
+            setActiveBom(next);
             setBmConfirm(null);
+            dbSyncBomMau(bmTab, next).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
           };
 
           const inpSt={width:"100%",padding:"7px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff"};
@@ -3691,17 +3967,31 @@ Bạn có chắc chắn không?`;
                 <div style={{fontSize:12,opacity:.7}}>Thêm · Sửa · Xóa mã vật tư trong BOM mẫu gốc</div>
               </div>
 
-              {/* Switch BOM */}
-              <div style={{display:"flex",gap:8,marginBottom:12}}>
-                {[{k:"xh",l:"🚗 KIM MAI 9",c:"#1d4ed8",cnt:bomMauXH.length},{k:"mb2",l:"🚐 MINIBUS X9",c:"#b45309",cnt:bomMauMB2.length}].map(t=>(
-                  <button key={t.k} onClick={()=>{setBmTab(t.k);setBmSearch("");}}
-                    style={{flex:1,padding:"10px 8px",borderRadius:10,border:`2px solid ${bmTab===t.k?t.c:"#e5e7eb"}`,
-                      background:bmTab===t.k?t.c:"#fff",color:bmTab===t.k?"#fff":"#374151",
-                      fontWeight:700,fontSize:13,cursor:"pointer",transition:"all .15s"}}>
-                    {t.l}
-                    <span style={{display:"block",fontSize:11,fontWeight:400,marginTop:2,opacity:.85}}>{t.cnt} mã</span>
-                  </button>
+              {/* Switch loại BOM Mẫu — danh sách ĐỘNG, tự thêm được */}
+              <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+                {bomMauLoaiList.map(l=>(
+                  <div key={l.id} style={{position:"relative",flex:"1 1 120px",minWidth:120}}>
+                    <button onClick={()=>{setBmTab(l.id);setBmSearch("");}}
+                      style={{width:"100%",padding:"10px 8px",borderRadius:10,border:`2px solid ${bmTab===l.id?l.mau:"#e5e7eb"}`,
+                        background:bmTab===l.id?l.mau:"#fff",color:bmTab===l.id?"#fff":"#374151",
+                        fontWeight:700,fontSize:13,cursor:"pointer",transition:"all .15s"}}>
+                      {l.icon} {l.ten}
+                      <span style={{display:"block",fontSize:11,fontWeight:400,marginTop:2,opacity:.85}}>{getBomMauRows(l.id).length} mã</span>
+                    </button>
+                    {bomMauLoaiList.length>1&&(
+                      <button title="Xóa loại BOM mẫu này" onClick={()=>setBmLoaiDelConfirm(l.id)}
+                        style={{position:"absolute",top:-6,right:-6,width:20,height:20,borderRadius:"50%",
+                          border:"none",background:"#dc2626",color:"#fff",fontSize:11,lineHeight:"20px",
+                          cursor:"pointer",padding:0}}>✕</button>
+                    )}
+                  </div>
                 ))}
+                <button onClick={()=>{setBmLoaiForm({ten:"",icon:"🚐",mau:"#7c3aed"});setBmLoaiModal(true);}}
+                  style={{flex:"1 1 120px",minWidth:120,padding:"10px 8px",borderRadius:10,
+                    border:"2px dashed #a5b4fc",background:"#f5f3ff",color:"#4338ca",
+                    fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                  ➕ Thêm loại BOM mẫu mới
+                </button>
               </div>
 
               {/* Search + Add */}
@@ -3712,6 +4002,10 @@ Bạn có chắc chắn không?`;
                 <button onClick={openAdd}
                   style={{...btnSt,background:"#16a34a",color:"#fff",padding:"8px 14px",fontSize:13,whiteSpace:"nowrap",borderRadius:8}}>
                   + Thêm mã
+                </button>
+                <button onClick={()=>setBmShowImport(true)}
+                  style={{...btnSt,background:"#7c3aed",color:"#fff",padding:"8px 14px",fontSize:13,whiteSpace:"nowrap",borderRadius:8}}>
+                  📂 Import BOM Mẫu
                 </button>
               </div>
 
@@ -3771,7 +4065,7 @@ Bạn có chắc chắn không?`;
                     <div style={{fontWeight:800,fontSize:15,marginBottom:16}}>
                       {bmModal==="add"?"➕ Thêm mã mới":"✏️ Sửa mã vật tư"}
                       <span style={{fontSize:12,fontWeight:400,color:"#6b7280",marginLeft:8}}>
-                        {isXh?"🚗 KIM MAI 9":"🚐 MINIBUS X9"}
+                        {activeLoai.icon} {activeLoai.ten}
                       </span>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -3832,6 +4126,77 @@ Bạn có chắc chắn không?`;
                           style={{...btnSt,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>Hủy</button>
                         <button onClick={()=>doDelete(bmConfirm)}
                           style={{...btnSt,background:"#dc2626",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>Xóa</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Modal Thêm loại BOM mẫu mới ── */}
+              {bmLoaiModal&&(
+                <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",
+                  alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}}
+                  onClick={e=>{if(e.target===e.currentTarget)setBmLoaiModal(false);}}>
+                  <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:380,
+                    boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+                    <div style={{fontWeight:800,fontSize:15,marginBottom:16}}>➕ Thêm loại BOM mẫu mới</div>
+                    <div style={{display:"grid",gap:10}}>
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Tên loại xe / loại BOM *</label>
+                        <input value={bmLoaiForm.ten} onChange={e=>setBmLoaiForm(f=>({...f,ten:e.target.value}))}
+                          style={inpSt} placeholder="VD: XE BUS X10..." autoFocus/>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <div>
+                          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Icon</label>
+                          <input value={bmLoaiForm.icon} onChange={e=>setBmLoaiForm(f=>({...f,icon:e.target.value}))}
+                            style={inpSt} placeholder="🚐"/>
+                        </div>
+                        <div>
+                          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Màu sắc</label>
+                          <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:6}}>
+                            {["#1d4ed8","#16a34a","#dc2626","#b45309","#7c3aed","#0891b2","#1f2937"].map(c=>(
+                              <div key={c} onClick={()=>setBmLoaiForm(f=>({...f,mau:c}))}
+                                style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",
+                                  border:bmLoaiForm.mau===c?"3px solid #000":"3px solid transparent"}}/>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:11,color:"#9ca3af"}}>
+                        Mã loại (id) sẽ được tự tạo từ tên: <b>{slugifyLoaiId(bmLoaiForm.ten)||"…"}</b>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:18}}>
+                      <button onClick={()=>setBmLoaiModal(false)}
+                        style={{...btnSt,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>Hủy</button>
+                      <button onClick={addBomMauLoai}
+                        style={{...btnSt,background:"#4338ca",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>
+                        ✅ Tạo loại BOM mẫu
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Confirm Xóa loại BOM mẫu ── */}
+              {bmLoaiDelConfirm&&(()=>{
+                const l=bomMauLoaiList.find(x=>x.id===bmLoaiDelConfirm);
+                const soMa=getBomMauRows(bmLoaiDelConfirm).length;
+                return (
+                  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",
+                    alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}}>
+                    <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:380,
+                      boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+                      <div style={{fontWeight:800,fontSize:15,marginBottom:8,color:"#dc2626"}}>🗑️ Xóa loại BOM mẫu</div>
+                      <div style={{fontSize:13,color:"#374151",marginBottom:12}}>
+                        Xóa loại <b>{l?.icon} {l?.ten}</b> sẽ xóa toàn bộ <b>{soMa}</b> mã vật tư thuộc loại này. Hành động này không thể hoàn tác.
+                      </div>
+                      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                        <button onClick={()=>setBmLoaiDelConfirm(null)}
+                          style={{...btnSt,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>Hủy</button>
+                        <button onClick={()=>deleteBomMauLoai(bmLoaiDelConfirm)}
+                          style={{...btnSt,background:"#dc2626",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>Xóa loại này</button>
                       </div>
                     </div>
                   </div>
@@ -3943,7 +4308,9 @@ Bạn có chắc chắn không?`;
                   </div>
                   <div>
                     <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>📋 BOM mẫu</label>
-                    {[{v:"import_file",l:"📂 Import BOM (Excel, CSV UTF-8)",d:"Tải file .xlsx hoặc CSV UTF-8 để lấy dữ liệu",c:"#7c3aed"},{v:"xh",l:"🚗 BOM XE KIM MAI 9 ( Bản mới )",d:`${bomMauXH.length} mã`,c:"#1d4ed8"},{v:"mb2",l:"🚐 BOM XE MINIBUS X9 ( Bản mới )",d:`${bomMauMB2.length} mã`,c:"#b45309"}].map(o=>(
+                    {[{v:"import_file",l:"📂 Import BOM (Excel, CSV UTF-8)",d:"Tải file .xlsx hoặc CSV UTF-8 để lấy dữ liệu",c:"#7c3aed"},
+                      ...bomMauLoaiList.map(l=>({v:l.id,l:`${l.icon} BOM ${l.ten}`,d:`${getBomMauRows(l.id).length} mã`,c:l.mau}))
+                    ].map(o=>(
                       <div key={o.v} onClick={()=>setNPF(f=>({...f,bom:o.v}))}
                         style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,border:`2px solid ${nPF.bom===o.v?o.c:"#e5e7eb"}`,background:nPF.bom===o.v?"#f8fafc":"#fff",cursor:"pointer",marginBottom:6}}>
                         <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${o.c}`,background:nPF.bom===o.v?o.c:"transparent",flexShrink:0}}/>
@@ -4292,6 +4659,55 @@ Bạn có chắc chắn không?`;
           </div>
         </div>
       )}
+      {bmShowImport&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3100,padding:12}}
+          onClick={e=>{if(e.target===e.currentTarget){setBmShowImport(false);setBmXlsPreview([]);setBmXlsErr("");}}}>
+          <div style={{background:"#fff",borderRadius:12,padding:22,width:"100%",maxWidth:560,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",maxHeight:"92vh",overflowY:"auto"}}>
+            <h3 style={{margin:"0 0 6px",fontSize:15}}>📂 Import BOM Mẫu — {bmTab==="xh"?"🚗 KIM MAI 9":"🚐 MINIBUS X9"}</h3>
+            <p style={{margin:"0 0 14px",color:"#6b7280",fontSize:12}}>File Excel cần có các cột: <b>Mã số, Tên vật tư, ĐVT, ĐM/1XE, Nguồn gốc, Vị trí, Ghi chú</b></p>
+            <input ref={bmXlsRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleBmXlsFile}/>
+            <button onClick={()=>bmXlsRef.current.click()} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#7c3aed",color:"#fff",padding:"9px 18px",fontSize:13,marginBottom:12,width:"100%"}}>
+              📂 Chọn file Excel (.xlsx / .xls / .csv)
+            </button>
+            {bmXlsErr&&<div style={{background:"#fee2e2",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {bmXlsErr}</div>}
+            {bmXlsPreview.length>0&&(
+              <div>
+                <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:"#065f46"}}>✓ Đọc được {bmXlsPreview.length} mã vật tư</div>
+                <div style={{overflowX:"auto",maxHeight:220,overflowY:"auto",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:14}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                    <thead><tr style={{background:"#f8fafc",position:"sticky",top:0}}>
+                      {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thDM"),t("thNguonGoc")].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",fontWeight:700,color:"#374151",borderBottom:"1px solid #e5e7eb"}}>{h}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {bmXlsPreview.slice(0,10).map((v,i)=>(
+                        <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
+                          <td style={{padding:"5px 8px",color:"#9ca3af"}}>{v.stt}</td>
+                          <td style={{padding:"5px 8px",fontWeight:700,color:"#7c3aed",fontFamily:"monospace"}}>{v.ma}</td>
+                          <td style={{padding:"5px 8px",maxWidth:160,textAlign:"left"}}>{v.ten}</td>
+                          <td style={{padding:"5px 8px",color:"#6b7280"}}>{v.dv}</td>
+                          <td style={{padding:"5px 8px",textAlign:"center"}}>{v.dm}</td>
+                          <td style={{padding:"5px 8px",color:"#6b7280"}}>{v.ng}</td>
+                        </tr>
+                      ))}
+                      {bmXlsPreview.length>10&&<tr><td colSpan={6} style={{padding:"6px 8px",color:"#9ca3af",textAlign:"center"}}>...và {bmXlsPreview.length-10} mã nữa</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+                  <button onClick={()=>{setBmShowImport(false);setBmXlsPreview([]);setBmXlsErr("");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#f3f4f6",color:"#374151",padding:"7px 14px",fontSize:13}}>Hủy</button>
+                  <button onClick={()=>{if(window.confirm(`Thêm ${bmXlsPreview.length} mã mới vào BOM Mẫu hiện tại? (mã trùng sẽ tự bỏ qua)`))doBmImport("them");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#16a34a",color:"#fff",padding:"7px 16px",fontSize:13}}>➕ Thêm vào</button>
+                  <button onClick={()=>{if(window.confirm(`Thay thế TOÀN BỘ BOM Mẫu (${bmTab==="xh"?"KIM MAI 9":"MINIBUS X9"}) bằng ${bmXlsPreview.length} mã từ Excel?`))doBmImport("thay");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#dc2626",color:"#fff",padding:"7px 16px",fontSize:13}}>🔄 Thay thế</button>
+                </div>
+              </div>
+            )}
+            {!bmXlsPreview.length&&!bmXlsErr&&(
+              <div style={{textAlign:"right",marginTop:8}}>
+                <button onClick={()=>{setBmShowImport(false);setBmXlsErr("");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#f3f4f6",color:"#374151",padding:"7px 14px",fontSize:13}}>Đóng</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {showImport&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:12}}
           onClick={e=>{if(e.target===e.currentTarget)setShowImport(false);}}>
@@ -4301,7 +4717,7 @@ Bạn có chắc chắn không?`;
 
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:8}}>Chọn BOM nguồn</label>
-              {[{v:"xh",l:"🚗 BOM XE KIM MAI 9 ( Bản mới )",d:`${bomMauXH.length} mã vật tư`,c:"#1d4ed8"},{v:"mb2",l:"🚐 BOM XE MINIBUS X9 ( Bản mới )",d:`${bomMauMB2.length} mã vật tư`,c:"#b45309"}].map(o=>(
+              {bomMauLoaiList.map(l=>({v:l.id,l:`${l.icon} BOM ${l.ten}`,d:`${getBomMauRows(l.id).length} mã vật tư`,c:l.mau})).map(o=>(
                 <div key={o.v} onClick={()=>setImportSrc(o.v)}
                   style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:8,border:`2px solid ${importSrc===o.v?o.c:"#e5e7eb"}`,background:importSrc===o.v?"#f8fafc":"#fff",cursor:"pointer",marginBottom:8}}>
                   <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${o.c}`,background:importSrc===o.v?o.c:"transparent",flexShrink:0}}/>
