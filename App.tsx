@@ -1042,6 +1042,45 @@ export default function App(){
     return ()=>{ supabase.removeChannel(channel); };
   },[]);
 
+  // ── Realtime: đồng bộ bảng bom_items giữa các thiết bị/người dùng gần như tức thời.
+  // Đây là LỚP BẢO VỆ BỔ SUNG chống mất dữ liệu nhiều trạm: lớp chính là đã đổi mọi thao
+  // tác ghi/xóa 1 mã sang đúng-1-dòng (dbUpsertBomRows/dbDeleteBomItems ở trên) thay vì
+  // "upsert cả mảng rồi xóa những gì local không có" — nhưng nếu 1 máy vẫn lỡ mở rất lâu
+  // và local có sai lệch nhỏ, realtime này giúp local luôn bắt kịp thay đổi của người khác
+  // gần như ngay lập tức, thay vì phải tải lại trang mới thấy.
+  useEffect(()=>{
+    const upsertLocal=row=>{
+      if(!row?.pid||!row?.id)return;
+      setBomDB(s=>{
+        const arr=s[row.pid]||[];
+        const idx=arr.findIndex(v=>v.id===row.id);
+        const next=idx>=0?arr.map((v,i)=>i===idx?{...v,...row}:v):[...arr,row];
+        return {...s,[row.pid]:next};
+      });
+    };
+    const removeLocal=id=>{
+      if(!id)return;
+      setBomDB(s=>{
+        let changed=false;
+        const next={...s};
+        for(const p of Object.keys(next)){
+          if((next[p]||[]).some(v=>v.id===id)){
+            next[p]=next[p].filter(v=>v.id!==id);
+            changed=true;
+          }
+        }
+        return changed?next:s;
+      });
+    };
+    const channel=supabase
+      .channel("bom_items_realtime")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"bom_items"},payload=>upsertLocal(payload.new))
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"bom_items"},payload=>upsertLocal(payload.new))
+      .on("postgres_changes",{event:"DELETE",schema:"public",table:"bom_items"},payload=>removeLocal(payload.old?.id))
+      .subscribe();
+    return ()=>{ supabase.removeChannel(channel); };
+  },[]);
+
   // ── Tick mỗi phút để nhật ký BOM hiển thị thời gian tương đối cập nhật liên tục ──
   useEffect(()=>{
     const iv=setInterval(()=>setNowTick(Date.now()),30000);
@@ -1177,6 +1216,62 @@ export default function App(){
       throw e;
     }
   };
+  // ✅ GHI AN TOÀN NHIỀU NGƯỜI DÙNG: chỉ upsert ĐÚNG những dòng được truyền vào,
+  // KHÔNG bao giờ xóa bất kỳ dòng nào khác trên Supabase. Dùng cho MỌI thao tác
+  // thêm/sửa 1 (hoặc vài) mã cụ thể — vì bomDB cục bộ trên máy mỗi người dùng có thể
+  // đang cũ hơn dữ liệu thật trên server (app không có realtime đồng bộ đầy đủ cho
+  // bom_items), nên KHÔNG được coi "mảng local" là danh sách đầy đủ rồi xóa hết những
+  // gì server có mà local không có — đó chính là nguyên nhân gây "mất dữ liệu nhiều
+  // trạm" khi nhiều người cùng thao tác. Việc XÓA (nếu cần) phải làm riêng, có chủ đích,
+  // bằng dbDeleteBomItems ngay bên dưới.
+  const dbUpsertBomRows=async(pid,rows)=>{
+    const cleanRows=(rows||[]).map(r=>({
+      id:r.id,
+      pid,
+      stt:Number(r.stt)||0,
+      ma:String(r.ma??"").trim().slice(0,200),
+      ten:String(r.ten??"").trim().slice(0,500),
+      dv:String(r.dv||"Cái").trim().slice(0,50),
+      dm:Number.isFinite(Number(r.dm))?Number(r.dm):1,
+      ng:r.ng?String(r.ng).trim().slice(0,200):null,
+      vt:r.vt?String(r.vt).trim().slice(0,200):null,
+      gc:r.gc?String(r.gc).trim().slice(0,1000):null,
+      anh:r.anh||null,
+    })).filter(r=>r.ma&&r.ten);
+    const nSkipped=(rows?.length||0)-cleanRows.length;
+    if(nSkipped>0){
+      console.warn(`dbUpsertBomRows: bỏ qua ${nSkipped}/${rows.length} dòng thiếu Mã số/Tên vật tư`);
+    }
+    if(!cleanRows.length) return {ok:true,count:0,skipped:nSkipped};
+    const batch=100;
+    for(let i=0;i<cleanRows.length;i+=batch){
+      const chunk=cleanRows.slice(i,i+batch);
+      const {data:insData,error:insErr}=await supabase.from("bom_items").upsert(chunk,{onConflict:"id"}).select("id");
+      if(insErr){
+        console.error("dbUpsertBomRows upsert error:",insErr.message,insErr,"sample:",chunk[0]);
+        throw new Error(`Lỗi lưu mã VT (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
+      }
+      if((insData?.length||0)<chunk.length){
+        console.error("dbUpsertBomRows: RLS/permission chặn âm thầm — gửi",chunk.length,"dòng nhưng DB chỉ xác nhận ghi",insData?.length||0,"dòng.");
+        throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng cao do Row Level Security policy chặn quyền ghi bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
+      }
+    }
+    console.log("dbUpsertBomRows OK:",pid,cleanRows.length,"rows",nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
+    return {ok:true,count:cleanRows.length,skipped:nSkipped};
+  };
+  // ✅ Xóa ĐÚNG các id được chỉ định — không đụng tới bất kỳ dòng nào khác. Dùng khi
+  // người dùng CHỦ ĐỘNG xóa 1 (hoặc vài) mã cụ thể, thay cho cách "xóa mọi thứ không có
+  // trong mảng local" (nguồn gốc lỗi mất dữ liệu nhiều trạm trước đây).
+  const dbDeleteBomItems=async(ids)=>{
+    const clean=[...new Set((ids||[]).filter(Boolean))];
+    if(!clean.length) return {ok:true,count:0};
+    const {error}=await supabase.from("bom_items").delete().in("id",clean).select("id");
+    if(error){
+      console.error("dbDeleteBomItems error:",error.message,error);
+      throw new Error("Lỗi xóa mã VT: "+error.message);
+    }
+    return {ok:true,count:clean.length};
+  };
   // Đồng bộ toàn bộ 1 BOM Mẫu (theo "loai") lên Supabase — dùng CHUNG 1 bảng "bom_mau"
   // cho mọi loại (phân biệt bằng cột "loai"), khóa duy nhất là cặp (loai, id).
   // Nhận "loai" (id của loại BOM mẫu, vd "xh"/"mb2"/loại tự thêm) + TOÀN BỘ mảng hiện
@@ -1237,6 +1332,49 @@ export default function App(){
       console.error(`dbSyncBomMau(${loai}) exception:`,e);
       throw e;
     }
+  };
+  // ✅ Bản an toàn của dbSyncBomMau: chỉ upsert đúng những dòng truyền vào, KHÔNG xóa gì.
+  // Dùng cho thêm/sửa 1 mã trong BOM Mẫu, tránh cùng lỗi "xóa-theo-khác-biệt-cả-mảng"
+  // như đã sửa ở dbUpsertBomRows phía trên.
+  const dbUpsertBomMauRows=async(loai, rows)=>{
+    const cleanRows=(rows||[]).map(r=>({
+      loai:String(loai),
+      id:String(r.id??"").trim().slice(0,200),
+      stt:Number(r.stt)||0,
+      ten:String(r.ten??"").trim().slice(0,500),
+      dv:String(r.dv||"Cái").trim().slice(0,50),
+      dm:Number.isFinite(Number(r.dm))?Number(r.dm):1,
+      ng:r.ng?String(r.ng).trim().slice(0,200):null,
+      vt:r.vt?String(r.vt).trim().slice(0,200):null,
+      jig:r.jig?String(r.jig).trim().slice(0,200):null,
+      gc:r.gc?String(r.gc).trim().slice(0,1000):null,
+    })).filter(r=>r.id&&r.ten);
+    if(!cleanRows.length) return {ok:true,count:0};
+    const batch=100;
+    for(let i=0;i<cleanRows.length;i+=batch){
+      const chunk=cleanRows.slice(i,i+batch);
+      const {data:insData,error:insErr}=await supabase.from("bom_mau").upsert(chunk,{onConflict:"loai,id"}).select("id");
+      if(insErr){
+        console.error(`dbUpsertBomMauRows(${loai}) upsert error:`,insErr.message,insErr,"sample:",chunk[0]);
+        throw new Error(`Lỗi lưu BOM Mẫu (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
+      }
+      if((insData?.length||0)<chunk.length){
+        console.error(`dbUpsertBomMauRows(${loai}): RLS/permission chặn âm thầm — gửi`,chunk.length,"dòng nhưng DB chỉ xác nhận ghi",insData?.length||0,"dòng.");
+        throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng do Row Level Security policy chặn quyền ghi bảng bom_mau) — kiểm tra lại RLS policy trên Supabase`);
+      }
+    }
+    return {ok:true,count:cleanRows.length};
+  };
+  // ✅ Xóa đúng các id trong 1 loại BOM Mẫu cụ thể — không xóa-theo-khác-biệt cả mảng.
+  const dbDeleteBomMauRows=async(loai, ids)=>{
+    const clean=[...new Set((ids||[]).filter(Boolean))];
+    if(!clean.length) return {ok:true,count:0};
+    const {error}=await supabase.from("bom_mau").delete().eq("loai",loai).in("id",clean).select("id");
+    if(error){
+      console.error(`dbDeleteBomMauRows(${loai}) error:`,error.message,error);
+      throw new Error("Lỗi xóa BOM Mẫu: "+error.message);
+    }
+    return {ok:true,count:clean.length};
   };
   // Thêm/sửa 1 LOẠI BOM mẫu (tên/icon/màu) lên bảng "bom_mau_loai".
   const dbUpsertBomMauLoai=async(l)=>{
@@ -1377,12 +1515,19 @@ export default function App(){
   const save=()=>{
     if(!cur.ma.trim()||!cur.ten.trim())return;
     const edit=modal==="edit";
+    let savedRow=null;
     setBomDB(s=>{
       const old=s[pid]||[];
       let next;
-      if(edit) next={...s,[pid]:old.map(v=>v.ma===cur.ma?{...v,...cur}:v)};
-      else{const ns=old.length?Math.max(...old.map(v=>v.stt))+1:1;next={...s,[pid]:[...old,{id:uid(),pid,stt:ns,...cur}]};}
-      dbUpsertBom(pid,next[pid]);
+      if(edit) next={...s,[pid]:old.map(v=>v.ma===cur.ma?(savedRow={...v,...cur}):v)};
+      else{const ns=old.length?Math.max(...old.map(v=>v.stt))+1:1;savedRow={id:uid(),pid,stt:ns,...cur};next={...s,[pid]:[...old,savedRow]};}
+      // ✅ AN TOÀN NHIỀU NGƯỜI DÙNG: chỉ upsert ĐÚNG 1 dòng vừa lưu (dbUpsertBomRows —
+      // không xóa gì cả), KHÔNG dùng dbUpsertBom (xóa-theo-khác-biệt cả mảng) nữa. Vì
+      // bomDB cục bộ trên máy này có thể đang cũ hơn server (app không có realtime đầy đủ
+      // cho bom_items), nếu xóa-theo-khác-biệt sẽ xóa nhầm mã mà người khác vừa thêm ở
+      // trạm khác chưa kịp đồng bộ về máy này — đây là nguyên nhân gây mất dữ liệu nhiều
+      // trạm khi nhiều người dùng cùng lúc.
+      dbUpsertBomRows(pid,[savedRow]).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
       return next;
     });
     if(!edit)addLS(pid,{pid,ma:cur.ma,ten:cur.ten,loai:"Tạo mới",sl:cur.dm,gc:""});
@@ -1391,11 +1536,11 @@ export default function App(){
   };
   const del=v=>{
     if(!window.confirm(`Xóa "${v.ten}"?`))return;
-    setBomDB(s=>{
-      const next={...s,[pid]:(s[pid]||[]).filter(x=>x.ma!==v.ma)};
-      dbUpsertBom(pid,next[pid]);
-      return next;
-    });
+    setBomDB(s=>({...s,[pid]:(s[pid]||[]).filter(x=>x.ma!==v.ma)}));
+    // ✅ Chỉ xóa ĐÚNG dòng này theo id (dbDeleteBomItems) — không còn dùng cách "xóa mọi
+    // dòng không có trong mảng local" như trước, để không lỡ tay xóa dữ liệu người khác
+    // vừa thêm ở trạm khác mà máy này chưa kịp có.
+    dbDeleteBomItems([v.id]).catch(e=>flash("❌ Xóa trên máy chủ thất bại: "+e.message));
     addBomLog("xoa",v);
     flash("✓ Đã xóa");
   };
@@ -1445,7 +1590,7 @@ export default function App(){
     // Có BOM (mẫu có sẵn hoặc từ file import) thì lưu luôn lên Supabase
     if(bomRows.length){
       try{
-        const res=await dbUpsertBom(id,bomRows);
+        const res=await dbUpsertBomRows(id,bomRows);
         // ✅ Nếu Supabase bỏ qua vài dòng lỗi (thiếu mã/tên...), đồng bộ lại state
         // local cho khớp với DB, để không bị "ảo" thấy đủ trên UI mà DB thiếu.
         if(res?.skipped>0){
@@ -1537,17 +1682,24 @@ export default function App(){
       const old=s[pid]||[];
       let next;
       if(importMode==="thay"){
+        // "Thay thế toàn bộ": có xác nhận rõ ràng của người dùng và CHỦ ĐÍCH là xóa hết
+        // mã cũ, nên đây là 1 trong số ít nơi vẫn dùng dbUpsertBom (upsert + xóa những gì
+        // không còn trong danh sách mới).
         const newMaSet=new Set(rows.map(v=>v.ma));
         removedRows=old.filter(v=>!newMaSet.has(v.ma));
         next={...s,[pid]:rows};
+        dbUpsertBom(pid,next[pid]).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
       }
       else{
+        // "Thêm mới": CHỈ upsert đúng các dòng vừa thêm — không đụng tới các mã khác đang
+        // có trên server (an toàn khi nhiều người dùng cùng thao tác ở các trạm khác nhau).
         const existMa=new Set(old.map(v=>v.ma));
         const news=rows.filter(v=>!existMa.has(v.ma));
         const maxStt=old.length?Math.max(...old.map(v=>v.stt)):0;
-        next={...s,[pid]:[...old,...news.map((v,i)=>({...v,stt:maxStt+i+1}))]};
+        const newsWithStt=news.map((v,i)=>({...v,stt:maxStt+i+1}));
+        next={...s,[pid]:[...old,...newsWithStt]};
+        dbUpsertBomRows(pid,newsWithStt).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
       }
-      dbUpsertBom(pid,next[pid]);
       return next;
     });
     // ✅ Ghi Nhật ký — đặc biệt log rõ khi "Thay thế" xóa mất mã/vị trí cũ
@@ -1703,9 +1855,13 @@ export default function App(){
     if(!bmXlsPreview.length)return;
     const setActiveBom = updater=>setBomMauRows(bmTab, updater);
     const rows = bmXlsPreview.map(v=>({id:v.ma,ten:v.ten,dv:v.dv||"Cái",dm:v.dm||1,ng:v.ng||"",vt:v.vt||"",jig:v.jig||"",gc:v.gc||""}));
-    let finalRows=null;
+    let finalRows=null;   // toàn bộ mảng sau khi xong (để cập nhật state local)
+    let rowsToSave=null;  // đúng những dòng cần ghi lên Supabase
+    let replaceAll=false;
     if(mode==="thay"){
       finalRows=rows.map((r,i)=>({...r,stt:i+1,_id:Date.now()+i}));
+      rowsToSave=finalRows;
+      replaceAll=true;
       setActiveBom(finalRows);
       flash(`✓ Đã thay thế bằng ${finalRows.length} mã từ Excel`);
     } else {
@@ -1717,15 +1873,20 @@ export default function App(){
         const withStt=newRows.map(r=>({...r,stt:++nextStt,_id:Date.now()+Math.random()}));
         flash(`✓ Đã thêm ${withStt.length} mã mới${skipped?`, bỏ qua ${skipped} mã trùng`:""}`);
         finalRows=[...prev,...withStt];
+        rowsToSave=withStt; // ✅ CHỈ lưu đúng các dòng mới thêm, không đụng tới dòng khác
         return finalRows;
       });
     }
     setBmShowImport(false);
     setBmXlsPreview([]);
     setBmXlsErr("");
-    // Lưu lên Supabase sau khi state đã cập nhật (finalRows đã tính sẵn ở trên, không cần chờ re-render)
+    // Lưu lên Supabase sau khi state đã cập nhật (đã tính sẵn ở trên, không cần chờ re-render)
     setTimeout(()=>{
-      if(finalRows) dbSyncBomMau(bmTab, finalRows).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
+      if(!rowsToSave)return;
+      // "Thay thế toàn bộ" là thao tác có chủ đích, xác nhận rõ ràng → giữ dbSyncBomMau
+      // (upsert + xóa mã không còn). "Thêm mới" thì chỉ upsert đúng dòng mới, an toàn hơn.
+      const p=replaceAll?dbSyncBomMau(bmTab, rowsToSave):dbUpsertBomMauRows(bmTab, rowsToSave);
+      p.catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
     },0);
   };
 
@@ -1771,7 +1932,9 @@ export default function App(){
     // Dùng importPidRef để đảm bảo import vào đúng project (tránh closure pid cũ)
     const targetPid = importPidRef.current || pid;
     const rows=xlsPreview.map(v=>({id:uid(),pid:targetPid,...v,anh:""}));
-    let finalRows=rows;
+    let finalRows=rows;   // toàn bộ mảng sau khi xong (để cập nhật state local / báo số liệu)
+    let rowsToSave=rows;  // ✅ đúng những dòng cần ghi lên Supabase
+    const replaceAll = mode==="thay";
     let removedRows=[]; // ✅ các mã CŨ bị xóa (chỉ có ở mode "thay") — dùng để ghi Nhật ký
     setBomDB(s=>{
       const oldRows=s[targetPid]||[];
@@ -1780,13 +1943,16 @@ export default function App(){
         const newMaSet=new Set(rows.map(v=>v.ma));
         removedRows=oldRows.filter(v=>!newMaSet.has(v.ma));
         next={...s,[targetPid]:rows};
+        rowsToSave=rows;
       }
       else{
         const existMa=new Set(oldRows.map(v=>v.ma));
         const news=rows.filter(v=>!existMa.has(v.ma));
         const maxStt=oldRows.length?Math.max(...oldRows.map(v=>v.stt)):0;
-        finalRows=[...oldRows,...news.map((v,i)=>({...v,stt:maxStt+i+1}))];
+        const newsWithStt=news.map((v,i)=>({...v,stt:maxStt+i+1}));
+        finalRows=[...oldRows,...newsWithStt];
         next={...s,[targetPid]:finalRows};
+        rowsToSave=newsWithStt; // chỉ lưu đúng các dòng mới, không đụng tới mã khác trên server
       }
       return next;
     });
@@ -1811,14 +1977,20 @@ export default function App(){
     }
     // Lưu lên Supabase sau khi state đã update
     try{
-      const res=await dbUpsertBom(targetPid,finalRows);
+      // "Thay thế toàn bộ" là thao tác có chủ đích, người dùng đã xác nhận xóa hết mã cũ
+      // → giữ dbUpsertBom (upsert + xóa mã không còn). "Thêm vào" thì chỉ upsert đúng các
+      // dòng vừa thêm (dbUpsertBomRows — không xóa gì), an toàn khi nhiều người dùng khác
+      // đang thao tác song song ở các trạm/mã khác.
+      const res=replaceAll
+        ? await dbUpsertBom(targetPid,rowsToSave)
+        : await dbUpsertBomRows(targetPid,rowsToSave);
       // ✅ Nếu Supabase bỏ qua vài dòng lỗi (thiếu mã/tên...), đồng bộ lại state
       // local cho khớp với DB, để tránh UI hiện đủ nhưng DB thiếu.
       if(res?.skipped>0){
         setBomDB(s=>({...s,[targetPid]:finalRows.filter(r=>String(r.ma||"").trim()&&String(r.ten||"").trim())}));
-        flash(`⚠️ Đã lưu ${res.count}/${finalRows.length} mã — ${res.skipped} dòng bị bỏ qua (thiếu Mã số/Tên vật tư)`);
+        flash(`⚠️ Đã lưu ${res.count}/${rowsToSave.length} mã — ${res.skipped} dòng bị bỏ qua (thiếu Mã số/Tên vật tư)`);
       } else {
-        flash(`✓ Đã lưu ${finalRows.length} mã lên Supabase`);
+        flash(`✓ Đã lưu ${rowsToSave.length} mã lên Supabase`);
       }
     }catch(e){
       // ✅ Lưu thất bại giữa đường: state local hiện đang có finalRows nhưng Supabase
@@ -2731,7 +2903,9 @@ Bạn có chắc chắn không?`;
                         const updated=[...old.slice(0,insertIdx),newRow,...old.slice(insertIdx)];
                         // Cập nhật lại stt toàn bộ theo thứ tự mới
                         const renumbered=updated.map((v,i)=>({...v,stt:i+1}));
-                        dbUpsertBom(pid,renumbered);
+                        // ✅ Không dùng dbUpsertBom (xóa-theo-khác-biệt) — thao tác này không hề
+                        // xóa mã nào, chỉ thêm 1 mã + đánh lại STT, nên chỉ cần upsert (an toàn).
+                        dbUpsertBomRows(pid,renumbered).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
                         return{...s,[pid]:renumbered};
                       });
                       addLS(pid,{pid,ma,ten,loai:"Tạo mới",sl:themMaForm.dm,gc:"Thêm mã bổ sung"});
@@ -3909,20 +4083,32 @@ Bạn có chắc chắn không?`;
             const next=[...activeBom, newRow];
             setActiveBom(next);
             setBmModal(null);
-            dbSyncBomMau(bmTab, next).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
+            // ✅ Chỉ upsert đúng dòng vừa thêm — không đụng tới các mã khác trên server.
+            dbUpsertBomMauRows(bmTab, [newRow]).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
           };
           const saveEdit=()=>{
             if(!bmCur.ten.trim()){alert("Tên vật tư không được để trống!");return;}
-            const next=activeBom.map((r,i)=>i===bmEditIdx?{...r,...bmCur,id:r.id}:r);
+            let savedRow=null;
+            const next=activeBom.map((r,i)=>i===bmEditIdx?(savedRow={...r,...bmCur,id:r.id}):r);
             setActiveBom(next);
             setBmModal(null);
-            dbSyncBomMau(bmTab, next).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
+            // ✅ Chỉ upsert đúng dòng vừa sửa — không đụng tới các mã khác trên server.
+            if(savedRow) dbUpsertBomMauRows(bmTab, [savedRow]).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
           };
           const doDelete=(idx)=>{
+            const removedId=activeBom[idx]?.id;
             const next=activeBom.filter((_,i)=>i!==idx).map((r,i)=>({...r,stt:i+1}));
             setActiveBom(next);
             setBmConfirm(null);
-            dbSyncBomMau(bmTab, next).catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
+            // ✅ Xóa đúng dòng bị xóa (theo id) + upsert lại STT của các dòng còn lại (chỉ
+            // STT đổi, không dòng nào bị xóa thêm) — không dùng cách xóa-theo-khác-biệt cả
+            // mảng để tránh xóa nhầm mã người khác vừa thêm.
+            (async()=>{
+              try{
+                if(removedId) await dbDeleteBomMauRows(bmTab, [removedId]);
+                if(next.length) await dbUpsertBomMauRows(bmTab, next);
+              }catch(e){alert("⚠️ Lưu lên Supabase thất bại: "+e.message);}
+            })();
           };
 
           const inpSt={width:"100%",padding:"7px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff"};
