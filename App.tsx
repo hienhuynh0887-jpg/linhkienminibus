@@ -926,14 +926,20 @@ export default function App(){
       }
       try{
         const [r1,r2,r3,r4,r5,r6,r7,r8,r9]=await Promise.all([
-          supabase.from("users").select("*"),
-          supabase.from("projects").select("*"),
+          // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
+          // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
+          // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
+          // dư, KHÔNG báo lỗi. Với dữ liệu dạng "phiếu × mã vật tư" (vd. 33 phiếu × 39 mã),
+          // bảng "phieu_ct" hoàn toàn có thể vượt 1000 dòng → Báo Cáo bị thiếu số liệu mà
+          // không có cảnh báo gì. Đây chính là nguyên nhân "không load được hết dữ liệu".
+          supabase.from("users").select("*").range(0, 9999),
+          supabase.from("projects").select("*").range(0, 9999),
           supabase.from("bom_items").select("*").range(0, 9999),
-          supabase.from("phieu").select("*").order("ts",{ascending:false}),
-          supabase.from("phieu_ct").select("*"),
+          supabase.from("phieu").select("*").order("ts",{ascending:false}).range(0, 9999),
+          supabase.from("phieu_ct").select("*").range(0, 9999),
           supabase.from("lich_su").select("*").order("ts",{ascending:false}).limit(500),
-          supabase.from("bom_mau_loai").select("*").order("thu_tu"),
-          supabase.from("bom_mau").select("*").order("stt"),
+          supabase.from("bom_mau_loai").select("*").order("thu_tu").range(0, 9999),
+          supabase.from("bom_mau").select("*").order("stt").range(0, 9999),
           supabase.from("bom_log").select("*").order("ts",{ascending:false}).limit(500),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
