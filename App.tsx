@@ -1147,6 +1147,11 @@ export default function App(){
   // ── Load dữ liệu từ Supabase khi khởi động ──
   useEffect(()=>{
     const load=async()=>{
+      // ✅ Báo ngay từ đầu nếu thiếu biến môi trường — không chờ query thất bại mới biết,
+      // để tránh trường hợp app "âm thầm" chạy tiếp với dữ liệu mẫu hard-code.
+      if(!SUPABASE_URL||!SUPABASE_KEY){
+        setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
+      }
       try{
         const [r1,r2,r3,r4,r5,r6,r7,r8,r9]=await Promise.all([
           supabase.from("users").select("*"),
@@ -1216,7 +1221,21 @@ export default function App(){
         }
         if(r9.error) console.warn("Chưa đọc được bảng bom_log (có thể chưa tạo bảng — xem hướng dẫn tạo bảng ở comment gần dbAddBomLog):",r9.error.message);
         else if(r9.data) setBomLogDB(r9.data);
-      }catch(e){console.error("Supabase load error:",e);}
+      }catch(e){
+        console.error("Supabase load error:",e);
+        // ✅ FIX QUAN TRỌNG: trước đây lỗi ở đây chỉ log console, KHÔNG setDbErr — nếu
+        // toàn bộ Promise.all thất bại (vd. thiếu biến môi trường VITE_SUPABASE_URL/
+        // VITE_SUPABASE_ANON_KEY sau khi deploy bản mới, hoặc mất mạng), app vẫn tiếp
+        // tục hiển thị BÌNH THƯỜNG với dữ liệu MẪU hard-code sẵn trong code (PROJS_DEF/
+        // initBom/USERS_DEF) mà không có bất kỳ cảnh báo nào — trông y hệt như "mất hết
+        // dữ liệu" dù dữ liệu thật trên Supabase vẫn còn nguyên, chỉ là app không đọc
+        // được. Giờ báo rõ cho người dùng biết để không hoang mang tưởng mất dữ liệu.
+        setDbErr(
+          !SUPABASE_URL||!SUPABASE_KEY
+            ? "THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra."
+            : `KHÔNG TẢI ĐƯỢC DỮ LIỆU TỪ SERVER (${e.message||"lỗi không xác định"}) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Kiểm tra kết nối mạng hoặc thử tải lại trang.`
+        );
+      }
     };
     load();
   },[]);
@@ -2693,6 +2712,19 @@ Bạn có chắc chắn không?`;
         </div>
         </div>{/* /zIndex:1 wrapper */}
       </div>
+
+      {/* ⚠️ CẢNH BÁO MẤT KẾT NỐI SERVER — hiển thị to, rõ để không nhầm tưởng "mất dữ liệu" */}
+      {dbErr&&(
+        <div style={{background:"#fef2f2",borderBottom:"2px solid #dc2626",padding:"10px 16px",display:"flex",alignItems:"flex-start",gap:10}}>
+          <span style={{fontSize:20,lineHeight:1}}>⚠️</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:800,fontSize:13,color:"#991b1b"}}>Không kết nối được server — dữ liệu đang hiển thị có thể KHÔNG phải dữ liệu thật</div>
+            <div style={{fontSize:12,color:"#7f1d1d",marginTop:2}}>{dbErr}</div>
+            <div style={{fontSize:11,color:"#991b1b",marginTop:4,opacity:.85}}>Dữ liệu thật của bạn trên Supabase KHÔNG bị mất — thử tải lại trang (F5); nếu vẫn lỗi, kiểm tra biến môi trường trên Vercel rồi deploy lại.</div>
+          </div>
+          <button onClick={()=>window.location.reload()} style={{...btn,background:"#dc2626",color:"#fff",padding:"6px 14px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>🔄 Tải lại</button>
+        </div>
+      )}
 
       {/* TABS */}
       <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"0 18px",display:"flex",gap:2,overflowX:"auto"}}>
