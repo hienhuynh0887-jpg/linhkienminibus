@@ -15,228 +15,10 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_KEY || "", {
 });
 
 
-const BOM_XH = [
-  {stt:1,id:"KL2804 500MN16-1",ten:"Cụm hàn dầm chống va sau",dv:"Cái",dm:1,ng:"",vt:"FT04",gc:""}, 
-  {stt:2,id:"KL6100 100MN16-1",ten:"Cụm cửa trước bên trái",dv:"Cái",dm:1,ng:"",vt:"FT04",gc:""}, 
-  {stt:3,id:"KL6100 200MN16-1",ten:"Cụm cửa trước bên phải",dv:"Cái",dm:1,ng:"",vt:"FT04",gc:""}, 
-  {stt:4,id:"KL6300 100MN16-1",ten:"Cụm cửa hậu bên trái",dv:"Cái",dm:1,ng:"",vt:"FT04",gc:""}, 
-  {stt:5,id:"KL6300 200MN16-1",ten:"Cụm cửa hậu bên phải",dv:"Cái",dm:1,ng:"",vt:"FT04",gc:""}, 
-  {stt:6,id:"Q1841080",ten:"Bu lông mặt bích lục giác M10×80",dv:"Cái",dm:4,ng:"",vt:"FT04",gc:"Lắp dầm chống va sau"}, 
-  {stt:7,id:"Q1860830",ten:"Bu lông mặt bích lục giác M8x30",dv:"Cái",dm:8,ng:"",vt:"FT04",gc:""}, 
-  {stt:8,id:"Q32208L",ten:"Bộ đai ốc lục giác M8 và vòng đệm đàn hồi côn",dv:"Cái",dm:12,ng:"",vt:"FT04",gc:""}, 
-  {stt:9,id:"KL8215 021MN16-1L",ten:"Giá đỡ lắp tay vịn có kèm đai ốc",dv:"Cái",dm:1,ng:"",vt:"FT05",gc:"Thêm mới"}, 
-  {stt:10,id:"KL8402 000MN16-1",ten:"Cụm nắp động cơ",dv:"Cái",dm:1,ng:"",vt:"FT05",gc:""}, 
-  {stt:11,id:"KL8403 100MN16-1",ten:"Cụm hàn chắn bùn bên trái",dv:"Cái",dm:1,ng:"",vt:"FT05",gc:""}, 
-  {stt:12,id:"KL8403 200MN16-1",ten:"Cụm hàn chắn bùn bên phải",dv:"Cái",dm:1,ng:"",vt:"FT05",gc:""}, 
-  {stt:13,id:"Q1840616",ten:"Bu lông mặt bích lục giác M6x16",dv:"Cái",dm:25,ng:"",vt:"FT05",gc:"Thêm mới lắp vè chán bùn"}, 
-  {stt:14,id:"Q1840820",ten:"Bu lông mặt bích lục giác M8x20",dv:"Cái",dm:4,ng:"",vt:"FT05",gc:"Thêm mới lắp capo"}, 
-  {stt:15,id:"Q40206",ten:"Vòng đệm phẳng M6",dv:"Cái",dm:22,ng:"",vt:"FT05",gc:"Thêm mới lắp vè chán bùn"}, 
-  {stt:16,id:"KL6200 200MN16-1",ten:"Cụm cửa trượt",dv:"Cái",dm:1,ng:"",vt:"FT06",gc:""}, 
-  {stt:17,id:"Q1860820",ten:"Bu lông lục giác mặt bích cỡ lớn M8 × 20 mm",dv:"Cái",dm:8,ng:"",vt:"FT06",gc:"Thêm mới lắp cửa trượt"}, 
-  {stt:18,id:"KL2803 300MN16-1",ten:"Cụm hàn dầm chống va trước",dv:"Cái",dm:1,ng:"",vt:"MB15",gc:""}, 
-  {stt:19,id:"KL5400 036MN16-1",ten:"Tấm ngăn trụ B bên phải",dv:"Cái",dm:1,ng:"",vt:"MB15",gc:""}, 
-  {stt:20,id:"KL5400 038MN16-1",ten:"Tấm ngăn trụ C bên phải",dv:"Cái",dm:1,ng:"",vt:"MB15",gc:""}, 
-  {stt:21,id:"Q1841030",ten:"Bu lông mặt bích lục giác M10×30",dv:"Cái",dm:10,ng:"",vt:"MB15",gc:"Lắp dầm chống va trước"}, 
-  {stt:22,id:"KL5400 100MN16-1",ten:"Cụm hàn thành bên trái",dv:"Cái",dm:1,ng:"",vt:"MB20",gc:""}, 
-  {stt:23,id:"KL5400 200MN16-1",ten:"Cụm hàn thành bên phải",dv:"Cái",dm:1,ng:"",vt:"MB20",gc:""}, 
-  {stt:24,id:"KL5701 100MN16-1",ten:"Cụm dầm ngang trước nóc xe",dv:"Cái",dm:1,ng:"",vt:"MB20",gc:""}, 
-  {stt:25,id:"KL5701 300MN16-1",ten:"Cụm dầm ngang trên nóc xe",dv:"Cái",dm:1,ng:"",vt:"MB20",gc:""}, 
-  {stt:26,id:"KL5701 301MN16-1L",ten:"Dầm ngang giữa nóc xe (có đai ốc)",dv:"Cái",dm:5,ng:"",vt:"MB20",gc:""}, 
-  {stt:27,id:"KL5701 900MN16-1",ten:"Cụm tấm trong dầm ngang sau nóc xe",dv:"Cái",dm:1,ng:"",vt:"MB20",gc:""}, 
-  {stt:28,id:"KL5701 301MN16-1",ten:"Dầm ngang giữa nóc xe",dv:"Cái",dm:5,ng:"",vt:"MB50",gc:""}, 
-  {stt:29,id:"KL5701 011MN16-1",ten:"Đoạn trước nóc xe",dv:"Cái",dm:1,ng:"",vt:"MB70",gc:""}, 
-  {stt:30,id:"KL5701 013MN16-1",ten:"Đoạn giữa nóc xe",dv:"Cái",dm:1,ng:"",vt:"MB70",gc:""}, 
-  {stt:31,id:"KL5701 015MN16-1",ten:"Đai ốc tán kéo lỗ mù đầu bằng bán lục giác M5",dv:"Cái",dm:4,ng:"",vt:"MB70",gc:""}, 
-  {stt:32,id:"KL5701 700MN16-1",ten:"Cụm tấm ngoài dầm ngang sau nóc xe",dv:"Cái",dm:1,ng:"",vt:"MB70",gc:""}, 
-  {stt:33,id:"KL5130 500MN16-1",ten:"Cụm hàn tấm bậc cửa sau",dv:"Cái",dm:1,ng:"",vt:"MB90",gc:""}, 
-  {stt:34,id:"KL5301 500MN16-1",ten:"Cụm hàn dầm ngang trên kính chắn gió trước",dv:"Cái",dm:1,ng:"",vt:"MB90",gc:""}, 
-  {stt:35,id:"KL2801 100MN16-1",ten:"Tổng thành hàn tấm đậy dầm dọc trái",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:36,id:"KL2801 130MN16-1",ten:"Tổng thành hàn tấm gia cường đoạn trước dầm dọc trái sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:37,id:"KL2801 140MN16-1",ten:"Cụm hàn tấm gia cường đoạn trước dầm dọc phải sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:38,id:"KL2801 150MN16-1",ten:"Tổng thành hàn tấm đỡ đoạn trước dầm dọc trái sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:39,id:"KL2801 153MN16-1L",ten:"Giá đỡ lắp bên trái giá treo động cơ I (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:40,id:"KL2801 154MN16-1L",ten:"Giá đỡ lắp bên phải giá treo động cơ I (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:41,id:"KL2801 155MN16-1L",ten:"Giá đỡ lắp bên trái giá treo động cơ II (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:42,id:"KL2801 156MN16-1L",ten:"Giá đỡ lắp bên phải giá treo động cơ II (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:43,id:"KL2801 160MN16-1",ten:"Cụm hàn tấm đỡ đoạn trước dầm dọc phải sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:44,id:"KL2801 170MN16-1",ten:"Tổng thành hàn giá đỡ lắp móc kéo xe",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:45,id:"KL2801 171MN16-1L",ten:"Đoạn trước dầm dọc trái sàn trước (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:46,id:"KL2801 172MN16-1L",ten:"Đoạn trước dầm dọc phải sàn trước (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:47,id:"KL2801 173MN16-1L",ten:"Đoạn sau dầm dọc trái sàn trước (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:48,id:"KL2801 174MN16-1L",ten:"Đoạn sau dầm dọc phải sàn trước (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:49,id:"KL2801 175MN16-1",ten:"Tấm liên kết chắn bánh trước trái",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:50,id:"KL2801 176MN16-1",ten:"Tấm liên kết vè bánh trước phải",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:51,id:"KL2801 192MN16-1L",ten:"Giá đỡ lắp bình nước rửa kính (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:52,id:"KL2801 200MN16-1",ten:"Cụm hàn tấm đậy dầm dọc phải",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:53,id:"KL2801 201MN16-1L",ten:"Tấm lắp dầm chống va chạm đoạn trước dầm dọc trái (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:54,id:"KL2801 202MN16-1L",ten:"Tấm lắp dầm chống va chạm đoạn trước dầm dọc phải (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:55,id:"KL2801 203MN16-1",ten:"Tấm gia cường đoạn sau dầm dọc sàn trước I",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:56,id:"KL2801 205MN16-1",ten:"Tấm gia cường đoạn sau dầm dọc sàn trước II",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:57,id:"KL2801 215MN16-1L",ten:"Giá đỡ lắp bộ lọc sơ cấp nhiên liệu I (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:58,id:"KL2801 230MN16-1",ten:"Tổng thành hàn giá phụ dầm dọc trái sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:59,id:"KL2801 233MN16-1",ten:"Giá đỡ lắp ống mềm phanh trước trái",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:60,id:"KL2801 234MN16-1",ten:"Giá đỡ lắp ống mềm phanh trước phải",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:61,id:"KL2801 240MN16-1",ten:"Cụm hàn khung phụ dầm dọc phải sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:62,id:"KL2801 710MN16-1",ten:"Cụm bu lông lắp khung phụ",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:63,id:"KL2812 703MN16-1L",ten:"Tấm đai ốc đoạn sau dầm dọc sàn trước (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:64,id:"KL5120 101MN16-1",ten:"Tấm sàn phía trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:65,id:"KL5120 105MN16-1L",ten:"Tấm tăng cứng cần số",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:66,id:"KL5120 107MN16-1L",ten:"Tấm tăng cứng cột lái",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:67,id:"KL5120 201MN16-1L",ten:"Giá đỡ lắp đặt mô-đun túi khí sàn trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:68,id:"KL5301 101MN16-1L",ten:"Đoạn trái tấm vách trước (có đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:69,id:"KL5301 102MN16-1",ten:"Đoạn phải tấm vách trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:70,id:"KL5301 103MN16-1",ten:"Đoạn giữa tấm vách trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:71,id:"KL5301 105MN16-1",ten:"Tấm gia cường tấm vách trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:72,id:"KL5301 117MN16-1L",ten:"Tấm trong dầm ngang trên kính chắn gió trước (có đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:73,id:"KL5301 121MN16-1",ten:"Tấm gia cường tấm trong dầm ngang trên kính chắn gió trước",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:74,id:"Q199B0520",ten:"Bu lông hàn M5x20",dv:"Cái",dm:57,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:75,id:"Q199B0620",ten:"Bu lông hàn đính M6x20",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:76,id:"Q3720615",ten:"Đai ốc tán rive lục giác đầu bằng M6",dv:"Cái",dm:56,ng:"",vt:"SUB MINI 1",gc:""}, 
-  {stt:77,id:"KL2801 105MN16-1L",ten:"Đoạn trước bên trái dầm dọc sàn sau (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:78,id:"KL2801 106MN16-1L",ten:"Đoạn trước bên phải dầm dọc sàn sau (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"SUB MINI 2",gc:"Mã số trong hdcv khác KL2801 105MN16-1"}, 
-  {stt:79,id:"KL2801 107MN16-1",ten:"Đoạn sau dầm dọc sàn sau",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:80,id:"KL2801 193MN16-1L",ten:"Tấm gia cường dầm dọc sàn sau (kèm đai ốc)",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:"Mã số trong hdcv khác KL2801 250MN16-1"}, 
-  {stt:81,id:"KL2801 195MN16-1L",ten:"Tấm bổ cường tấm gia cường dầm dọc sàn sau (kèm đai ốc)",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:82,id:"KL2801 270MN16-1",ten:"Cụm hàn giá đỡ hỗ trợ IV của tấm gia cường dầm dọc sàn sau",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:83,id:"KL2801 301MN16-1",ten:"Tấm liên kết dầm dọc sàn sau",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:84,id:"KL2801 305MN16-1L",ten:"Tấm gia cường tấm liên kết dầm dọc sàn sau (kèm đai ốc)",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:85,id:"KL2801 330MN16-1",ten:"Cụm hàn giá đỡ hỗ trợ tấm gia cường dầm dọc sàn sau",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:86,id:"KL2801 407MN16-1",ten:"Tấm gia cường III đoạn sau dầm dọc sàn sau",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:87,id:"KL2801 501MN16-1L",ten:"Tấm gia cường II đoạn trước dầm dọc sàn sau (kèm đai ốc)",dv:"Cái",dm:4,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:88,id:"KL2801 700MN16-1",ten:"Cụm hàn giá đỡ lắp ghế I",dv:"Cái",dm:12,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:89,id:"KL2801 900MN16-1",ten:"Cụm hàn tấm liên kết đoạn sau dầm dọc sàn sau",dv:"Cái",dm:2,ng:"",vt:"SUB MINI 2",gc:""}, 
-  {stt:90,id:"KL2801 011MN16-1L",ten:"Tấm trong bậc cửa sau (kèm đai ốc)",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:91,id:"KL2801 050MN16-1",ten:"Cụm hàn giá đỡ lắp ống ure",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:92,id:"KL2801 070MN16-1",ten:"Cụm hàn dầm ngang trước sàn trước",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:93,id:"KL2801 090MN16-1",ten:"Cụm hàn dầm ngang giữa sàn trước",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:94,id:"KL2811 010MN16-1",ten:"Cụm hàn đoạn trước dầm ngang chữ I sàn sau",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:95,id:"KL2811 030MN16-1",ten:"Cụm hàn đoạn sau dầm ngang chữ I sàn sau",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:96,id:"KL2811 050MN16-1",ten:"Cụm hàn dầm ngang giữa III sàn sau",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:97,id:"KL2811 070MN16-1",ten:"Cụm hàn dầm ngang sau sàn sau",dv:"Cái",dm:1,ng:"",vt:"UB10",gc:""}, 
-  {stt:98,id:"KL2812 121MN16-1L",ten:"Dầm dọc lắp đặt phía sau bên trái ghế hàng thứ hai (có đai ốc)",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:99,id:"KL2812 123MN16-1L",ten:"Giá đỡ lắp đặt phía sau bên trái ghế hàng thứ hai (có đai ốc)",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:100,id:"KL2812 130MN16-1",ten:"Cụm hàn giá đỡ lắp đặt ghế hàng thứ hai",dv:"Cái",dm:3,ng:"",vt:"UB20",gc:""}, 
-  {stt:101,id:"KL2812 150MN16-1",ten:"Cụm hàn giá đỡ lắp đặt giữa bên phải ghế hàng thứ hai",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:102,id:"KL2812 170MN16-1",ten:"Cụm hàn giá đỡ lắp đặt ghế hàng thứ ba I",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:103,id:"KL2812 240MN16-1",ten:"Cụm hàn dầm ngang lắp đặt phía sau bên phải ghế hàng thứ ba",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:104,id:"KL2812 310MN16-1",ten:"Cụm hàn dầm dọc lắp đặt nhíp sau",dv:"Cái",dm:2,ng:"",vt:"UB20",gc:""}, 
-  {stt:105,id:"KL2812 330MN16-1",ten:"Cụm hàn dầm ngang lắp đặt nhíp sau bên trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:106,id:"KL2812 340MN16-1",ten:"Cụm hàn dầm ngang lắp đặt nhíp sau bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:107,id:"KL2812 440MN16-1",ten:"Cụm hàn dầm biên dưới bậc cửa giữa bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:108,id:"KL2812 503MN16-1",ten:"Dầm ngang lắp ghế trước bên trái hàng ghế thứ hai",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:109,id:"KL2812 505MN16-1",ten:"Tấm đỡ lắp đặt phía sau bên trái ghế hàng thứ hai",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:110,id:"KL2812 706MN16-1",ten:"Tấm liên kết dầm ngang lắp đặt phía trước bên phải ghế hàng thứ ba",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:111,id:"KL2813 100MN16-1",ten:"Cụm hàn vè bánh trước trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:112,id:"KL2813 200MN16-1",ten:"Cụm hàn vè bánh trước phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:113,id:"KL2813 227MN16-1",ten:"Tấm bậc cửa sau bên trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:114,id:"KL2813 228MN16-1",ten:"Tấm bậc cửa sau bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:115,id:"KL2813 231MN16-1",ten:"Tấm liên kết tấm bậc cửa sau bên trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:116,id:"KL2813 232MN16-1",ten:"Tấm liên kết bậc cửa sau bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:117,id:"KL2813 233MN16-1",ten:"Tấm gia cường tấm bậc cửa sau bên trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:118,id:"KL2813 234MN16-1",ten:"Tấm gia cường tấm bậc cửa sau bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:119,id:"KL2813 300MN16-1",ten:"Cụm hàn bậc cửa trước trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:120,id:"KL2813 350MN16-1",ten:"Cụm hàn tấm bậc cửa giữa trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:121,id:"KL2813 400MN16-1",ten:"Cụm hàn bậc cửa trước phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:122,id:"KL2813 430MN16-1",ten:"Cụm hàn dầm ngang lắp đặt phía trước bên trái ghế hàng thứ ba",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:123,id:"KL2813 470MN16-1",ten:"Cụm hàn tấm đoạn sau bậc cửa giữa bên trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:124,id:"KL2813 680MN16-1",ten:"Cụm hàn đoạn trước bậc cửa giữa bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:125,id:"KL2813 820MN16-1",ten:"Cụm hàn tấm đoạn sau bậc cửa giữa bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:126,id:"KL2813 850MN16-1",ten:"Cụm hàn dầm ngang lắp đặt ghế hàng thứ năm",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:"HDCV mã số KL2812 250MN16-1"}, 
-  {stt:127,id:"KL2813 860MN16-1",ten:"Cụm hàn dầm ngang lắp đặt bên phải ghế hàng thứ năm",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:"HDCV mã số KL2812 250MN16-1"}, 
-  {stt:128,id:"KL2813 940MN16-1",ten:"Cụm hàn ray trượt dưới cửa trượt",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:129,id:"KL5100 021MN16-1",ten:"Tấm ngăn trước phía dưới bậc cửa cửa trượt bên hông",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:130,id:"KL5100 022MN16-1",ten:"Tấm ngăn sau bậc cửa cửa trượt bên hông",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:131,id:"KL5100 023MN16-1",ten:"Tấm ngăn trước phía trên bậc cửa cửa trượt bên hông",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:132,id:"KL5400 057MN16-1",ten:"Tấm ngăn bậc cửa sau bên trái",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:133,id:"KL5400 058MN16-1",ten:"Tấm ngăn bậc cửa sau bên phải",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:134,id:"KL6200 104MN16-1",ten:"Giá đỡ lắp đặt ray trượt dưới cửa trượt II",dv:"Cái",dm:1,ng:"",vt:"UB20",gc:""}, 
-  {stt:135,id:"Q4400610",ten:"Đinh tán rút D6",dv:"Cái",dm:3,ng:"",vt:"UB20",gc:""}, 
-  {stt:136,id:"KL5130 011MN16-1",ten:"Tấm sàn sau đoạn trước",dv:"Cái",dm:1,ng:"",vt:"UB30",gc:""}, 
-  {stt:137,id:"KL5130 101MN16-1",ten:"Tấm sàn sau đoạn sau",dv:"Cái",dm:1,ng:"",vt:"UB30",gc:""}, 
-  {stt:138,id:"KL5130 300MN16-1",ten:"Cụm hàn hốc bánh sau",dv:"Cái",dm:2,ng:"",vt:"UB30",gc:""}, 
-  {stt:139,id:"KL5120 500MN16-1",ten:"Cụm hàn dầm biên bậc cửa trước bên trái",dv:"Cái",dm:1,ng:"",vt:"UB70",gc:""}, 
-  {stt:140,id:"KL5120 600MN16-1",ten:"Cụm hàn dầm biên bậc cửa trước bên phải",dv:"Cái",dm:1,ng:"",vt:"UB70",gc:""}, 
-  {stt:141,id:"KL5301 300MN16-1",ten:"Cụm tấm bịt bên trái khoang động cơ trước",dv:"Cái",dm:1,ng:"",vt:"UB70",gc:""}, 
-  {stt:142,id:"KL5301 400MN16-1",ten:"Cụm tấm bịt bên phải khoang động cơ trước",dv:"Cái",dm:1,ng:"",vt:"UB70",gc:""}, 
-];
-
-const BOM_MB2 = [
-  {stt:1,id:"K2L3-5100",ten:"Mảng sàn",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Hủy bỏ"}, 
-  {stt:2,id:"K2L3-5100-001",ten:"Mảng sàn chính",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:3,id:"K2L3-5106010AL-016",ten:"Xương ốp hông mảng sàn bên trái",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:4,id:"K2L3-5106R",ten:"Xương ốp hông mảng sàn bên phải",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:5,id:"K2L2-5112L",ten:"Xương ốp đầu mảng sàn bên trái",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:6,id:"K2L2-5112R",ten:"Xương ốp đầu mảng sàn bên phải",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:7,id:"K2L2-5111001L-01",ten:"Xương ốp đuôi mảng sàn bên trái",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:8,id:"K2L2-5111001R-01",ten:"Xương ốp đuôi mảng sàn bên phải",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:9,id:"K2L2-8400-001",ten:"Xương mặt đầu mảng sàn",dv:"Cái",dm:1,ng:"",vt:"1 - Hàn mảng sàn",gc:"Thêm mới"}, 
-  {stt:10,id:"M42002-009302",ten:"Keo LY-301/ Ø4mm",dv:"Gram",dm:266,ng:"",vt:"3 - Hàn thân xe",gc:"Cập nhật"}, 
-  {stt:11,id:"K2L3-5400L",ten:"Mảng hông trái",dv:"Cái",dm:1,ng:"",vt:"3 - Hàn thân xe",gc:""}, 
-  {stt:12,id:"K2L3-5400R",ten:"Mảng hông phải",dv:"Cái",dm:1,ng:"",vt:"3 - Hàn thân xe",gc:""}, 
-  {stt:13,id:"K2L3-5711",ten:"Xương mui phía sau",dv:"Cái",dm:1,ng:"",vt:"3 - Hàn thân xe",gc:""}, 
-  {stt:14,id:"K2L2-5705",ten:"Xương mui số 5",dv:"Cái",dm:1,ng:"",vt:"3 - Hàn thân xe",gc:""}, 
-  {stt:15,id:"K2L2-5709",ten:"Xương mui phía trước",dv:"Cái",dm:1,ng:"",vt:"3 - Hàn thân xe",gc:""}, 
-  {stt:16,id:"K2L3-5700",ten:"Mảng mui",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Hủy bỏ"}, 
-  {stt:17,id:"M42002-302060",ten:"Keo 6x8/ LY-302",dv:"Mét",dm:22.4,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới - Cập nhật"}, 
-  {stt:18,id:"K2L2-5701",ten:"Xương gia cố mui số 1",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:19,id:"K2L2-5702",ten:"Xương gia cố mui số 2",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:20,id:"K2L2-5703000AX-001",ten:"Xương gia cố mui số 3",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:21,id:"K2L3-570600900",ten:"Xương gia cố mui số 6",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:22,id:"K2L3-5708000AX-001",ten:"Cụm xương gia cố mui số 7,8",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:23,id:"K2L3-570300100",ten:"Xương gia cố mui số 9",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:24,id:"K2L3-570800100",ten:"Xương gia cố mui số 10",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:25,id:"K2L2-5700001",ten:"Xương mui trước",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:26,id:"K2L3-5700002",ten:"Xương mui sau",dv:"Cái",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới"}, 
-  {stt:27,id:"M42002-009302",ten:"Keo LY-301/ Ø4mm",dv:"Gram",dm:1,ng:"",vt:"5- Hàn mảng mui",gc:"Thêm mới - Cập nhật"}, 
-  {stt:28,id:"M42002-302060",ten:"Keo 6x8/ LY-302",dv:"Mét",dm:2.6,ng:"",vt:"6 - Hàn hoàn thiện mảng mui",gc:"Cập nhật"}, 
-  {stt:29,id:"89-FM6R15",ten:"Đai ốc rút M6*15",dv:"Cái",dm:22,ng:"",vt:"7 - Hàn hoàn thiện",gc:""}, 
-  {stt:30,id:"Q3720510",ten:"Đai ốc rút M5*10",dv:"Cái",dm:2,ng:"",vt:"7 - Hàn hoàn thiện",gc:""}, 
-  {stt:31,id:"K2L3-5422090AL-001",ten:"Cụm gia cố bên trên trái",dv:"Cái",dm:3,ng:"",vt:"8 - Hàn bổ sung",gc:""}, 
-  {stt:32,id:"M42002-009900",ten:"Keo làm kín",dv:"Kg",dm:0.105,ng:"",vt:"9 - Dán keo",gc:"Cập nhật"}, 
-  {stt:33,id:"K2L2-2803012R",ten:"Xương liên liên kết cản - phải",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:34,id:"K2L2-2803012L",ten:"Xương liên liên kết cản - trái",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:35,id:"K2L2-280300800",ten:"Xương đỡ bộ tản nhiệt",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:36,id:"K2L2-280300300",ten:"Xương cản trước",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:37,id:"K2L2-610201100R",ten:"Xương phía trong cửa khách",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:38,id:"K2L2-610201100L",ten:"Xương phía trong cửa tài",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:39,id:"K2L2-5144000AX-001",ten:"Xương ốp động cơ",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:40,id:"K2L2-510200600",ten:"Xương phía sau đông cơ",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:41,id:"K2L2-5146",ten:"Xương bình điện",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:42,id:"K2L2-6108R",ten:"Xương rây phải",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:43,id:"K2L2-6108L",ten:"Xương rây trái",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:44,id:"K2L2-5145",ten:"Xương ốp động cơ phụ",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:45,id:"81-20820-26",ten:"Bộ bu lông M8*20",dv:"Cái",dm:7,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:46,id:"50320412J02",ten:"Bu lông M10x25",dv:"Cái",dm:4,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:"Thêm mới"}, 
-  {stt:47,id:"K2L2-6106",ten:"Cụm bản lề trên",dv:"Cái",dm:2,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:48,id:"K2L2-6111",ten:"Cụm bản lề dưới",dv:"Cái",dm:2,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:49,id:"90105-08195",ten:"Bu lông M8*30",dv:"Cái",dm:20,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:50,id:"K2L2-6100R",ten:"Cửa trước phải",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:51,id:"K2L2-6100L",ten:"Cửa trước trái",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:52,id:"K2L2-5453",ten:"Nắp thùng nhiên liệu",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:53,id:"83-60616-26",ten:"Bu lông M6*16",dv:"Cái",dm:6,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:54,id:"K2L2-543100900R",ten:"Xương vách ngăn",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:55,id:"K2L2-545500200",ten:"Nắp ure",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:56,id:"K2L2-6300AX-004",ten:"Nắp cốp",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:"Đổi mã số CKD"}, 
-  {stt:57,id:"K2L2-6306R",ten:"Cụm bản lề cốp phải",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:58,id:"K2L2-6306L",ten:"Cụm bản lề cốp phải",dv:"Cái",dm:1,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:59,id:"K2L2-6306001",ten:"Xương đệm bản lề cốp",dv:"Cái",dm:2,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:60,id:"89-11208-37",ten:"Đai ốc M8",dv:"Cái",dm:4,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:""}, 
-  {stt:61,id:"M42002-210038",ten:"Keo dán cốp LY-38",dv:"Gram",dm:342,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:"Cập nhật"}, 
-  {stt:62,id:"K2L2-6306002",ten:"Xương đệm bản lề cốp ( giảm chấn)",dv:"Cái",dm:2,ng:"",vt:"10 - Lắp cốp, cửa trước",gc:"Có sẵn ở bản lề cốp"}, 
-  {stt:63,id:"K2L2-280300600",ten:"Xương đỡ bộ tản nhiệt",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:64,id:"83-60616-26",ten:"Bu lông M6*16",dv:"Cái",dm:14,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:65,id:"K2L2-8408010",ten:"Nắp capo",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:66,id:"K2L2-8406L",ten:"Cụm bản lề capo trái",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:67,id:"K2L2-8406R",ten:"Cụm bản lề capo phải",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:68,id:"81-20820-26",ten:"Bộ bu lông M8*20",dv:"Cái",dm:12,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:69,id:"K2L2-280301100L",ten:"Xương cản trước bên trái",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:70,id:"K2L2-280301100R",ten:"Xương cản trước bên phải",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:71,id:"K2L2-840401100L",ten:"Xương đèn pha bên trái",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:72,id:"K2L2-840401100R",ten:"Xương đèn pha bên phải",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:73,id:"K2L2-8409R",ten:"Xương gò má phải",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:74,id:"K2L2-8409L",ten:"Xương gò má trái",dv:"Cái",dm:1,ng:"",vt:"11 - Lắp gò má, capo",gc:""}, 
-  {stt:75,id:"K2L2-6200R",ten:"Cửa trượt",dv:"Cái",dm:1,ng:"",vt:"12- Khắc số Vin",gc:""}, 
-];
+// ⚠️ Đã bỏ hẳn dữ liệu mẫu (seed) hard-code trong code (trước đây là 2 mảng BOM_XH/BOM_MB2
+// với hàng trăm dòng vật tư mẫu). Toàn bộ BOM mẫu giờ chỉ đọc từ Supabase (bảng "bom_mau" /
+// "bom_mau_loai"). Nếu bảng rỗng thật sự (đã bị xoá hết), app sẽ hiển thị RỖNG — không tự
+// tạo lại dữ liệu mẫu cũ nữa (xem thêm phần sửa logic load bên dưới, khu vực useEffect load()).
 
 // ═══════════════════════════════════════════════════════════════
 //  BOM MẪU — DANH SÁCH LOẠI (động, quản lý được trong app)
@@ -288,7 +70,7 @@ const BOM_MAU_LOAI_DEFAULT = [
   {id:"xh",  ten:"XE KIM MAI 9",   icon:"🚗", mau:"#1d4ed8", thu_tu:1},
   {id:"mb2", ten:"XE MINIBUS X9",  icon:"🚐", mau:"#b45309", thu_tu:2},
 ];
-const BOM_MAU_SEED = {xh: BOM_XH, mb2: BOM_MB2};
+// (Đã bỏ BOM_MAU_SEED — không còn seed mặc định cho BOM mẫu; xem bomMauByLoai bên dưới.)
 // Chuyển tên loại BOM mẫu → id (slug) khi tạo loại mới, đảm bảo không trùng.
 const slugifyLoaiId = (ten) => {
   const base = String(ten||"")
@@ -299,7 +81,7 @@ const slugifyLoaiId = (ten) => {
   return base || "loai";
 };
 
-const SEED = {proj_xh: BOM_XH, proj_mb2: BOM_MB2};
+// (Đã bỏ SEED — dự án khởi tạo với BOM rỗng, dữ liệu thật chỉ đến từ Supabase.)
 const PROJS_DEF = [
   {id:"proj_xh", ten:"XE KIM MAI 9", mo_ta:"BOM XE KIM MAI 9 ( Bản mới ) · Nhà Máy Bus", mau:"#1d4ed8", icon:"🚐", so_xe:1},
   {id:"proj_mb2",ten:"XE MINIBUS X9",  mo_ta:"BOM XE MINIBUS X9 ( Bản mới ) · Nhà Máy Bus",  mau:"#b45309", icon:"🚐", so_xe:1},
@@ -321,7 +103,7 @@ const getProjectBgColor = (projId, projs) => {
 
 const mkBom=(pid,arr)=>arr.map(v=>({id:uid(),pid,stt:v.stt,ma:v.id,ten:v.ten,dv:v.dv,dm:v.dm,ng:v.ng,vt:v.vt,gc:v.gc,anh:""}));
 const initBom={};
-PROJS_DEF.forEach(p=>{initBom[p.id]=mkBom(p.id,SEED[p.id]||[]);});
+PROJS_DEF.forEach(p=>{initBom[p.id]=[];}); // Không seed — chờ dữ liệu thật từ Supabase
 
 // ═══════════════════════════════════════════════════════════════
 //  USERS & AUTH
@@ -805,16 +587,6 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 }
 
 const fmt=n=>(n||0).toLocaleString("vi-VN");
-// timeAgo: hiển thị "vừa xong / x phút trước / x giờ trước" — dùng cho Nhật ký thay đổi BOM (realtime)
-const timeAgo=(ts,now)=>{
-  const diff=Math.max(0,Math.floor(((now||Date.now())-new Date(ts).getTime())/1000));
-  if(diff<10) return "vừa xong";
-  if(diff<60) return `${diff} giây trước`;
-  if(diff<3600) return `${Math.floor(diff/60)} phút trước`;
-  if(diff<86400) return `${Math.floor(diff/3600)} giờ trước`;
-  if(diff<2592000) return `${Math.floor(diff/86400)} ngày trước`;
-  return new Date(ts).toLocaleDateString("vi-VN");
-};
 const E0={stt:0,ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:"",anh:""};
 
 // ── Thứ tự chuẩn Nguồn gốc: SUB MINI 1 → SUB MINI 2 → UB → MB → FT ──
@@ -1114,7 +886,7 @@ export default function App(){
   const [bomMauByLoai, setBomMauByLoai] = useState(()=>{
     const m={};
     BOM_MAU_LOAI_DEFAULT.forEach(l=>{
-      m[l.id]=(BOM_MAU_SEED[l.id]||[]).map((r,i)=>({...r, _id:`${l.id}-${i+1}`}));
+      m[l.id]=[]; // Không seed — chờ dữ liệu thật từ Supabase (bảng "bom_mau")
     });
     return m;
   });
@@ -1182,9 +954,12 @@ export default function App(){
           const validPid=savedPid&&projsData.find(p=>p.id===savedPid)?savedPid:projsData[0].id;
           setPid(validPid);
         }
-        if(bomData?.length){
+        // ✅ Chỉ giữ nguyên state cũ khi có LỖI thật (mất mạng, bảng chưa tạo...). Nếu Supabase
+        // trả về thành công nhưng bảng rỗng (đã xoá hết dữ liệu), phải set về rỗng — không được
+        // giữ lại initBom (đã bỏ seed, giờ initBom cũng rỗng) như một dữ liệu "cũ" nào khác.
+        if(!r3.error){
           const grouped={};
-          bomData.forEach(v=>{if(!grouped[v.pid])grouped[v.pid]=[];grouped[v.pid].push(v);});
+          (bomData||[]).forEach(v=>{if(!grouped[v.pid])grouped[v.pid]=[];grouped[v.pid].push(v);});
           setBomDB(grouped);
         }
         if(phieuData?.length){
@@ -1203,20 +978,26 @@ export default function App(){
           lsData.forEach(v=>{if(!grouped[v.pid])grouped[v.pid]=[];grouped[v.pid].push(v);});
           setLsDB(grouped);
         }
-        // BOM Mẫu: nếu Supabase đã có dữ liệu (đã từng lưu trước đó) thì dùng bản đó thay
-        // cho danh sách gốc hard-code trong code. Nếu bảng chưa tồn tại/rỗng (lần đầu),
-        // bỏ qua lỗi và tiếp tục dùng seed cũ — không làm ảnh hưởng phần còn lại của app.
-        if(r7.error) console.warn("Chưa đọc được bảng bom_mau_loai (có thể chưa tạo bảng):",r7.error.message);
-        else if(r7.data?.length){
-          setBomMauLoaiList(r7.data);
+        // BOM Mẫu: KHÔNG còn seed hard-code trong code nữa (đã bỏ hẳn BOM_XH/BOM_MB2).
+        // Nguyên tắc: chỉ giữ nguyên state hiện tại khi Supabase báo LỖI thật (bảng chưa
+        // tạo, mất mạng...). Nếu query THÀNH CÔNG nhưng bảng rỗng (đã xoá hết loại/mã),
+        // phải set về rỗng thật sự — tuyệt đối không được để lộ lại state khởi tạo cũ hay
+        // "hồi sinh" dữ liệu mẫu nào, vì giờ dữ liệu mẫu 100% chỉ đến từ Supabase.
+        if(r7.error){
+          console.warn("Chưa đọc được bảng bom_mau_loai (có thể chưa tạo bảng):",r7.error.message);
+        } else {
+          const loaiList=r7.data||[];
+          setBomMauLoaiList(loaiList);
           // Nếu loại đang chọn (bmTab) không còn tồn tại trong danh sách thật từ DB,
-          // tự chuyển về loại đầu tiên để tránh màn hình trắng.
-          setBmTab(t=>r7.data.some(l=>l.id===t)?t:r7.data[0].id);
+          // tự chuyển về loại đầu tiên (hoặc rỗng nếu DB không còn loại nào) để tránh
+          // tham chiếu tới 1 loại "ma" không có trong dữ liệu thật.
+          setBmTab(t=>loaiList.some(l=>l.id===t)?t:(loaiList[0]?.id||""));
         }
-        if(r8.error) console.warn("Chưa đọc được bảng bom_mau (có thể chưa tạo bảng):",r8.error.message);
-        else if(r8.data?.length){
+        if(r8.error){
+          console.warn("Chưa đọc được bảng bom_mau (có thể chưa tạo bảng):",r8.error.message);
+        } else {
           const grouped={};
-          r8.data.forEach(row=>{if(!grouped[row.loai])grouped[row.loai]=[];grouped[row.loai].push(row);});
+          (r8.data||[]).forEach(row=>{if(!grouped[row.loai])grouped[row.loai]=[];grouped[row.loai].push(row);});
           setBomMauByLoai(grouped);
         }
         if(r9.error) console.warn("Chưa đọc được bảng bom_log (có thể chưa tạo bảng — xem hướng dẫn tạo bảng ở comment gần dbAddBomLog):",r9.error.message);
@@ -1519,9 +1300,10 @@ export default function App(){
   };
   // addBomLog: ghi nhật ký NGAY trên UI (optimistic) rồi đồng bộ lên Supabase.
   // hanh_dong: "them" | "sua" | "xoa"
-  const addBomLog=(hanh_dong,v,chi_tiet="")=>{
+  // pidOverride: dùng khi ghi log cho 1 dự án KHÁC dự án đang xem (vd import Excel qua importPidRef)
+  const addBomLog=(hanh_dong,v,chi_tiet="",pidOverride)=>{
     const row={
-      id:uid(), ts:new Date().toISOString(), pid,
+      id:uid(), ts:new Date().toISOString(), pid:pidOverride||pid,
       hanh_dong, ma:v.ma||"", ten:v.ten||"",
       chi_tiet, user_id:user?.id||"", user_ten:user?.ten||"Không rõ",
     };
@@ -1744,10 +1526,15 @@ export default function App(){
   const doImport=()=>{
     const seed=getBomMauRows(importSrc);
     const rows=mkBom(pid,seed);
+    let removedRows=[];
     setBomDB(s=>{
       const old=s[pid]||[];
       let next;
-      if(importMode==="thay") next={...s,[pid]:rows};
+      if(importMode==="thay"){
+        const newMaSet=new Set(rows.map(v=>v.ma));
+        removedRows=old.filter(v=>!newMaSet.has(v.ma));
+        next={...s,[pid]:rows};
+      }
       else{
         const existMa=new Set(old.map(v=>v.ma));
         const news=rows.filter(v=>!existMa.has(v.ma));
@@ -1757,8 +1544,17 @@ export default function App(){
       dbUpsertBom(pid,next[pid]);
       return next;
     });
+    // ✅ Ghi Nhật ký — đặc biệt log rõ khi "Thay thế" xóa mất mã/vị trí cũ
+    const tenNguon=bomMauLoaiList.find(l=>l.id===importSrc)?.ten||importSrc;
+    if(importMode==="thay"&&removedRows.length){
+      const viTriMat=[...new Set(removedRows.map(v=>v.vt).filter(Boolean))];
+      addBomLog("xoa",{ma:"",ten:`Import BOM Mẫu — Thay thế toàn bộ BOM`},
+        `Đã XÓA ${removedRows.length} mã cũ (thuộc vị trí: ${viTriMat.join(", ")||"—"}) để thay bằng BOM Mẫu "${tenNguon}"`);
+    }
+    addBomLog("them",{ma:"",ten:`Import BOM Mẫu — ${tenNguon}`},
+      `Đã ${importMode==="thay"?"thay thế bằng":"thêm"} ${rows.length} mã từ BOM Mẫu "${tenNguon}"`);
     setShowImport(false);
-    flash(`✓ Import ${rows.length} mã từ ${bomMauLoaiList.find(l=>l.id===importSrc)?.ten||importSrc}`);
+    flash(`✓ Import ${rows.length} mã từ ${tenNguon}`);
   };
   // ── CORE: đọc file Excel/CSV và trả kết quả qua callback ──
   // Dùng CHUNG cho cả "Import Excel" (tab Vật tư) và "Import BOM" (modal Tạo dự án mới)
@@ -1970,10 +1766,15 @@ export default function App(){
     const targetPid = importPidRef.current || pid;
     const rows=xlsPreview.map(v=>({id:uid(),pid:targetPid,...v,anh:""}));
     let finalRows=rows;
+    let removedRows=[]; // ✅ các mã CŨ bị xóa (chỉ có ở mode "thay") — dùng để ghi Nhật ký
     setBomDB(s=>{
       const oldRows=s[targetPid]||[];
       let next;
-      if(mode==="thay") next={...s,[targetPid]:rows};
+      if(mode==="thay"){
+        const newMaSet=new Set(rows.map(v=>v.ma));
+        removedRows=oldRows.filter(v=>!newMaSet.has(v.ma));
+        next={...s,[targetPid]:rows};
+      }
       else{
         const existMa=new Set(oldRows.map(v=>v.ma));
         const news=rows.filter(v=>!existMa.has(v.ma));
@@ -1987,6 +1788,21 @@ export default function App(){
     setXlsPreview([]);
     importPidRef.current = null;
     flash(`✓ Import ${rows.length} mã – Đang lưu lên server...`);
+    // ✅ Ghi Nhật ký thay đổi BOM cho thao tác Nhập Excel — đặc biệt log rõ khi
+    // "Thay thế" xóa mất các mã/vị trí cũ, để tra được ai làm và lúc nào.
+    if(mode==="thay"){
+      if(removedRows.length){
+        const viTriMat=[...new Set(removedRows.map(v=>v.vt).filter(Boolean))];
+        addBomLog("xoa",{ma:"",ten:`Nhập Excel — Thay thế toàn bộ BOM`},
+          `Đã XÓA ${removedRows.length} mã cũ (thuộc vị trí: ${viTriMat.join(", ")||"—"}) để thay bằng ${rows.length} mã từ file Excel`,
+          targetPid);
+      }
+      addBomLog("them",{ma:"",ten:`Nhập Excel — Thay thế toàn bộ BOM`},
+        `Đã thêm ${rows.length} mã mới từ file Excel (chế độ Thay thế)`, targetPid);
+    } else {
+      addBomLog("them",{ma:"",ten:`Nhập Excel — Thêm vào BOM`},
+        `Đã thêm ${rows.length} mã từ file Excel (chế độ Thêm vào, không xóa mã cũ)`, targetPid);
+    }
     // Lưu lên Supabase sau khi state đã update
     try{
       const res=await dbUpsertBom(targetPid,finalRows);
@@ -4000,9 +3816,8 @@ Bạn có chắc chắn không?`;
                         const pj=getProjInfo(r.pid);
                         return(
                         <tr key={r.id||i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
-                          <td style={{padding:"7px 12px",whiteSpace:"nowrap"}} title={new Date(r.ts).toLocaleString("vi-VN")}>
-                            <div style={{fontWeight:600,color:"#374151",fontSize:12}}>{timeAgo(r.ts,nowTick)}</div>
-                            <div style={{fontSize:10,color:"#9ca3af"}}>{new Date(r.ts).toLocaleString("vi-VN")}</div>
+                          <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
+                            <div style={{fontWeight:600,color:"#374151",fontSize:12}}>{new Date(r.ts).toLocaleString("vi-VN")}</div>
                           </td>
                           <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
                             <span style={{fontWeight:700,color:"#7c3aed"}}>👤 {r.user_ten||"Không rõ"}</span>
@@ -4764,7 +4579,13 @@ Bạn có chắc chắn không?`;
                 <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                   <button onClick={()=>{setShowXlsImport(false);setXlsPreview([]);setXlsErr("");importPidRef.current=null;}} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 14px"}}>Hủy</button>
                   <button onClick={()=>{if(window.confirm(`Thêm ${xlsPreview.length} mã vào BOM hiện tại?`))doXlsImport("them");}} style={{...btn,background:"#16a34a",color:"#fff",padding:"7px 16px"}}>➕ Thêm vào</button>
-                  <button onClick={()=>{if(window.confirm(`Thay thế toàn bộ BOM bằng ${xlsPreview.length} mã từ Excel?`))doXlsImport("thay");}} style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 16px"}}>🔄 Thay thế</button>
+                  <button onClick={()=>{
+                    const soMaCu=bom.length;
+                    const canhBao=soMaCu>0
+                      ? `⚠️ THAY THẾ sẽ XÓA VĨNH VIỄN ${soMaCu} mã đang có và thay bằng ${xlsPreview.length} mã từ Excel.\n\nCác mã KHÔNG có trong file Excel này sẽ MẤT HẲN (kể cả trạng thái đã nhận, ảnh...).\n\nBạn có chắc chắn muốn tiếp tục?`
+                      : `Thay thế toàn bộ BOM bằng ${xlsPreview.length} mã từ Excel?`;
+                    if(window.confirm(canhBao))doXlsImport("thay");
+                  }} style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 16px"}}>🔄 Thay thế</button>
                 </div>
               </div>
             )}
@@ -4865,7 +4686,7 @@ Bạn có chắc chắn không?`;
             <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
               <button onClick={()=>setShowImport(false)} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"8px 18px",fontSize:13}}>Hủy</button>
               <button onClick={()=>{
-                if(importMode==="thay"&&bom.length>0&&!window.confirm(`Xóa ${bom.length} mã hiện có và thay bằng BOM mới?`))return;
+                if(importMode==="thay"&&bom.length>0&&!window.confirm(`⚠️ THAY THẾ sẽ XÓA VĨNH VIỄN ${bom.length} mã đang có trong dự án này.\n\nCác mã không có trong BOM Mẫu vừa chọn sẽ MẤT HẲN (kể cả trạng thái đã nhận, ảnh...).\n\nBạn có chắc chắn muốn tiếp tục?`))return;
                 doImport();
               }} style={{...btn,background:importMode==="thay"?"#dc2626":"#16a34a",color:"#fff",padding:"8px 18px",fontSize:13,fontWeight:700}}>
                 {importMode==="them"?"➕ Thêm vào dự án":"🔄 Thay thế"}
