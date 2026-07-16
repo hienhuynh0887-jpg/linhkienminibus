@@ -1512,7 +1512,7 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem("soanDB",JSON.stringify(soanDB));}catch{};},[soanDB]);
 
   // ── BOM CRUD ──
-  const save=()=>{
+  const save=async()=>{
     if(!cur.ma.trim()||!cur.ten.trim())return;
     const edit=modal==="edit";
     let savedRow=null;
@@ -1521,28 +1521,40 @@ export default function App(){
       let next;
       if(edit) next={...s,[pid]:old.map(v=>v.ma===cur.ma?(savedRow={...v,...cur}):v)};
       else{const ns=old.length?Math.max(...old.map(v=>v.stt))+1:1;savedRow={id:uid(),pid,stt:ns,...cur};next={...s,[pid]:[...old,savedRow]};}
-      // ✅ AN TOÀN NHIỀU NGƯỜI DÙNG: chỉ upsert ĐÚNG 1 dòng vừa lưu (dbUpsertBomRows —
-      // không xóa gì cả), KHÔNG dùng dbUpsertBom (xóa-theo-khác-biệt cả mảng) nữa. Vì
-      // bomDB cục bộ trên máy này có thể đang cũ hơn server (app không có realtime đầy đủ
-      // cho bom_items), nếu xóa-theo-khác-biệt sẽ xóa nhầm mã mà người khác vừa thêm ở
-      // trạm khác chưa kịp đồng bộ về máy này — đây là nguyên nhân gây mất dữ liệu nhiều
-      // trạm khi nhiều người dùng cùng lúc.
-      dbUpsertBomRows(pid,[savedRow]).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
       return next;
     });
     if(!edit)addLS(pid,{pid,ma:cur.ma,ten:cur.ten,loai:"Tạo mới",sl:cur.dm,gc:""});
     addBomLog(edit?"sua":"them",cur);
-    setModal(null);flash("✓ Đã lưu");
+    setModal(null);
+    // ✅ AN TOÀN NHIỀU NGƯỜI DÙNG + KHÔNG BÁO THÀNH CÔNG GIẢ: chỉ upsert ĐÚNG 1 dòng vừa
+    // lưu (dbUpsertBomRows — không xóa gì cả, xem giải thích chi tiết ở định nghĩa hàm),
+    // và PHẢI await xác nhận lưu Supabase xong rồi mới báo "✓ Đã lưu" — trước đây báo
+    // thành công ngay lập tức dù chưa biết lệnh lưu có thật sự thành công hay không.
+    flash("⏳ Đang lưu...");
+    try{
+      await dbUpsertBomRows(pid,[savedRow]);
+      flash("✓ Đã lưu");
+    }catch(e){
+      console.error("save() error:",e);
+      flash("❌ Lưu lên máy chủ thất bại: "+e.message+" — hãy thử lại!");
+    }
   };
-  const del=v=>{
+  const del=async v=>{
     if(!window.confirm(`Xóa "${v.ten}"?`))return;
     setBomDB(s=>({...s,[pid]:(s[pid]||[]).filter(x=>x.ma!==v.ma)}));
+    addBomLog("xoa",v);
     // ✅ Chỉ xóa ĐÚNG dòng này theo id (dbDeleteBomItems) — không còn dùng cách "xóa mọi
     // dòng không có trong mảng local" như trước, để không lỡ tay xóa dữ liệu người khác
-    // vừa thêm ở trạm khác mà máy này chưa kịp có.
-    dbDeleteBomItems([v.id]).catch(e=>flash("❌ Xóa trên máy chủ thất bại: "+e.message));
-    addBomLog("xoa",v);
-    flash("✓ Đã xóa");
+    // vừa thêm ở trạm khác mà máy này chưa kịp có. Và PHẢI await xác nhận xóa xong trên
+    // Supabase rồi mới báo "✓ Đã xóa", không báo thành công giả.
+    flash("⏳ Đang xóa...");
+    try{
+      await dbDeleteBomItems([v.id]);
+      flash("✓ Đã xóa");
+    }catch(e){
+      console.error("del() error:",e);
+      flash("❌ Xóa trên máy chủ thất bại: "+e.message+" — hãy thử lại!");
+    }
   };
   const doIO=()=>{
     const loai=modal==="nhap"?"Nhập kho":"Xuất kho";
@@ -1674,21 +1686,23 @@ export default function App(){
   const [newProjXlsPreview, setNewProjXlsPreview] = useState([]); // BOM đọc được từ file, áp dụng lúc bấm "Tạo dự án"
   const [newProjXlsErr, setNewProjXlsErr] = useState("");
 
-  const doImport=()=>{
+  const doImport=async()=>{
     const seed=getBomMauRows(importSrc);
     const rows=mkBom(pid,seed);
     let removedRows=[];
+    let rowsToSave=rows;
+    const replaceAll = importMode==="thay";
     setBomDB(s=>{
       const old=s[pid]||[];
       let next;
-      if(importMode==="thay"){
+      if(replaceAll){
         // "Thay thế toàn bộ": có xác nhận rõ ràng của người dùng và CHỦ ĐÍCH là xóa hết
         // mã cũ, nên đây là 1 trong số ít nơi vẫn dùng dbUpsertBom (upsert + xóa những gì
         // không còn trong danh sách mới).
         const newMaSet=new Set(rows.map(v=>v.ma));
         removedRows=old.filter(v=>!newMaSet.has(v.ma));
         next={...s,[pid]:rows};
-        dbUpsertBom(pid,next[pid]).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
+        rowsToSave=rows;
       }
       else{
         // "Thêm mới": CHỈ upsert đúng các dòng vừa thêm — không đụng tới các mã khác đang
@@ -1698,21 +1712,45 @@ export default function App(){
         const maxStt=old.length?Math.max(...old.map(v=>v.stt)):0;
         const newsWithStt=news.map((v,i)=>({...v,stt:maxStt+i+1}));
         next={...s,[pid]:[...old,...newsWithStt]};
-        dbUpsertBomRows(pid,newsWithStt).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
+        rowsToSave=newsWithStt;
       }
       return next;
     });
-    // ✅ Ghi Nhật ký — đặc biệt log rõ khi "Thay thế" xóa mất mã/vị trí cũ
-    const tenNguon=bomMauLoaiList.find(l=>l.id===importSrc)?.ten||importSrc;
-    if(importMode==="thay"&&removedRows.length){
-      const viTriMat=[...new Set(removedRows.map(v=>v.vt).filter(Boolean))];
-      addBomLog("xoa",{ma:"",ten:`Import BOM Mẫu — Thay thế toàn bộ BOM`},
-        `Đã XÓA ${removedRows.length} mã cũ (thuộc vị trí: ${viTriMat.join(", ")||"—"}) để thay bằng BOM Mẫu "${tenNguon}"`);
-    }
-    addBomLog("them",{ma:"",ten:`Import BOM Mẫu — ${tenNguon}`},
-      `Đã ${importMode==="thay"?"thay thế bằng":"thêm"} ${rows.length} mã từ BOM Mẫu "${tenNguon}"`);
     setShowImport(false);
-    flash(`✓ Import ${rows.length} mã từ ${tenNguon}`);
+    flash(`⏳ Đang lưu ${rowsToSave.length} mã lên server...`);
+    const tenNguon=bomMauLoaiList.find(l=>l.id===importSrc)?.ten||importSrc;
+    // ✅ QUAN TRỌNG: PHẢI await và xác nhận Supabase lưu thành công rồi mới báo "✓ Import
+    // thành công" và ghi Nhật ký. Trước đây gọi dbUpsertBom KHÔNG await — local state đã
+    // đổi ngay (vd. Thay thế 86→147 mã) và luôn báo "✓ Import thành công" NGAY LẬP TỨC dù
+    // lệnh lưu lên Supabase có thất bại hay không (mất mạng, RLS chặn quyền ghi...). Người
+    // dùng thấy "thành công" trên máy mình, nhưng dữ liệu thật trên server KHÔNG đổi — mở
+    // lại trang (hoặc máy khác) sẽ thấy BOM cũ, giống hệt triệu chứng "mất dữ liệu".
+    try{
+      const res=replaceAll
+        ? await dbUpsertBom(pid,rowsToSave)
+        : await dbUpsertBomRows(pid,rowsToSave);
+      if(res?.skipped>0){
+        setBomDB(s=>({...s,[pid]:(s[pid]||[]).filter(r=>String(r.ma||"").trim()&&String(r.ten||"").trim())}));
+      }
+      // ✅ Ghi Nhật ký — đặc biệt log rõ khi "Thay thế" xóa mất mã/vị trí cũ. Ghi SAU khi
+      // đã xác nhận lưu Supabase thành công, để nhật ký không nói dối là đã lưu xong.
+      if(replaceAll&&removedRows.length){
+        const viTriMat=[...new Set(removedRows.map(v=>v.vt).filter(Boolean))];
+        addBomLog("xoa",{ma:"",ten:`Import BOM Mẫu — Thay thế toàn bộ BOM`},
+          `Đã XÓA ${removedRows.length} mã cũ (thuộc vị trí: ${viTriMat.join(", ")||"—"}) để thay bằng BOM Mẫu "${tenNguon}"`);
+      }
+      addBomLog("them",{ma:"",ten:`Import BOM Mẫu — ${tenNguon}`},
+        `Đã ${replaceAll?"thay thế bằng":"thêm"} ${rows.length} mã từ BOM Mẫu "${tenNguon}"`);
+      flash(res?.skipped>0
+        ? `⚠️ Đã lưu ${res.count}/${rowsToSave.length} mã — ${res.skipped} dòng bị bỏ qua (thiếu Mã số/Tên vật tư)`
+        : `✓ Đã lưu ${rowsToSave.length} mã lên Supabase (${tenNguon})`);
+    }catch(e){
+      // ❌ Lưu thất bại: local đang hiển thị dữ liệu MỚI nhưng Supabase CHƯA có (hoặc chỉ
+      // có 1 phần) — báo rõ ràng, không im lặng coi như thành công, để người dùng biết cần
+      // thử lại ngay, tránh rời trang rồi mất trắng thao tác vừa làm.
+      console.error("doImport save error:",e);
+      flash(`❌ LƯU SUPABASE THẤT BẠI: ${e.message} — Dữ liệu trên màn hình CHƯA chắc đã lưu lên server, hãy thử Import lại ngay!`);
+    }
   };
   // ── CORE: đọc file Excel/CSV và trả kết quả qua callback ──
   // Dùng CHUNG cho cả "Import Excel" (tab Vật tư) và "Import BOM" (modal Tạo dự án mới)
@@ -1863,7 +1901,6 @@ export default function App(){
       rowsToSave=finalRows;
       replaceAll=true;
       setActiveBom(finalRows);
-      flash(`✓ Đã thay thế bằng ${finalRows.length} mã từ Excel`);
     } else {
       setActiveBom(prev=>{
         const existingIds=new Set(prev.map(r=>r.id));
@@ -1871,7 +1908,6 @@ export default function App(){
         const skipped=rows.length-newRows.length;
         let nextStt=prev.length?Math.max(...prev.map(r=>r.stt||0)):0;
         const withStt=newRows.map(r=>({...r,stt:++nextStt,_id:Date.now()+Math.random()}));
-        flash(`✓ Đã thêm ${withStt.length} mã mới${skipped?`, bỏ qua ${skipped} mã trùng`:""}`);
         finalRows=[...prev,...withStt];
         rowsToSave=withStt; // ✅ CHỈ lưu đúng các dòng mới thêm, không đụng tới dòng khác
         return finalRows;
@@ -1880,13 +1916,21 @@ export default function App(){
     setBmShowImport(false);
     setBmXlsPreview([]);
     setBmXlsErr("");
+    flash("⏳ Đang lưu lên server...");
     // Lưu lên Supabase sau khi state đã cập nhật (đã tính sẵn ở trên, không cần chờ re-render)
-    setTimeout(()=>{
+    // ✅ Chỉ báo "✓ Đã lưu" SAU KHI xác nhận Supabase lưu xong — trước đây báo thành công
+    // ngay lập tức bất kể lệnh lưu có thật sự thành công hay không.
+    setTimeout(async()=>{
       if(!rowsToSave)return;
-      // "Thay thế toàn bộ" là thao tác có chủ đích, xác nhận rõ ràng → giữ dbSyncBomMau
-      // (upsert + xóa mã không còn). "Thêm mới" thì chỉ upsert đúng dòng mới, an toàn hơn.
-      const p=replaceAll?dbSyncBomMau(bmTab, rowsToSave):dbUpsertBomMauRows(bmTab, rowsToSave);
-      p.catch(e=>alert("⚠️ Lưu lên Supabase thất bại: "+e.message));
+      try{
+        // "Thay thế toàn bộ" là thao tác có chủ đích, xác nhận rõ ràng → giữ dbSyncBomMau
+        // (upsert + xóa mã không còn). "Thêm mới" thì chỉ upsert đúng dòng mới, an toàn hơn.
+        await(replaceAll?dbSyncBomMau(bmTab, rowsToSave):dbUpsertBomMauRows(bmTab, rowsToSave));
+        flash(replaceAll?`✓ Đã thay thế bằng ${rowsToSave.length} mã từ Excel`:`✓ Đã thêm ${rowsToSave.length} mã mới lên server`);
+      }catch(e){
+        console.error("doBmImport save error:",e);
+        flash(`❌ Lưu lên Supabase thất bại: ${e.message} — hãy thử Import lại!`);
+      }
     },0);
   };
 
@@ -2878,7 +2922,7 @@ Bạn có chắc chắn không?`;
                   </div>
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}>
                     <button onClick={()=>setShowThemMa(false)} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 16px",fontSize:13}}>Huỷ</button>
-                    <button onClick={()=>{
+                    <button onClick={async()=>{
                       const ma=themMaForm.ma.trim();
                       const ten=themMaForm.ten.trim();
                       if(!ma||!ten){flash("⚠️ Vui lòng nhập Mã VT và Tên vật tư!");return;}
@@ -2887,6 +2931,7 @@ Bạn có chắc chắn không?`;
                       // Nếu không tìm thấy nhóm cùng ng+vt, chèn sau nhóm cùng ng
                       // Nếu không có cùng ng, chèn cuối danh sách
                       const newRow={id:uid(),pid,stt:0,ma,ten,dv:themMaForm.dv,dm:themMaForm.dm,ng:themMaForm.ng,vt:themMaForm.vt,gc:"",anh:""};
+                      let renumbered=null;
                       setBomDB(s=>{
                         const old=s[pid]||[];
                         // Tìm index cuối của nhóm cùng ng+vt
@@ -2902,16 +2947,24 @@ Bạn có chắc chắn không?`;
                         }
                         const updated=[...old.slice(0,insertIdx),newRow,...old.slice(insertIdx)];
                         // Cập nhật lại stt toàn bộ theo thứ tự mới
-                        const renumbered=updated.map((v,i)=>({...v,stt:i+1}));
-                        // ✅ Không dùng dbUpsertBom (xóa-theo-khác-biệt) — thao tác này không hề
-                        // xóa mã nào, chỉ thêm 1 mã + đánh lại STT, nên chỉ cần upsert (an toàn).
-                        dbUpsertBomRows(pid,renumbered).catch(e=>flash("❌ Lưu lên máy chủ thất bại: "+e.message));
+                        renumbered=updated.map((v,i)=>({...v,stt:i+1}));
                         return{...s,[pid]:renumbered};
                       });
                       addLS(pid,{pid,ma,ten,loai:"Tạo mới",sl:themMaForm.dm,gc:"Thêm mã bổ sung"});
                       addBomLog("them",{ma,ten},"Thêm mã bổ sung");
                       setThemMaForm({ma:"",ten:"",dv:"Cái",dm:1,ng:DMS[0]||"",vt:""});
-                      flash(`✓ Đã thêm mã "${ma}" — ${ten}`);
+                      // ✅ Không dùng dbUpsertBom (xóa-theo-khác-biệt) — thao tác này không hề
+                      // xóa mã nào, chỉ thêm 1 mã + đánh lại STT, nên chỉ cần upsert (an toàn).
+                      // Và PHẢI await xác nhận lưu xong rồi mới báo "✓ Đã thêm", không báo
+                      // thành công giả khi chưa biết có lưu được lên Supabase hay không.
+                      flash("⏳ Đang lưu...");
+                      try{
+                        await dbUpsertBomRows(pid,renumbered);
+                        flash(`✓ Đã thêm mã "${ma}" — ${ten}`);
+                      }catch(e){
+                        console.error("Thêm mã bổ sung error:",e);
+                        flash("❌ Lưu lên máy chủ thất bại: "+e.message+" — hãy thử lại!");
+                      }
                     }} style={{...btn,background:"#d97706",color:"#fff",padding:"7px 20px",fontSize:13,fontWeight:700}}>
                       ✔ Thêm vào BOM
                     </button>
