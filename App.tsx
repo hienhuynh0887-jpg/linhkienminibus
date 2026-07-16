@@ -1085,7 +1085,7 @@ export default function App(){
   const [pgnSO,    setPgnSO]    = useState("all");
   const [searchMa, setSearchMa] = useState("");
   const [showChoXN, setShowChoXN] = useState(8); // ✅ Số phiếu "Chờ duyệt" hiển thị (mặc định 8)
-  const [showPhList, setShowPhList] = useState(8); // ✅ Số phiếu "Phiếu đã gửi" hiển thị (mặc định 8)
+  const [showPhList, setShowPhList] = useState(5); // ✅ Số phiếu "Phiếu đã gửi" hiển thị (mặc định 5)
   const [soanSearch, setSoanSearch] = useState("");
   const [soanChiThieu, setSoanChiThieu] = useState(false);
   const [showThemMa, setShowThemMa] = useState(false);
@@ -3409,8 +3409,13 @@ Bạn có chắc chắn không?`;
                     );
                   })}
                   {showPhList < phListHienThi.length && (
-                    <button onClick={()=>setShowPhList(showPhList+8)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"8px 16px",fontSize:12,fontWeight:600,width:"100%",marginTop:10}}>
+                    <button onClick={()=>setShowPhList(phListHienThi.length)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"8px 16px",fontSize:12,fontWeight:600,width:"100%",marginTop:10}}>
                       📋 Xem thêm ({phListHienThi.length - showPhList} phiếu còn lại)
+                    </button>
+                  )}
+                  {showPhList >= phListHienThi.length && phListHienThi.length>5 && (
+                    <button onClick={()=>setShowPhList(5)} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:12,fontWeight:600,width:"100%",marginTop:10}}>
+                      🔼 Ẩn phiếu
                     </button>
                   )}
                 </div>
@@ -3563,7 +3568,10 @@ Bạn có chắc chắn không?`;
                         const dC=itemsNg.reduce((s,v)=>s+v.cn,0),dD=itemsNg.reduce((s,v)=>s+v.dn,0);
                         const dDn=itemsNg.length>0&&itemsNg.every(v=>v.done);
                         const soMaDaNhan=itemsNg.filter(v=>v.done).length;
-                        const dP=itemsNg.length>0?Math.round(soMaDaNhan/itemsNg.length*100):0;
+                        // Trạm chỉ có 1 mã: % = SL thực nhận / Tổng SL cần nhận (thay vì nhị phân đã/chưa đủ)
+                        const dP=itemsNg.length===1
+                          ? (dC>0?Math.min(100,Math.round(dD/dC*100)):0)
+                          : (itemsNg.length>0?Math.round(soMaDaNhan/itemsNg.length*100):0);
                         return(
                           <div key={dm} style={{marginBottom:8}}>
                             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
