@@ -442,20 +442,6 @@ function LoginScreen({onLogin}){
           onMouseOut={e=>e.currentTarget.style.opacity="1"}>
           {t.loginBtn}
         </button>
-        <div style={{marginTop:20,borderTop:"1px solid rgba(255,255,255,0.08)",paddingTop:16}}>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",fontWeight:700,letterSpacing:.8,textTransform:"uppercase",marginBottom:8}}>{t.demoAcc}</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
-            {userList.filter(u=>!u.an&&u.id!=="xh04").map(u=>(
-              <div key={u.id} onClick={()=>{setUid2(u.id);setPw(u.pw);setErr("");}}
-                style={{padding:"5px 8px",borderRadius:6,background:"rgba(255,255,255,0.04)",cursor:"pointer",border:"1px solid rgba(255,255,255,0.06)",transition:"background .1s"}}
-                onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.09)"}
-                onMouseOut={e=>e.currentTarget.style.background="rgba(255,255,255,0.04)"}>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontWeight:600}}>{u.avatar} {u.id}</div>
-                <div style={{fontSize:10,color:u.role==="thck"?"#93c5fd":u.role==="kho"?"#5eead4":"#fed7aa"}}>{u.don_vi}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
