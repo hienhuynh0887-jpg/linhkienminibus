@@ -443,6 +443,81 @@ function LoginScreen({onLogin}){
 }
 
 // ─── Users Management Panel ────────────────────────────────────
+function SignaturePad({initial, onSave, onClose}){
+  const canvasRef = React.useRef(null);
+  const drawingRef = React.useRef(false);
+  const lastRef = React.useRef({x:0,y:0});
+  const [empty, setEmpty] = React.useState(true);
+
+  React.useEffect(()=>{
+    const cv = canvasRef.current;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if(initial){
+      const img = new Image();
+      img.onload = ()=>{ ctx.drawImage(img,0,0,cv.width,cv.height); setEmpty(false); };
+      img.src = initial;
+    }
+  },[]);
+
+  const getPos = (e)=>{
+    const cv = canvasRef.current;
+    const rect = cv.getBoundingClientRect();
+    const scaleX = cv.width/rect.width, scaleY = cv.height/rect.height;
+    const t = e.touches ? e.touches[0] : e;
+    return {x:(t.clientX-rect.left)*scaleX, y:(t.clientY-rect.top)*scaleY};
+  };
+  const start = (e)=>{ e.preventDefault(); drawingRef.current = true; lastRef.current = getPos(e); };
+  const move = (e)=>{
+    if(!drawingRef.current) return;
+    e.preventDefault();
+    const ctx = canvasRef.current.getContext("2d");
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastRef.current.x, lastRef.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastRef.current = p;
+    setEmpty(false);
+  };
+  const end = ()=>{ drawingRef.current = false; };
+  const clear = ()=>{
+    const cv = canvasRef.current, ctx = cv.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0,0,cv.width,cv.height);
+    setEmpty(true);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2100,padding:16}}
+      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#fff",borderRadius:14,padding:22,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontWeight:800,fontSize:15,marginBottom:4}}>✍️ Chữ ký điện tử</div>
+        <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Ký bằng ngón tay hoặc chuột trong khung dưới đây, sau đó bấm Lưu.</div>
+        <canvas ref={canvasRef} width={360} height={160}
+          style={{width:"100%",height:160,border:"1.5px dashed #c7d2fe",borderRadius:8,touchAction:"none",background:"#fff",cursor:"crosshair"}}
+          onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
+          onTouchStart={start} onTouchMove={move} onTouchEnd={end}/>
+        <div style={{display:"flex",gap:8,justifyContent:"space-between",marginTop:14}}>
+          <button onClick={clear} style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13,padding:"8px 16px",background:"#f3f4f6",color:"#374151"}}>🗑 Xóa</button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onClose} style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13,padding:"8px 16px",background:"#f3f4f6",color:"#374151"}}>Hủy</button>
+            <button onClick={()=>{ if(empty) return; onSave(canvasRef.current.toDataURL("image/png")); }} disabled={empty}
+              style={{border:"none",borderRadius:8,cursor:empty?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,padding:"8px 20px",background:"#1d4ed8",color:"#fff",opacity:empty?.5:1}}>
+              💾 Lưu chữ ký
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH}){
   const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
@@ -758,6 +833,45 @@ async function xuatPDF(htmlContent, tenFile="BaoCao"){
   URL.revokeObjectURL(url);
 }
 
+// Chia sẻ 1 phiếu GN dạng văn bản — ưu tiên Web Share API (Zalo/Messenger/Gmail...),
+// nếu trình duyệt không hỗ trợ thì tự động copy vào clipboard để người dùng tự dán ra.
+async function chiaSePhieu(vp){
+  const ct = vp.ct||[];
+  const tongSL = ct.reduce((s,c)=>s+(c.sl||0),0);
+  const dong = ct.slice(0,20).map((c,i)=>`${i+1}. ${c.ma} - ${c.ten} (SL: ${c.sl})`).join("\n");
+  const themDong = ct.length>20 ? `\n… và ${ct.length-20} mã khác` : "";
+  const noiDung =
+`📋 PHIẾU GIAO NHẬN VẬT TƯ
+Số phiếu: ${vp.sp}
+Ngày: ${vp.ngay}
+Bên giao: ${vp.bg}
+Bên nhận: ${vp.bn}
+Trạng thái: ${vp.tt}
+Tổng: ${ct.length} chủng loại, ${tongSL} SL
+${vp.gc?`Ghi chú: ${vp.gc}\n`:""}
+${dong}${themDong}`;
+
+  let coHoTro=false;
+  try{ coHoTro = !!(navigator.canShare ? navigator.canShare({title:`Phiếu ${vp.sp}`, text:noiDung}) : navigator.share); }catch(e){ coHoTro=false; }
+
+  if(coHoTro){
+    try{
+      await navigator.share({title:`Phiếu ${vp.sp}`, text:noiDung});
+      return;
+    }catch(e){
+      if(e && e.name==="AbortError") return; // người dùng tự hủy hộp thoại chia sẻ
+      console.warn("navigator.share thất bại, chuyển sang copy clipboard:", e);
+    }
+  }
+
+  try{
+    await navigator.clipboard.writeText(noiDung);
+    alert("✅ Đã copy nội dung phiếu vào clipboard!\nDán (paste) vào Zalo/Messenger/Email... để gửi.");
+  }catch(e){
+    alert("Trình duyệt không hỗ trợ chia sẻ tự động.\nBạn có thể dùng nút 🖨 In phiếu hoặc chụp màn hình để gửi.");
+  }
+}
+
 // Nút xuất dùng chung
 function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label=""}){
   const [busy, setBusy] = useState(false);
@@ -864,6 +978,7 @@ export default function App(){
   const [themMaForm, setThemMaForm] = useState({ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:""});
   const [showChangePw, setShowChangePw] = useState(false);
   const [cpwForm, setCpwForm] = useState({cur:"",next:"",confirm:""});
+  const [showSignPad, setShowSignPad] = useState(false);
   const [cpwErr, setCpwErr] = useState("");
   const [cpwOk, setCpwOk] = useState("");
 
@@ -2718,6 +2833,7 @@ Bạn có chắc chắn không?`;
               ))}
             </div>
             <button onClick={()=>setShowChangePw(true)} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700}}>🔑 Đổi MK</button>
+            <button onClick={()=>setShowSignPad(true)} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700}}>{user.chu_ky?"✍️ Sửa chữ ký":"✍️ Tạo chữ ký"}</button>
             <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"5px 10px 5px 6px",cursor:"pointer"}}
               onClick={()=>{if(window.confirm("Đăng xuất?"))setUser(null);}}>
               <span style={{fontSize:16}}>{user.avatar}</span>
@@ -4781,17 +4897,37 @@ Bạn có chắc chắn không?`;
             })()}
 
             {/* Ký tên (chỉ khi xem) */}
-            {!editPh&&(
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:16}}>
-                {[["Đại diện bên giao","LINH KIỆN BUS"],["Đại diện bên nhận","XƯỞNG HÀN"]].map(([lb,nm])=>(
-                  <div key={nm} style={{textAlign:"center"}}>
-                    <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:4}}>{lb}</div>
-                    <div style={{fontSize:11,color:"#6b7280",marginBottom:40}}>{nm}</div>
-                    <div style={{borderTop:"1px solid #d1d5db",paddingTop:6,fontSize:11,color:"#9ca3af"}}>(Ký, ghi rõ họ tên)</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {!editPh&&(()=>{
+              // Người soạn (bên giao) lấy từ phiếu; người duyệt (bên nhận) lấy dòng duyệt gần nhất trong chi tiết phiếu
+              const ctOk=(freshVP.ct||[]).filter(c=>c.ok&&c.nguoi_duyet);
+              const tenGiao=freshVP.nguoi_soan||"";
+              const tenNhan=ctOk.length?ctOk[ctOk.length-1].nguoi_duyet:"";
+              const uGiao=users.find(u=>u.ten===tenGiao);
+              const uNhan=tenNhan?users.find(u=>u.ten===tenNhan):null;
+              const cols=[
+                {lb:"Đại diện bên giao",org:freshVP.bg,ten:tenGiao,chuKy:uGiao?.chu_ky,mine:tenGiao&&tenGiao===user.ten},
+                {lb:"Đại diện bên nhận",org:freshVP.bn,ten:tenNhan,chuKy:uNhan?.chu_ky,mine:tenNhan&&tenNhan===user.ten},
+              ];
+              return (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:16}}>
+                  {cols.map((c,i)=>(
+                    <div key={i} style={{textAlign:"center"}}>
+                      <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:4}}>{c.lb}</div>
+                      <div style={{fontSize:11,color:"#6b7280",marginBottom:2}}>{c.org}</div>
+                      <div style={{height:56,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+                        {c.chuKy
+                          ?<img src={c.chuKy} alt="Chữ ký" style={{maxHeight:52,maxWidth:"85%",objectFit:"contain"}}/>
+                          :(c.mine
+                            ?<button onClick={()=>setShowSignPad(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"4px 12px",fontSize:11,fontWeight:700,marginBottom:4}}>✍️ Ký ngay</button>
+                            :null)}
+                      </div>
+                      <div style={{borderTop:"1px solid #d1d5db",paddingTop:6,fontSize:12,fontWeight:700,color:c.ten?"#111827":"#d1d5db"}}>{c.ten||"—"}</div>
+                      <div style={{fontSize:10,color:"#9ca3af"}}>(Ký, ghi rõ họ tên)</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Actions */}
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
@@ -4803,6 +4939,7 @@ Bạn có chắc chắn không?`;
               ):(
                 <>
                   <button onClick={()=>window.print()} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>🖨 In phiếu</button>
+                  <button onClick={()=>chiaSePhieu(freshVP)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"8px 16px",fontSize:13,fontWeight:700}}>📤 Chia sẻ</button>
                   {(isTHCK||isKHO)&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>setEditPh({...freshVP,ct:[...(freshVP.ct||[])]})} style={{...btn,background:"#f59e0b",color:"#fff",padding:"8px 16px",fontSize:13}}>✏️ Sửa phiếu</button>}
                   {isXH&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>{xacNhan(freshVP.id);setViewPh(null);}} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 16px",fontSize:13}}>✓ Xác nhận</button>}
                   <button onClick={()=>{setViewPh(null);setEditPh(null);setSlThucEdit({});}} style={{...btn,background:"#2563eb",color:"#fff",padding:"8px 16px",fontSize:13}}>Đóng</button>
@@ -5059,6 +5196,21 @@ Bạn có chắc chắn không?`;
             </div>
           </div>
         </div>
+      )}
+
+      {showSignPad&&(
+        <SignaturePad
+          initial={user.chu_ky}
+          onClose={()=>setShowSignPad(false)}
+          onSave={(dataUrl)=>{
+            const updated={...user,chu_ky:dataUrl};
+            setUser(updated);
+            setUsers(us=>us.map(u=>u.id===user.id?{...u,chu_ky:dataUrl}:u));
+            dbUpsertUser&&dbUpsertUser({...user,chu_ky:dataUrl});
+            setShowSignPad(false);
+            flash("✅ Đã lưu chữ ký điện tử! Chữ ký sẽ tự hiện trên các phiếu bạn soạn/duyệt.");
+          }}
+        />
       )}
     </div>
     </LangCtx.Provider>
