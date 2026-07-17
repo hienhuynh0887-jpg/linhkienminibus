@@ -200,6 +200,24 @@ const APP_I18N = {
   thNguoiSoan:  {vi:"Người soạn",  zh:"制单人"},
   thPhieu:      {vi:"Phiếu",       zh:"单据"},
   thVuot:       {vi:"Vượt",        zh:"超出"},
+  thCanNhan:    {vi:"Cần nhận",    zh:"需接收"},
+  thAnh:        {vi:"Ảnh",         zh:"图片"},
+  thThaoTac:    {vi:"Thao tác",    zh:"操作"},
+  thMaTk:       {vi:"Mã",          zh:"编号"},
+  progTitle:      {vi:"📊 Tiến độ Nhận Vật Tư Tích Lũy", zh:"📊 累计收料进度"},
+  progTitleDone:  {vi:"✅ Đã nhận đủ vật tư!",           zh:"✅ 物料已全部收齐！"},
+  progTienDoTichLuy: {vi:"Tiến độ nhận vật tư tích lũy", zh:"累计收料进度"},
+  progDaNhanNhan: {vi:"Đã nhận",  zh:"已收"},
+  progThieuNhan:  {vi:"Thiếu",    zh:"缺料"},
+  progTongNhan:   {vi:"Tổng",     zh:"总计"},
+  progCan:        {vi:"Cần",      zh:"需求"},
+  progDaNhan:     {vi:"Đã nhận",  zh:"已收"},
+  progConThieu:   {vi:"Còn thiếu",zh:"缺少"},
+  searchPlaceholderMaPGN: {vi:"🔍 Tìm mã/tên vật tư để xem nằm trong Phiếu GN nào (VD: KL2801)...", zh:"🔍 搜索物料编号/名称，查看所属收发单（例：KL2801）..."},
+  btnXoaTim:    {vi:"✕ Xóa",      zh:"✕ 清除"},
+  khongTimThayVT: {vi:"❌ Không tìm thấy vật tư nào khớp với", zh:"❌ 未找到匹配的物料"},
+  trangThaiDu:   {vi:"✅ Đủ",     zh:"✅ 已足量"},
+  trangThaiThieu:{vi:"⚠️ Thiếu",  zh:"⚠️ 缺料"},
   // Tiêu đề khu vực từng tab
   titleDs:      {vi:"📦 Danh sách Vật tư",         zh:"📦 物料清单"},
   titleSoan:    {vi:"📋 Soạn Hàng",                zh:"📋 备料"},
@@ -256,6 +274,7 @@ const APP_I18N = {
   thSLThucNhan: {vi:"SL thực nhận",  zh:"实收数量"},
   thThieu:      {vi:"Thiếu",         zh:"缺少"},
   thXoa:        {vi:"Xóa",           zh:"删除"},
+  thSua:        {vi:"Sửa",           zh:"编辑"},
   thSoLuong:    {vi:"Số lượng",      zh:"数量"},
   thSLThieu:    {vi:"SL thiếu",      zh:"缺少数量"},
   statMaVT:     {vi:"Mã vật tư",     zh:"物料编号"},
@@ -3118,10 +3137,10 @@ Bạn có chắc chắn không?`;
                           {lb}<Arr col={col}/>
                         </th>
                       ))}
-                      <th style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:"#065f46",background:"#f0fdf4",whiteSpace:"nowrap"}}>Cần nhận<br/>(×{soXe}xe)</th>
-                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151"}}>Ghi chú</th>
-                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151",textAlign:"center"}}>Ảnh</th>
-                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151",textAlign:"center"}}>Thao tác</th>
+                      <th style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:"#065f46",background:"#f0fdf4",whiteSpace:"nowrap"}}>{t("thCanNhan")}<br/>(×{soXe}xe)</th>
+                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151"}}>{t("thGhiChu")}</th>
+                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151",textAlign:"center"}}>{t("thAnh")}</th>
+                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151",textAlign:"center"}}>{t("thThaoTac")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3143,8 +3162,8 @@ Bạn có chắc chắn không?`;
                             :<span style={{color:"#d1d5db",fontSize:16}}>🖼</span>}
                         </td>
                         <td style={{padding:"7px 10px",textAlign:"center",whiteSpace:"nowrap"}}>
-                          <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",marginRight:2}}>Sửa</button>
-                          <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b"}}>Xóa</button>
+                          <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",marginRight:2}}>{t("thSua")}</button>
+                          <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b"}}>{t("thXoa")}</button>
                         </td>
                       </tr>
                     ))}
@@ -3155,7 +3174,7 @@ Bạn có chắc chắn không?`;
                 <span>{filtered.length}/{bom.length} mã</span>
                 <span style={{display:"flex",gap:16}}>
                   <span>ĐM tổng: <b>{fmt(filtered.reduce((s,v)=>s+v.dm,0))}</b></span>
-                  <span style={{color:"#065f46"}}>Cần nhận ({soXe} xe): <b>{fmt(filtered.reduce((s,v)=>s+v.dm*soXe,0))}</b></span>
+                  <span style={{color:"#065f46"}}>{t("thCanNhan")} ({soXe} xe): <b>{fmt(filtered.reduce((s,v)=>s+v.dm*soXe,0))}</b></span>
                 </span>
               </div>
             </div>
@@ -3556,11 +3575,11 @@ Bạn có chắc chắn không?`;
               <div style={{background:duAll?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#1e3a5f,#1d4ed8)",borderRadius:12,padding:"18px 22px",marginBottom:14,color:"#fff",boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12,marginBottom:12}}>
                   <div>
-                    <div style={{fontSize:16,fontWeight:700}}>{duAll?"✅ Đã nhận đủ vật tư!":"📊 Tiến độ Nhận Vật Tư Tích Lũy"}</div>
+                    <div style={{fontSize:16,fontWeight:700}}>{duAll?t("progTitleDone"):t("progTitle")}</div>
                     <div style={{fontSize:12,opacity:.8,marginTop:3}}>{proj.icon} {proj.ten} · 🚌 {soXe} xe · {phList.length} phiếu</div>
                   </div>
                   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                    {[["Đã nhận ✅",maDone,"#6ee7b7"],["Thiếu ⚠️",bom.length-maDone,"#fca5a5"],["Tổng",bom.length,"#fff"]].map(([l,v,c])=>(
+                    {[[`${t("progDaNhanNhan")} ✅`,maDone,"#6ee7b7"],[`${t("progThieuNhan")} ⚠️`,bom.length-maDone,"#fca5a5"],[t("progTongNhan"),bom.length,"#fff"]].map(([l,v,c])=>(
                       <div key={l} style={{textAlign:"center",background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px"}}>
                         <div style={{fontWeight:700,fontSize:18,color:c}}>{v}</div>
                         <div style={{fontSize:10,opacity:.8}}>{l}</div>
@@ -3573,22 +3592,22 @@ Bạn có chắc chắn không?`;
                   <span style={{fontWeight:700,fontSize:14,minWidth:50,textAlign:"right"}}>{pctT}%</span>
                 </div>
                 <div style={{display:"flex",gap:20,marginTop:8,fontSize:12,opacity:.85,flexWrap:"wrap"}}>
-                  <span>Cần: <b>{fmt(totCN)}</b></span>
-                  <span>Đã nhận: <b style={{color:"#6ee7b7"}}>{fmt(totDN)}</b></span>
-                  <span>Còn thiếu: <b style={{color:"#fca5a5"}}>{fmt(totCT)}</b></span>
+                  <span>{t("progCan")}: <b>{fmt(totCN)}</b></span>
+                  <span>{t("progDaNhan")}: <b style={{color:"#6ee7b7"}}>{fmt(totDN)}</b></span>
+                  <span>{t("progConThieu")}: <b style={{color:"#fca5a5"}}>{fmt(totCT)}</b></span>
                 </div>
               </div>
               <div style={{background:"#fff",borderRadius:10,padding:"14px 16px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
                   <div style={{flex:1}}>
-                    <input placeholder="🔍 Tìm mã/tên vật tư để xem nằm trong Phiếu GN nào (VD: KL2801)..." value={searchMa} onChange={e=>setSearchMa(e.target.value.toUpperCase())} style={{...inp,width:"100%"}}/>
+                    <input placeholder={t("searchPlaceholderMaPGN")} value={searchMa} onChange={e=>setSearchMa(e.target.value.toUpperCase())} style={{...inp,width:"100%"}}/>
                   </div>
-                  {searchMa&&<button onClick={()=>setSearchMa("")} style={{...btn,background:"#fee2e2",color:"#dc2626",padding:"6px 12px",fontSize:12}}>✕ Xóa</button>}
+                  {searchMa&&<button onClick={()=>setSearchMa("")} style={{...btn,background:"#fee2e2",color:"#dc2626",padding:"6px 12px",fontSize:12}}>{t("btnXoaTim")}</button>}
                 </div>
                 {searchMa&&(()=>{
                   const q=searchMa.toUpperCase();
                   const dsTimThay=th.filter(v=>v.ma.toUpperCase().includes(q)||v.ten.toUpperCase().includes(q)).slice(0,15);
-                  if(dsTimThay.length===0)return <div style={{color:"#9ca3af",fontSize:12}}>❌ Không tìm thấy vật tư nào khớp với "{searchMa}"</div>;
+                  if(dsTimThay.length===0)return <div style={{color:"#9ca3af",fontSize:12}}>{t("khongTimThayVT")} "{searchMa}"</div>;
                   return(
                     <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
                       {dsTimThay.map(found=>{
@@ -3596,18 +3615,18 @@ Bạn có chắc chắn không?`;
                         return(
                         <div key={found.ma} style={{background:"#f9fafb",borderRadius:8,padding:"12px"}}>
                           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:10,fontSize:12,fontWeight:700,color:"#374151",paddingBottom:8,borderBottom:"1px solid #e5e7eb"}}>
-                            <div>Mã</div>
-                            <div style={{textAlign:"center"}}>Cần</div>
-                            <div style={{textAlign:"center"}}>Đã nhận</div>
-                            <div style={{textAlign:"center"}}>Tiến độ</div>
-                            <div style={{textAlign:"center"}}>Trạng thái</div>
+                            <div>{t("thMaTk")}</div>
+                            <div style={{textAlign:"center"}}>{t("progCan")}</div>
+                            <div style={{textAlign:"center"}}>{t("progDaNhan")}</div>
+                            <div style={{textAlign:"center"}}>{t("thTienDo")}</div>
+                            <div style={{textAlign:"center"}}>{t("thTrangThai")}</div>
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,fontSize:13,fontWeight:700,marginBottom:12,padding:"10px",background:"#fff",borderRadius:6}}>
                             <div>{found.ma}<div style={{fontSize:10,fontWeight:400,color:"#9ca3af"}}>{found.ten}</div></div>
                             <div style={{textAlign:"center"}}>{fmt(found.cn)}</div>
                             <div style={{textAlign:"center",color:"#16a34a"}}>{fmt(found.dn)}</div>
                             <div style={{textAlign:"center",color:"#1d4ed8"}}>{found.p}%</div>
-                            <div style={{textAlign:"center",color:found.done?"#16a34a":"#dc2626"}}>{found.done?"✅ Đủ":"⚠️ Thiếu"}</div>
+                            <div style={{textAlign:"center",color:found.done?"#16a34a":"#dc2626"}}>{found.done?t("trangThaiDu"):t("trangThaiThieu")}</div>
                           </div>
                           {phChiTiet.length>0?(
                             <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #e5e7eb"}}>
@@ -3814,7 +3833,7 @@ Bạn có chắc chắn không?`;
                 </div>
                 <div style={{marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.8,marginBottom:4}}>
-                    <span>Tiến độ nhận vật tư tích lũy</span>
+                    <span>{t("progTienDoTichLuy")}</span>
                     <span style={{fontWeight:700,fontSize:13}}>{pctT}%</span>
                   </div>
                   <Prog p={pctT} done={duAll} h={14}/>
