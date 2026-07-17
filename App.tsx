@@ -444,12 +444,12 @@ function LoginScreen({onLogin}){
 
 // ─── Users Management Panel ────────────────────────────────────
 function SignaturePad({initial, onSave, onClose}){
-  const canvasRef = React.useRef(null);
-  const drawingRef = React.useRef(false);
-  const lastRef = React.useRef({x:0,y:0});
-  const [empty, setEmpty] = React.useState(true);
+  const canvasRef = useRef(null);
+  const drawingRef = useRef(false);
+  const lastRef = useRef({x:0,y:0});
+  const [empty, setEmpty] = useState(true);
 
-  React.useEffect(()=>{
+  useEffect(()=>{
     const cv = canvasRef.current;
     const ctx = cv.getContext("2d");
     ctx.fillStyle = "#fff";
@@ -833,43 +833,53 @@ async function xuatPDF(htmlContent, tenFile="BaoCao"){
   URL.revokeObjectURL(url);
 }
 
-// Chia sẻ 1 phiếu GN dạng văn bản — ưu tiên Web Share API (Zalo/Messenger/Gmail...),
-// nếu trình duyệt không hỗ trợ thì tự động copy vào clipboard để người dùng tự dán ra.
-async function chiaSePhieu(vp){
-  const ct = vp.ct||[];
-  const tongSL = ct.reduce((s,c)=>s+(c.sl||0),0);
-  const dong = ct.slice(0,20).map((c,i)=>`${i+1}. ${c.ma} - ${c.ten} (SL: ${c.sl})`).join("\n");
-  const themDong = ct.length>20 ? `\n… và ${ct.length-20} mã khác` : "";
-  const noiDung =
-`📋 PHIẾU GIAO NHẬN VẬT TƯ
-Số phiếu: ${vp.sp}
-Ngày: ${vp.ngay}
-Bên giao: ${vp.bg}
-Bên nhận: ${vp.bn}
-Trạng thái: ${vp.tt}
-Tổng: ${ct.length} chủng loại, ${tongSL} SL
-${vp.gc?`Ghi chú: ${vp.gc}\n`:""}
-${dong}${themDong}`;
+// Chia sẻ 1 phiếu GN dạng ẢNH — chụp đúng vùng nội dung phiếu (DOM element truyền vào)
+// bằng html2canvas, rồi chia sẻ dạng FILE ẢNH qua Web Share API (Zalo/Messenger/Gmail...).
+// Nếu máy không hỗ trợ chia sẻ file trực tiếp thì tự động tải ảnh về máy để người dùng tự gửi.
+async function chiaSePhieuAnh(el, vp){
+  if(!el){
+    alert("Không tìm thấy nội dung phiếu để chụp ảnh.");
+    return;
+  }
 
-  let coHoTro=false;
-  try{ coHoTro = !!(navigator.canShare ? navigator.canShare({title:`Phiếu ${vp.sp}`, text:noiDung}) : navigator.share); }catch(e){ coHoTro=false; }
+  let file=null;
+  try{
+    const {default:html2canvas} = await import("html2canvas");
+    const canvas = await html2canvas(el, {scale:2, backgroundColor:"#ffffff", useCORS:true});
+    const blob = await new Promise(res=>canvas.toBlob(res,"image/png"));
+    if(blob){
+      const tenFile = `PhieuGN_${(vp.sp||"phieu").replace(/[^\w-]+/g,"_")}_${new Date().toISOString().slice(0,10)}.png`;
+      file = new File([blob], tenFile, {type:"image/png"});
+    }
+  }catch(e){
+    console.error("Lỗi chụp ảnh phiếu:", e);
+  }
 
-  if(coHoTro){
+  if(!file){
+    alert("Không tạo được ảnh phiếu.\nBạn có thể thử lại hoặc dùng nút 🖨 In phiếu.");
+    return;
+  }
+
+  // Thử chia sẻ trực tiếp dạng file ảnh (Zalo/Gmail/Messenger...) nếu máy hỗ trợ
+  let coHoTroChiaSeFile=false;
+  try{ coHoTroChiaSeFile = !!(navigator.canShare && navigator.canShare({files:[file]})); }catch(e){ coHoTroChiaSeFile=false; }
+
+  if(coHoTroChiaSeFile){
     try{
-      await navigator.share({title:`Phiếu ${vp.sp}`, text:noiDung});
+      await navigator.share({files:[file], title:`Phiếu ${vp.sp}`});
       return;
     }catch(e){
       if(e && e.name==="AbortError") return; // người dùng tự hủy hộp thoại chia sẻ
-      console.warn("navigator.share thất bại, chuyển sang copy clipboard:", e);
+      console.warn("navigator.share thất bại, chuyển sang tải ảnh:", e);
     }
   }
 
-  try{
-    await navigator.clipboard.writeText(noiDung);
-    alert("✅ Đã copy nội dung phiếu vào clipboard!\nDán (paste) vào Zalo/Messenger/Email... để gửi.");
-  }catch(e){
-    alert("Trình duyệt không hỗ trợ chia sẻ tự động.\nBạn có thể dùng nút 🖨 In phiếu hoặc chụp màn hình để gửi.");
-  }
+  // Không chia sẻ trực tiếp được -> tải ảnh về máy để người dùng tự gửi qua Zalo/Messenger...
+  const url=URL.createObjectURL(file);
+  const a=document.createElement("a");
+  a.href=url; a.download=file.name; a.click();
+  URL.revokeObjectURL(url);
+  alert("📥 Đã tải ảnh phiếu về máy (trình duyệt không hỗ trợ chia sẻ trực tiếp).\nBạn có thể gửi ảnh này qua Zalo/Messenger...");
 }
 
 // Nút xuất dùng chung
@@ -958,6 +968,8 @@ export default function App(){
   const [msg,      setMsg]      = useState("");
   const [showPh,   setShowPh]   = useState(false);
   const [viewPh,   setViewPh]   = useState(null);
+  const phieuRef = useRef(null); // vùng nội dung phiếu GN để chụp thành ảnh khi bấm "Chia sẻ"
+  const [dangChiaSe, setDangChiaSe] = useState(false);
   const [slThucEdit, setSlThucEdit] = useState<Record<string,number>>({}); // ctid -> sl thực nhận đang sửa
   const [editPh,   setEditPh]   = useState(null);  // phiếu đang chỉnh sửa {id, sp, ngay, gc, ct:[]}
   const [phF,      setPhF]      = useState({sp:"",ngay:new Date().toISOString().slice(0,10),gc:""});
@@ -4758,6 +4770,7 @@ Bạn có chắc chắn không?`;
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:12}}
           onClick={e=>{if(e.target===e.currentTarget){setViewPh(null);setEditPh(null);setSlThucEdit({});}}}>
           <div style={{background:"#fff",borderRadius:12,padding:22,width:"100%",maxWidth:720,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",maxHeight:"92vh",overflowY:"auto"}}>
+          <div ref={phieuRef} style={{background:"#fff"}}>
             {/* Header */}
             <div style={{textAlign:"center",marginBottom:16}}>
               <div style={{fontWeight:700,fontSize:14}}>{editPh?"✏️ CHỈNH SỬA PHIẾU GIAO NHẬN VẬT TƯ":"PHIẾU GIAO NHẬN VẬT TƯ"}</div>
@@ -4928,6 +4941,7 @@ Bạn có chắc chắn không?`;
                 </div>
               );
             })()}
+          </div>
 
             {/* Actions */}
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
@@ -4939,7 +4953,13 @@ Bạn có chắc chắn không?`;
               ):(
                 <>
                   <button onClick={()=>window.print()} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>🖨 In phiếu</button>
-                  <button onClick={()=>chiaSePhieu(freshVP)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"8px 16px",fontSize:13,fontWeight:700}}>📤 Chia sẻ</button>
+                  <button disabled={dangChiaSe} onClick={async()=>{
+                    setDangChiaSe(true);
+                    try{ await chiaSePhieuAnh(phieuRef.current, freshVP); }
+                    finally{ setDangChiaSe(false); }
+                  }} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"8px 16px",fontSize:13,fontWeight:700,opacity:dangChiaSe?0.6:1,cursor:dangChiaSe?"not-allowed":"pointer"}}>
+                    {dangChiaSe?"⏳ Đang tạo ảnh...":"📤 Chia sẻ"}
+                  </button>
                   {(isTHCK||isKHO)&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>setEditPh({...freshVP,ct:[...(freshVP.ct||[])]})} style={{...btn,background:"#f59e0b",color:"#fff",padding:"8px 16px",fontSize:13}}>✏️ Sửa phiếu</button>}
                   {isXH&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>{xacNhan(freshVP.id);setViewPh(null);}} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 16px",fontSize:13}}>✓ Xác nhận</button>}
                   <button onClick={()=>{setViewPh(null);setEditPh(null);setSlThucEdit({});}} style={{...btn,background:"#2563eb",color:"#fff",padding:"8px 16px",fontSize:13}}>Đóng</button>
