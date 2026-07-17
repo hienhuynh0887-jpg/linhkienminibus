@@ -715,28 +715,25 @@ const BAO_CAO_STYLE=`
   @media print{body{padding:8px;}}
 `;
 
-// Dựng file PDF thật (Blob) từ htmlContent bằng html2canvas + jsPDF, để có thể chia sẻ
-// như 1 tệp đính kèm thực sự (Zalo/Gmail/Messenger sẽ hiện thumbnail ảnh, không phải link chữ).
+// Dựng 1 tấm ẢNH (Blob PNG) từ htmlContent bằng html2canvas, để chia sẻ như 1 tệp ảnh
+// đính kèm thực sự (Zalo/Gmail/Messenger sẽ hiện thumbnail ảnh ngay, không phải link chữ).
 //
 // QUAN TRỌNG: nếu báo cáo có bảng rất dài (hàng trăm dòng), chụp toàn bộ bảng thành 1 tấm ảnh
 // khổng lồ trong 1 lần rất dễ làm trình duyệt di động bị treo cứng (không lỗi, không phản hồi).
-// Vì vậy ở đây bảng được CHIA NHỎ thành từng nhóm ít dòng (mặc định 25 dòng/nhóm), chụp riêng
-// từng nhóm rồi ghép thành nhiều trang PDF — mỗi lần chụp nhẹ hơn nhiều, khó bị treo hơn hẳn.
-async function taoFilePDF(htmlContent, tenFile="BaoCao", soHangMoiTrang=25){
-  const [{default:html2canvas}, {jsPDF}] = await Promise.all([
-    import("html2canvas"),
-    import("jspdf"),
-  ]);
+// Vì vậy ở đây bảng được CHIA NHỎ thành từng nhóm ít dòng (mặc định 25 dòng/nhóm) để chụp riêng
+// từng nhóm cho nhẹ, rồi GHÉP tất cả lại thành 1 tấm ảnh dài duy nhất — nội dung y hệt bản PDF
+// trước đây (cùng tiêu đề, cùng bảng, cùng chân trang), chỉ khác là xuất ra ảnh thay vì PDF.
+async function taoAnhBaoCao(htmlContent, tenFile="BaoCao", soHangMoiTrang=25){
+  const {default:html2canvas} = await import("html2canvas");
 
   // Tách htmlContent thành: tiêu đề/mô tả (phần trước bảng) + bảng (nếu có)
   const parsed = new DOMParser().parseFromString(htmlContent, "text/html");
   const bang = parsed.querySelector("table");
 
-  const pdf = new jsPDF({unit:"pt", format:"a4"});
-  const pageW = pdf.internal.pageSize.getWidth();
+  const cacKhoiDaChup = [];
 
-  // Hàm dùng chung: chụp 1 khối HTML (nhỏ) rồi vẽ vào PDF thành 1 trang riêng
-  const chupVaThemTrang = async (htmlKhoi, laTrangDau) => {
+  // Hàm dùng chung: chụp 1 khối HTML (nhỏ) thành 1 canvas, gom lại để ghép sau
+  const chupKhoi = async (htmlKhoi) => {
     const wrap=document.createElement("div");
     wrap.style.cssText="position:fixed;left:-99999px;top:0;width:900px;background:#fff;";
     wrap.innerHTML=`<style>${BAO_CAO_STYLE}</style><div style="padding:16px">${htmlKhoi}</div>`;
@@ -746,10 +743,7 @@ async function taoFilePDF(htmlContent, tenFile="BaoCao", soHangMoiTrang=25){
       if(!canvas || !canvas.width || !canvas.height){
         throw new Error("Không tạo được ảnh (canvas rỗng).");
       }
-      const imgData=canvas.toDataURL("image/png");
-      const imgH=(canvas.height*pageW)/canvas.width;
-      if(!laTrangDau) pdf.addPage();
-      pdf.addImage(imgData,"PNG",0,0,pageW,imgH);
+      cacKhoiDaChup.push(canvas);
     } finally {
       document.body.removeChild(wrap);
       // Nhường lại luồng xử lý cho trình duyệt 1 nhịp, tránh treo khi có nhiều nhóm liên tiếp
@@ -759,54 +753,68 @@ async function taoFilePDF(htmlContent, tenFile="BaoCao", soHangMoiTrang=25){
 
   if(!bang){
     // Không có bảng (nội dung ngắn) -> chụp nguyên khối như cũ
-    await chupVaThemTrang(`${htmlContent}<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div>`, true);
-    return pdf.output("blob");
+    await chupKhoi(`${htmlContent}<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div>`);
+  } else {
+    // Có bảng -> chia nhỏ theo từng nhóm dòng
+    const tieuDeHtml = [...parsed.body.children].filter(el=>el.tagName!=="TABLE").map(el=>el.outerHTML).join("");
+    const theadHtml = bang.querySelector("thead") ? bang.querySelector("thead").outerHTML : "";
+    const tatCaDong = [...bang.querySelectorAll("tbody tr")];
+    const soNhom = Math.max(1, Math.ceil(tatCaDong.length / soHangMoiTrang));
+
+    for(let i=0;i<soNhom;i++){
+      const nhomDong = tatCaDong.slice(i*soHangMoiTrang, (i+1)*soHangMoiTrang).map(tr=>tr.outerHTML).join("");
+      const laTrangDau = i===0;
+      const tieuDeNhom = laTrangDau ? tieuDeHtml : `<p class="sub">(tiếp theo — nhóm ${i+1}/${soNhom})</p>`;
+      const chanTrang = (i===soNhom-1) ? `<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div>` : "";
+      const khoiHtml = `${tieuDeNhom}<table>${theadHtml}<tbody>${nhomDong}</tbody></table>${chanTrang}`;
+      await chupKhoi(khoiHtml);
+    }
   }
 
-  // Có bảng -> chia nhỏ theo từng nhóm dòng
-  const tieuDeHtml = [...parsed.body.children].filter(el=>el.tagName!=="TABLE").map(el=>el.outerHTML).join("");
-  const theadHtml = bang.querySelector("thead") ? bang.querySelector("thead").outerHTML : "";
-  const tatCaDong = [...bang.querySelectorAll("tbody tr")];
-  const soNhom = Math.max(1, Math.ceil(tatCaDong.length / soHangMoiTrang));
-
-  for(let i=0;i<soNhom;i++){
-    const nhomDong = tatCaDong.slice(i*soHangMoiTrang, (i+1)*soHangMoiTrang).map(tr=>tr.outerHTML).join("");
-    const laTrangDau = i===0;
-    const tieuDeNhom = laTrangDau ? tieuDeHtml : `<p class="sub">(tiếp theo — trang ${i+1}/${soNhom})</p>`;
-    const chanTrang = (i===soNhom-1) ? `<div class="footer">Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${tenFile}</div>` : "";
-    const khoiHtml = `${tieuDeNhom}<table>${theadHtml}<tbody>${nhomDong}</tbody></table>${chanTrang}`;
-    await chupVaThemTrang(khoiHtml, laTrangDau);
+  // Ghép tất cả các khối đã chụp thành 1 tấm ảnh dài duy nhất (nối theo chiều dọc)
+  const chieuRongChung = Math.max(...cacKhoiDaChup.map(c=>c.width));
+  const tongChieuCao = cacKhoiDaChup.reduce((s,c)=>s+c.height,0);
+  const anhGhep = document.createElement("canvas");
+  anhGhep.width = chieuRongChung;
+  anhGhep.height = tongChieuCao;
+  const ctx = anhGhep.getContext("2d");
+  ctx.fillStyle="#ffffff";
+  ctx.fillRect(0,0,anhGhep.width,anhGhep.height);
+  let yHienTai=0;
+  for(const canvas of cacKhoiDaChup){
+    ctx.drawImage(canvas,0,yHienTai);
+    yHienTai += canvas.height;
   }
 
-  return pdf.output("blob");
+  return await new Promise(res=>anhGhep.toBlob(res,"image/png"));
 }
 
-// Xuất báo cáo: tạo file PDF thật rồi chia sẻ dạng file (Zalo, Gmail, Messenger...) hoặc
-// tải về máy nếu không chia sẻ trực tiếp được.
+// Xuất báo cáo: tạo file ẢNH (nội dung y hệt bản PDF trước đây) rồi chia sẻ dạng file
+// (Zalo, Gmail, Messenger...) hoặc tải về máy nếu không chia sẻ trực tiếp được.
 //
 // QUAN TRỌNG: KHÔNG mở thêm tab/cửa sổ nào trong lúc xử lý. Mở thêm 1 tab (kể cả tab trắng
 // "đang chuẩn bị...") sẽ đẩy tab hiện tại xuống làm việc "ở nền" — mà trình duyệt di động
-// luôn cố tình làm chậm/tạm dừng các tab chạy nền để tiết kiệm pin, khiến việc tạo PDF có
+// luôn cố tình làm chậm/tạm dừng các tab chạy nền để tiết kiệm pin, khiến việc tạo ảnh có
 // thể bị "treo" vô thời hạn (kể cả các timeout cũng bị đóng băng theo). Toàn bộ xử lý ở đây
 // vì vậy được giữ nguyên trên tab hiện tại — không có bất kỳ window.open() nào.
 async function xuatPDF(htmlContent, tenFile="BaoCao"){
   let file=null;
-  let loiTaoPDF=null;
+  let loiTaoAnh=null;
   try{
     const timeoutMs = 25000;
     const blob = await Promise.race([
-      taoFilePDF(htmlContent, tenFile),
+      taoAnhBaoCao(htmlContent, tenFile),
       new Promise((_, reject)=>setTimeout(()=>reject(new Error(`Quá ${timeoutMs/1000}s không phản hồi (có thể máy xử lý quá chậm với báo cáo này)`)), timeoutMs)),
     ]);
-    if(blob) file=new File([blob], `${tenFile}_${new Date().toISOString().slice(0,10)}.pdf`, {type:"application/pdf"});
+    if(blob) file=new File([blob], `${tenFile}_${new Date().toISOString().slice(0,10)}.png`, {type:"image/png"});
   }catch(e){
-    loiTaoPDF = (e && (e.message||String(e))) || "Lỗi không rõ";
-    console.error("Lỗi tạo file PDF:", e);
+    loiTaoAnh = (e && (e.message||String(e))) || "Lỗi không rõ";
+    console.error("Lỗi tạo ảnh báo cáo:", e);
   }
 
   if(!file){
     // Không mở tab nào nên alert() chắc chắn hiện ngay trên màn hình đang xem, không bị "mất tích".
-    alert("Không tạo được file PDF.\n\nLỗi: " + loiTaoPDF + "\n\nBạn có thể thử lại, hoặc dùng nút Xuất Excel thay thế.");
+    alert("Không tạo được ảnh báo cáo.\n\nLỗi: " + loiTaoAnh + "\n\nBạn có thể thử lại, hoặc dùng nút Xuất Excel thay thế.");
     return;
   }
 
@@ -825,7 +833,7 @@ async function xuatPDF(htmlContent, tenFile="BaoCao"){
     }
   }
 
-  // Tải file PDF về máy — luôn hoạt động, không phụ thuộc trạng thái "cử chỉ người dùng"
+  // Tải file ảnh về máy — luôn hoạt động, không phụ thuộc trạng thái "cử chỉ người dùng"
   // như window.open()/navigator.share(), nên đây là phương án chắc chắn nhất.
   const url=URL.createObjectURL(file);
   const a=document.createElement("a");
@@ -900,7 +908,7 @@ function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label=""}){
         <span>📊</span> {t("btnExcel")}
       </button>
       <button onClick={handleClick} disabled={busy} style={{...s,background:busy?"#ede9fe":"#fff7ed",color:busy?"#6d28d9":"#c2410c",border:`1px solid ${busy?"#c4b5fd":"#fed7aa"}`,transition:"all .2s",opacity:busy?0.75:1}}>
-        <span>{busy?"⏳":"📄🔗"}</span> {busy?"Đang tạo file...":t("btnPdfShare")}
+        <span>{busy?"⏳":"🖼️🔗"}</span> {busy?"Đang tạo ảnh...":t("btnPdfShare")}
       </button>
     </div>
   );
@@ -2745,7 +2753,7 @@ Bạn có chắc chắn không?`;
           hasOkMap[c.ma]=true;
         }
         if(!phByMa[c.ma])phByMa[c.ma]=[];
-        phByMa[c.ma].push({sp:ph.sp,ngay:ph.ngay,sl:c.sl});
+        phByMa[c.ma].push({sp:ph.sp,ngay:ph.ngay,sl:c.sl,id:ph.id});
       }
     }
     return{dnMap,dnXNMap,hasOkMap,phByMa};
@@ -3573,43 +3581,59 @@ Bạn có chắc chắn không?`;
               <div style={{background:"#fff",borderRadius:10,padding:"14px 16px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
                   <div style={{flex:1}}>
-                    <input placeholder="🔍 Tìm kiếm mã vật tư (VD: KL2801)..." value={searchMa} onChange={e=>setSearchMa(e.target.value.toUpperCase())} style={{...inp,width:"100%"}}/>
+                    <input placeholder="🔍 Tìm mã/tên vật tư để xem nằm trong Phiếu GN nào (VD: KL2801)..." value={searchMa} onChange={e=>setSearchMa(e.target.value.toUpperCase())} style={{...inp,width:"100%"}}/>
                   </div>
                   {searchMa&&<button onClick={()=>setSearchMa("")} style={{...btn,background:"#fee2e2",color:"#dc2626",padding:"6px 12px",fontSize:12}}>✕ Xóa</button>}
                 </div>
                 {searchMa&&(()=>{
-                  const found=th.find(v=>v.ma.toUpperCase()===searchMa.toUpperCase());
-                  if(!found)return <div style={{color:"#9ca3af",fontSize:12}}>❌ Không tìm thấy mã vật tư "{searchMa}"</div>;
-                  const phChiTiet=(phByMa[found.ma]||[]).map((item,i)=>({...item,idx:i}));
+                  const q=searchMa.toUpperCase();
+                  const dsTimThay=th.filter(v=>v.ma.toUpperCase().includes(q)||v.ten.toUpperCase().includes(q)).slice(0,15);
+                  if(dsTimThay.length===0)return <div style={{color:"#9ca3af",fontSize:12}}>❌ Không tìm thấy vật tư nào khớp với "{searchMa}"</div>;
                   return(
-                    <div style={{background:"#f9fafb",borderRadius:8,padding:"12px",marginTop:8}}>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:10,fontSize:12,fontWeight:700,color:"#374151",paddingBottom:8,borderBottom:"1px solid #e5e7eb"}}>
-                        <div>Mã</div>
-                        <div style={{textAlign:"center"}}>Cần</div>
-                        <div style={{textAlign:"center"}}>Đã nhận</div>
-                        <div style={{textAlign:"center"}}>Tiến độ</div>
-                        <div style={{textAlign:"center"}}>Trạng thái</div>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,fontSize:13,fontWeight:700,marginBottom:12,padding:"10px",background:"#fff",borderRadius:6}}>
-                        <div>{found.ma}</div>
-                        <div style={{textAlign:"center"}}>{fmt(found.cn)}</div>
-                        <div style={{textAlign:"center",color:"#16a34a"}}>{fmt(found.dn)}</div>
-                        <div style={{textAlign:"center",color:"#1d4ed8"}}>{found.p}%</div>
-                        <div style={{textAlign:"center",color:found.done?"#16a34a":"#dc2626"}}>{found.done?"✅ Đủ":"⚠️ Thiếu"}</div>
-                      </div>
-                      {phChiTiet.length>0&&(
-                        <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #e5e7eb"}}>
-                          <div style={{fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:8}}>📋 Chi tiết từng phiếu ({phChiTiet.length}):</div>
-                          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                            {phChiTiet.map(item=>(
-                              <div key={item.idx} style={{background:"#fff",padding:"8px 10px",borderRadius:6,fontSize:12,display:"flex",justifyContent:"space-between",borderLeft:`3px solid #7c3aed`}}>
-                                <span><b>{item.sp}</b> ({item.ngay})</span>
-                                <span style={{color:"#16a34a",fontWeight:700}}>📦 {item.sl}</span>
-                              </div>
-                            ))}
+                    <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
+                      {dsTimThay.map(found=>{
+                        const phChiTiet=(found.phs||[]).map((item,i)=>({...item,idx:i}));
+                        return(
+                        <div key={found.ma} style={{background:"#f9fafb",borderRadius:8,padding:"12px"}}>
+                          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:10,fontSize:12,fontWeight:700,color:"#374151",paddingBottom:8,borderBottom:"1px solid #e5e7eb"}}>
+                            <div>Mã</div>
+                            <div style={{textAlign:"center"}}>Cần</div>
+                            <div style={{textAlign:"center"}}>Đã nhận</div>
+                            <div style={{textAlign:"center"}}>Tiến độ</div>
+                            <div style={{textAlign:"center"}}>Trạng thái</div>
                           </div>
+                          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,fontSize:13,fontWeight:700,marginBottom:12,padding:"10px",background:"#fff",borderRadius:6}}>
+                            <div>{found.ma}<div style={{fontSize:10,fontWeight:400,color:"#9ca3af"}}>{found.ten}</div></div>
+                            <div style={{textAlign:"center"}}>{fmt(found.cn)}</div>
+                            <div style={{textAlign:"center",color:"#16a34a"}}>{fmt(found.dn)}</div>
+                            <div style={{textAlign:"center",color:"#1d4ed8"}}>{found.p}%</div>
+                            <div style={{textAlign:"center",color:found.done?"#16a34a":"#dc2626"}}>{found.done?"✅ Đủ":"⚠️ Thiếu"}</div>
+                          </div>
+                          {phChiTiet.length>0?(
+                            <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #e5e7eb"}}>
+                              <div style={{fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:8}}>📋 Vật tư này nằm trong {phChiTiet.length} phiếu GN — bấm để xem:</div>
+                              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                                {phChiTiet.map(item=>{
+                                  const phDayDu=phList.find(p=>p.id===item.id);
+                                  return(
+                                  <button key={item.idx} onClick={()=>phDayDu&&setViewPh(phDayDu)} disabled={!phDayDu}
+                                    style={{background:"#fff",padding:"8px 10px",borderRadius:6,fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:`3px solid #7c3aed`,border:"1px solid #e5e7eb",cursor:phDayDu?"pointer":"default",fontFamily:"inherit",width:"100%",textAlign:"left"}}>
+                                    <span><b>📄 {item.sp}</b> <span style={{color:"#9ca3af"}}>({item.ngay})</span></span>
+                                    <span style={{display:"flex",alignItems:"center",gap:8}}>
+                                      <span style={{color:"#16a34a",fontWeight:700}}>📦 {item.sl}</span>
+                                      {phDayDu&&<span style={{color:"#1d4ed8",fontWeight:700}}>Xem ›</span>}
+                                    </span>
+                                  </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ):(
+                            <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>Vật tư này chưa nằm trong phiếu GN nào.</div>
+                          )}
                         </div>
-                      )}
+                        );
+                      })}
                     </div>
                   );
                 })()}
