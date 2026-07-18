@@ -1029,6 +1029,7 @@ export default function App(){
   const [bcFlt,    setBcFlt]    = useState("all");
   const [bcExp,    setBcExp]    = useState({});
   const [bcDmO,    setBcDmO]    = useState({});
+  const [bcViTriChiTiet, setBcViTriChiTiet] = useState(false); // ẩn/hiện 2 bảng THCK · CKD trong "Tiến độ theo Vị trí"
   const [pgnSr,    setPgnSr]    = useState("");
   const [pgnDm,    setPgnDm]    = useState("Tất cả");
   const [pgnSO,    setPgnSO]    = useState("all");
@@ -2903,29 +2904,31 @@ Bạn có chắc chắn không?`;
             </div>
           </div>
           {/* User + logout */}
-          <div style={{display:"flex",alignItems:"flex-start",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
-            {msg&&<span style={{fontSize:11,color:"#6ee7b7",background:"rgba(0,0,0,0.2)",borderRadius:20,padding:"3px 10px",alignSelf:"center"}}>{msg}</span>}
-            {dbErr&&<span style={{fontSize:11,color:"#fee2e2",background:"rgba(220,38,38,0.3)",borderRadius:20,padding:"3px 10px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",alignSelf:"center"}} title={dbErr}>⚠️ {dbErr}</span>}
-            {/* ✅ 4 nút tròn kích thước bằng nhau, mỗi nút 1 màu nền riêng — Ngôn ngữ / Đổi MK / Tạo chữ ký / Tài khoản */}
-            <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:54}}>
-              <div style={{width:48,height:48,borderRadius:"50%",background:"#0ea5e9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff",boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>
-                {lang==="vi"?"VI":"中文"}
+          <div className="soan-noscroll" style={{display:"flex",alignItems:"flex-start",gap:5,flexWrap:"nowrap",justifyContent:"flex-end",overflowX:"auto",scrollbarWidth:"none",msOverflowStyle:"none",maxWidth:"100%"}}>
+            <style>{`.soan-noscroll::-webkit-scrollbar{display:none}`}</style>
+            {msg&&<span style={{fontSize:10,color:"#6ee7b7",background:"rgba(0,0,0,0.2)",borderRadius:20,padding:"3px 8px",alignSelf:"center",flexShrink:0,whiteSpace:"nowrap"}}>{msg}</span>}
+            {dbErr&&<span style={{fontSize:10,color:"#fee2e2",background:"rgba(220,38,38,0.3)",borderRadius:20,padding:"3px 8px",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",alignSelf:"center",flexShrink:0}} title={dbErr}>⚠️ {dbErr}</span>}
+            {/* ✅ 4 nút tròn kích thước bằng nhau, mỗi nút 1 màu nền riêng — Ngôn ngữ / Đổi MK / Tạo chữ ký / Tài khoản. Thu nhỏ để KHÔNG bị xuống dòng, cùng nằm 1 hàng. */}
+            <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:40,flexShrink:0}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:"#0ea5e9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>🌐</div>
+              <div style={{fontSize:8,fontWeight:700,textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>
+                <span style={{color:lang==="vi"?"#fff":"rgba(255,255,255,0.5)"}}>VI</span>
+                <span style={{color:"rgba(255,255,255,0.5)"}}>/</span>
+                <span style={{color:lang==="zh"?"#fff":"rgba(255,255,255,0.5)"}}>中</span>
               </div>
-              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2}}>{lang==="vi"?"Tiếng Việt":"中文"}</div>
             </div>
-            <div onClick={()=>setShowChangePw(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:54}}>
-              <div style={{width:48,height:48,borderRadius:"50%",background:"#8b5cf6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>🔑</div>
-              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2}}>Đổi MK</div>
+            <div onClick={()=>setShowChangePw(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:40,flexShrink:0}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:"#8b5cf6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>🔑</div>
+              <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>Đổi MK</div>
             </div>
-            <div onClick={()=>setShowSignPad(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:54}}>
-              <div style={{width:48,height:48,borderRadius:"50%",background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>✍️</div>
-              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2}}>{user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}</div>
+            <div onClick={()=>setShowSignPad(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:40,flexShrink:0}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>✍️</div>
+              <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</div>
             </div>
             <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");}catch{}setUser(null);}}}
-              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:60}}>
-              <div style={{width:48,height:48,borderRadius:"50%",background:"#ec4899",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>{user.avatar}</div>
-              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2,maxWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.ten}</div>
-              <div style={{fontSize:8,color:"rgba(255,255,255,0.65)",lineHeight:1}}>Đăng xuất 🚪</div>
+              title="Đăng xuất" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:44,flexShrink:0}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:"#ec4899",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>{user.avatar}</div>
+              <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,maxWidth:44,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.ten}</div>
             </div>
           </div>
         </div>
@@ -3921,6 +3924,11 @@ Bạn có chắc chắn không?`;
               </div>
               <div style={{background:"#fff",borderRadius:10,padding:"14px 18px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Tiến độ theo Vị trí</div>
+                <button onClick={()=>setBcViTriChiTiet(x=>!x)}
+                  style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 16px",fontSize:12,fontWeight:700,marginBottom:bcViTriChiTiet?14:0}}>
+                  {bcViTriChiTiet?"▲ Ẩn chi tiết":"▼ Xem chi tiết"}
+                </button>
+                {bcViTriChiTiet&&(
                 <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
                   {[["THCK","🏭","#b45309"],["CKD","📦","#0369a1"]].map(([nguon,icon,mau])=>(
                     <div key={nguon} style={{flex:"1 1 300px",minWidth:260}}>
@@ -3954,22 +3962,32 @@ Bạn có chắc chắn không?`;
                     </div>
                   ))}
                 </div>
+                )}
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>📋 Chi tiết từng mã</span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:12}}>
+                {[
+                  ["all","Tất cả","#6b7280"],
+                  ["thieu",`⚠️ Còn thiếu (${bom.length-maDone})`,"#dc2626"],
+                  ["chuasoan",`📭 Chưa soạn (${maChuaSoan})`,"#4f46e5"],
+                  ["thieu_thck",`🏭 Thiếu THCK (${maThieuTHCK})`,"#b45309"],
+                  ["thieu_ckd",`📦 Thiếu CKD (${maThieuCKD})`,"#0369a1"],
+                  ["giaothieu",`📉 Giao thiếu SL (${maGiaoThieu})`,"#7c3aed"],
+                  ["du",`✅ Đã nhận (${maDone})`,"#16a34a"],
+                ].map(([v,l,c])=>(
+                  <button key={v} onClick={()=>setBcFlt(v)}
+                    style={{border:`1.5px solid ${bcFlt===v?c:"#e5e7eb"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",
+                      padding:"10px 12px",fontSize:12,fontWeight:700,textAlign:"center",lineHeight:1.3,
+                      background:bcFlt===v?c:"#fff",color:bcFlt===v?"#fff":"#374151",
+                      boxShadow:bcFlt===v?`0 3px 10px ${c}4d`:"0 1px 3px rgba(0,0,0,0.06)",
+                      transition:"all .15s"}}>
+                    {l}
+                  </button>
+                ))}
               </div>
               <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>📋 Chi tiết từng mã</span>
-                <div style={{display:"flex",gap:4,marginLeft:"auto"}}>
-                  {[
-                    ["all","Tất cả","#6b7280"],
-                    ["thieu",`⚠️ Còn thiếu (${bom.length-maDone})`,"#dc2626"],
-                    ["chuasoan",`📭 Chưa soạn (${maChuaSoan})`,"#4f46e5"],
-                    ["thieu_thck",`🏭 Thiếu THCK (${maThieuTHCK})`,"#b45309"],
-                    ["thieu_ckd",`📦 Thiếu CKD (${maThieuCKD})`,"#0369a1"],
-                    ["giaothieu",`📉 Giao thiếu SL (${maGiaoThieu})`,"#7c3aed"],
-                    ["du",`✅ Đã nhận (${maDone})`,"#16a34a"],
-                  ].map(([v,l,c])=>(
-                    <button key={v} onClick={()=>setBcFlt(v)} style={{...btn,background:bcFlt===v?c:"#f3f4f6",color:bcFlt===v?"#fff":"#374151",padding:"5px 12px",fontSize:11}}>{l}</button>
-                  ))}
-                </div>
                 {bcFlt==="giaothieu"&&maGiaoThieu>0&&(
                   <button onClick={()=>{
                     // Lấy tất cả mã đang giao thiếu SL
@@ -4131,15 +4149,6 @@ Bạn có chắc chắn không?`;
                             </div>
                           );
                         })}
-                        <div style={{background:dDn?"#f0fdf4":"#f8fafc",borderRadius:10,padding:"9px 12px",border:"1px solid #e5e7eb",
-                          display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                          <span style={{fontWeight:700,fontSize:12}}>Cộng {dm}</span>
-                          <span style={{display:"flex",gap:14,fontSize:11,flexWrap:"wrap"}}>
-                            <span>Cần: <b>{fmt(dC)}</b></span>
-                            <span style={{color:"#065f46"}}>Đã nhận: <b>{fmt(dD)}</b></span>
-                            <span style={{color:dDn?"#16a34a":"#dc2626"}}>Thiếu: <b>{dDn?"✅":fmt(dT)}</b></span>
-                          </span>
-                        </div>
                       </div>
                     )}
                   </div>
