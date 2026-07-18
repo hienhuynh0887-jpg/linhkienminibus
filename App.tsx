@@ -3360,7 +3360,7 @@ Bạn có chắc chắn không?`;
                   </div>
                 </div>
               </div>
-              <div style={{background:"#fff",borderRadius:10,padding:"10px 16px",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+              <div style={{background:"#fff",borderRadius:10,padding:"10px 16px",marginBottom:nhomKeys.length>1?8:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <span style={{fontSize:15,color:"#9ca3af",flexShrink:0}}>🔍</span>
                 <input
                   value={soanSearch}
@@ -3369,15 +3369,15 @@ Bạn có chắc chắn không?`;
                   style={{...inp,border:"none",outline:"none",padding:"2px 0",fontSize:13,background:"transparent",flex:1,minWidth:120}}
                 />
                 {soanSearch&&<button onClick={()=>setSoanSearch("")} style={{border:"none",background:"none",cursor:"pointer",color:"#9ca3af",fontSize:16,padding:"0 2px",lineHeight:1}}>✕</button>}
-                {nhomKeys.length>1&&(
-                  <div style={{display:"flex",gap:6,flexShrink:0}}>
-                    <button onClick={()=>setSoanCollapsed(Object.fromEntries(nhomKeys.map(k=>[k,true])))}
-                      style={{...btn,background:"#dc2626",color:"#1d4ed8",fontWeight:800,padding:"5px 10px",fontSize:11}}>⬆ Thu gọn tất cả</button>
-                    <button onClick={()=>setSoanCollapsed({})}
-                      style={{...btn,background:"#dc2626",color:"#1d4ed8",fontWeight:800,padding:"5px 10px",fontSize:11}}>⬇ Mở rộng tất cả</button>
-                  </div>
-                )}
               </div>
+              {nhomKeys.length>1&&(
+                <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:12}}>
+                  <button onClick={()=>setSoanCollapsed(Object.fromEntries(nhomKeys.map(k=>[k,true])))}
+                    style={{...btn,background:"#1e3a8a",color:"#fff",fontWeight:800,padding:"7px 16px",fontSize:12}}>⬆ Thu gọn tất cả</button>
+                  <button onClick={()=>setSoanCollapsed({})}
+                    style={{...btn,background:"#1e3a8a",color:"#fff",fontWeight:800,padding:"7px 16px",fontSize:12}}>⬇ Mở rộng tất cả</button>
+                </div>
+              )}
               {Object.entries(nhom).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
                 const filteredItems=soanSearch.trim()
                   ?items.filter(v=>v.ma.toLowerCase().includes(soanSearch.toLowerCase())||v.ten.toLowerCase().includes(soanSearch.toLowerCase()))
@@ -3434,7 +3434,7 @@ Bạn có chắc chắn không?`;
                           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
                             <label style={{fontSize:8,color:"#9ca3af",fontWeight:700}}>SL THỰC</label>
                             <SlStepper value={slV} warn={canhBao||slV!==slCN} onChange={n=>setSlSoan(v.ma,n,slCN)}/>
-                            {canhBao&&<span style={{fontSize:8,color:"#f59e0b",textAlign:"center"}}>thiếu {fmt(conThieu)}</span>}
+                            {canhBao&&<span style={{fontSize:8,color:"#7cb342",fontWeight:800,textAlign:"center"}}>thiếu {fmt(conThieu)}</span>}
                             {!canhBao&&slV!==slCN&&<span style={{fontSize:8,color:"#f59e0b"}}>≠ KH</span>}
                           </div>
                           <div style={{width:20,height:20,borderRadius:"50%",background:on?"#d1fae5":"#f1f5f9",color:on?"#065f46":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,flexShrink:0}}>{v.stt}</div>
