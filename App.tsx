@@ -3128,50 +3128,47 @@ Bạn có chắc chắn không?`;
                 </div>
               )}
             </div>
-            <div style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead>
-                    <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                      {[["stt",t("thSTT")],["ma",t("thMa")],["ten",t("thTen")],["ng",t("thNguonGoc")],["vt",t("lbVT")],["jig","JIG"],["dv",t("thDVT")],["dm",t("lbDM1XE")]].map(([col,lb])=>(
-                        <th key={col} onClick={()=>sortBy(col)} style={{padding:"8px 10px",textAlign:col==="dm"?"center":"left",fontWeight:700,color:"#374151",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none"}}>
-                          {lb}<Arr col={col}/>
-                        </th>
-                      ))}
-                      <th style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:"#065f46",background:"#f0fdf4",whiteSpace:"nowrap"}}>{t("thCanNhan")}<br/>(×{soXe}xe)</th>
-                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151"}}>{t("thGhiChu")}</th>
-                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151",textAlign:"center"}}>{t("thAnh")}</th>
-                      <th style={{padding:"8px 10px",fontWeight:700,color:"#374151",textAlign:"center"}}>{t("thThaoTac")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.length===0&&<tr><td colSpan={12} style={{textAlign:"center",padding:40,color:"#9ca3af"}}>Không tìm thấy vật tư nào</td></tr>}
-                    {filtered.map((v,i)=>(
-                      <tr key={v.ma+i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
-                        <td style={{padding:"7px 10px",textAlign:"center",color:"#6b7280",fontWeight:600}}>{v.stt}</td>
-                        <td style={{padding:"7px 10px",fontWeight:700,color:mauP,fontFamily:"monospace",fontSize:11,whiteSpace:"nowrap"}}>{v.ma}</td>
-                        <td style={{padding:"7px 10px",maxWidth:220,fontSize:12,textAlign:"left"}}>{v.ten}</td>
-                        <td style={{padding:"7px 10px",whiteSpace:"nowrap"}}><Tag ch={v.ng}/></td>
-                        <td style={{padding:"7px 10px",fontFamily:"monospace",color:"#6b7280",fontSize:11}}>{v.vt}</td>
-                        <td style={{padding:"7px 10px",fontFamily:"monospace",color:"#6b7280",fontSize:11}}>{v.jig||"—"}</td>
-                        <td style={{padding:"7px 10px",color:"#6b7280",textAlign:"center"}}>{v.dv}</td>
-                        <td style={{padding:"7px 10px",fontWeight:700,color:"#16a34a",textAlign:"center"}}>{fmt(v.dm)}</td>
-                        <td style={{padding:"7px 10px",fontWeight:700,color:"#065f46",textAlign:"center",background:"#f0fdf4"}}>{fmt(v.dm*soXe)}</td>
-                        <td style={{padding:"7px 10px",color:"#6b7280",fontSize:11,maxWidth:160}}>{v.gc||"—"}</td>
-                        <td style={{padding:"7px 10px",textAlign:"center"}}>
-                          {v.anh?<img src={v.anh} alt="" onClick={()=>setAnhPv(v.anh)} style={{width:34,height:34,objectFit:"cover",borderRadius:5,cursor:"zoom-in",border:"1px solid #e5e7eb"}}/>
-                            :<span style={{color:"#d1d5db",fontSize:16}}>🖼</span>}
-                        </td>
-                        <td style={{padding:"7px 10px",textAlign:"center",whiteSpace:"nowrap"}}>
-                          <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",marginRight:2}}>{t("thSua")}</button>
-                          <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b"}}>{t("thXoa")}</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{padding:"7px 14px",borderTop:"1px solid #f1f5f9",fontSize:11,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {filtered.length===0&&(
+                <div style={{textAlign:"center",padding:"40px 20px",color:"#9ca3af",fontSize:13,background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+                  Không tìm thấy vật tư nào
+                </div>
+              )}
+              {filtered.map((v,i)=>(
+                <div key={v.ma+i} style={{background:"#fff",borderRadius:10,padding:"10px 12px",
+                  boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:"1px solid #f1f5f9",
+                  display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{minWidth:28,height:28,borderRadius:7,background:"#f0f4ff",
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>
+                    {v.stt}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,color:mauP,
+                      whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ma}</div>
+                    <div style={{fontSize:12,color:"#374151",marginTop:1,
+                      whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ten}</div>
+                    <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+                      {v.ng&&<span style={{background:"#ede9fe",color:"#6d28d9",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>{v.ng}</span>}
+                      {v.vt&&<span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>{v.vt}</span>}
+                      {v.jig&&<span style={{background:"#f1f5f9",color:"#475569",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>JIG: {v.jig}</span>}
+                      <span style={{background:"#f0fdf4",color:"#166534",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thDVT")}: {v.dv} · {t("lbDM1XE")}: {fmt(v.dm)}</span>
+                      <span style={{background:"#dcfce7",color:"#065f46",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thCanNhan")}: {fmt(v.dm*soXe)}</span>
+                      {v.gc&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{v.gc}</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,flexShrink:0}}>
+                    {v.anh
+                      ? <img src={v.anh} alt="" onClick={()=>setAnhPv(v.anh)} style={{width:30,height:30,objectFit:"cover",borderRadius:5,cursor:"zoom-in",border:"1px solid #e5e7eb"}}/>
+                      : <span style={{color:"#d1d5db",fontSize:16}}>🖼</span>}
+                    <div style={{display:"flex",gap:5}}>
+                      <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"5px 9px",fontSize:12}}>✏️</button>
+                      <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"5px 9px",fontSize:12}}>🗑️</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div style={{padding:"10px 4px 4px",fontSize:11,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
                 <span>{filtered.length}/{bom.length} mã</span>
                 <span style={{display:"flex",gap:16}}>
                   <span>ĐM tổng: <b>{fmt(filtered.reduce((s,v)=>s+v.dm,0))}</b></span>
