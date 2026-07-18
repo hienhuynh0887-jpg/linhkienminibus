@@ -2894,13 +2894,13 @@ Bạn có chắc chắn không?`;
         {/* Top bar */}
         <div style={{padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
           {/* Logo + title */}
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flexShrink:1}}>
+            <div style={{width:26,height:26,borderRadius:8,background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>
               {isTHCK?"🏭":isKHO?"📦":"🚗"}
             </div>
-            <div>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:.2}}>{t("brandTitle")}</div>
-              <div style={{fontSize:10,opacity:.6}}>{isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):t("roleXH")}</div>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:11,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t("brandTitle")}</div>
+              <div style={{fontSize:8,opacity:.6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):t("roleXH")}</div>
             </div>
           </div>
           {/* User + logout */}
@@ -3372,9 +3372,9 @@ Bạn có chắc chắn không?`;
                 {nhomKeys.length>1&&(
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
                     <button onClick={()=>setSoanCollapsed(Object.fromEntries(nhomKeys.map(k=>[k,true])))}
-                      style={{...btn,background:"#f3f4f6",color:"#374151",padding:"5px 10px",fontSize:11}}>⬆ Thu gọn tất cả</button>
+                      style={{...btn,background:"#dc2626",color:"#1d4ed8",fontWeight:800,padding:"5px 10px",fontSize:11}}>⬆ Thu gọn tất cả</button>
                     <button onClick={()=>setSoanCollapsed({})}
-                      style={{...btn,background:"#f3f4f6",color:"#374151",padding:"5px 10px",fontSize:11}}>⬇ Mở rộng tất cả</button>
+                      style={{...btn,background:"#dc2626",color:"#1d4ed8",fontWeight:800,padding:"5px 10px",fontSize:11}}>⬇ Mở rộng tất cả</button>
                   </div>
                 )}
               </div>
@@ -3388,8 +3388,8 @@ Bạn có chắc chắn không?`;
                 const aC=filteredItems.every(v=>soan[v.ma]?.on);
                 const isCollapsed=!!soanCollapsed[dm];
                 return(
-                  <div key={dm} style={{background:"#fff",borderRadius:10,marginBottom:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:`1px solid ${aD?"#bbf7d0":"#e5e7eb"}`}}>
-                    <div onClick={()=>toggleGrp(dm)} style={{padding:"10px 16px",background:aD?"#f0fdf4":"#f8fafc",borderBottom:isCollapsed?"none":"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+                  <div key={dm} style={{background:"#fff",borderRadius:10,marginBottom:8,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:`1px solid ${aD?"#bbf7d0":"#e5e7eb"}`}}>
+                    <div onClick={()=>toggleGrp(dm)} style={{padding:"7px 12px",background:aD?"#f0fdf4":"#f8fafc",borderBottom:isCollapsed?"none":"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
                       <span style={{fontSize:11,color:"#9ca3af",transform:isCollapsed?"rotate(-90deg)":"none",transition:"transform .15s",display:"inline-block",width:12}}>▼</span>
                       <Tag bg={aD?"#16a34a":"#1d4ed8"} c="#fff" ch={dm}/>
                       <span style={{fontSize:12,color:"#6b7280"}}>{dG}/{filteredItems.length}</span>
@@ -3413,29 +3413,31 @@ Bạn có chắc chắn không?`;
                       // Mã "chưa soạn" (chưa có phiếu) HOẶC "đã giao XH duyệt = 0" đều KHÔNG hiện badge này.
                       const canhBao=!!thV?.giaoThieu&&conThieu>0&&daGiaoXHDuyet>0;
                       return(
-                        <div key={v.ma} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:i<filteredItems.length-1?"1px solid #f1f5f9":"none",background:canhBao?"#fffbeb":on?"#f0fdf4":"transparent",borderLeft:canhBao?"3px solid #fcd34d":"3px solid transparent"}}>
-                          <div onClick={()=>togSoan(v.ma,slCN)} style={{width:22,height:22,borderRadius:6,border:`2px solid ${on?"#16a34a":canhBao?"#f59e0b":"#d1d5db"}`,background:on?"#16a34a":canhBao?"#fef3c7":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
-                            {on&&<span style={{color:"#fff",fontSize:13,fontWeight:700}}>✓</span>}
-                            {!on&&canhBao&&<span style={{color:"#f59e0b",fontSize:13,fontWeight:700}}>…</span>}
+                        <div key={v.ma} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderBottom:i<filteredItems.length-1?"1px solid #f1f5f9":"none",background:canhBao?"#fffbeb":on?"#f0fdf4":"transparent",borderLeft:canhBao?"3px solid #fcd34d":"3px solid transparent"}}>
+                          <div onClick={()=>togSoan(v.ma,slCN)} style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?"#16a34a":canhBao?"#f59e0b":"#d1d5db"}`,background:on?"#16a34a":canhBao?"#fef3c7":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+                            {on&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
+                            {!on&&canhBao&&<span style={{color:"#f59e0b",fontSize:12,fontWeight:700}}>…</span>}
                           </div>
-                          {v.anh?<img src={v.anh} alt="" onClick={()=>setAnhPv(v.anh)} style={{width:36,height:36,objectFit:"cover",borderRadius:6,border:"1px solid #e5e7eb",cursor:"zoom-in",flexShrink:0}}/>
-                            :<div style={{width:36,height:36,borderRadius:6,background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",color:"#d1d5db",flexShrink:0}}>🖼</div>}
+                          {v.anh?<img src={v.anh} alt="" onClick={()=>setAnhPv(v.anh)} style={{width:28,height:28,objectFit:"cover",borderRadius:6,border:"1px solid #e5e7eb",cursor:"zoom-in",flexShrink:0}}/>
+                            :<div style={{width:28,height:28,borderRadius:6,background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",color:"#d1d5db",flexShrink:0,fontSize:12}}>🖼</div>}
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontWeight:700,fontSize:13,color:mauP,fontFamily:"monospace"}}>{v.ma}</div>
-                            <div style={{fontSize:11,color:on?"#9ca3af":"#374151",textDecoration:on?"line-through":"none",marginTop:1}}>{v.ten}</div>
-                            <div style={{fontSize:10,color:"#6b7280",marginTop:2,display:"flex",gap:8,flexWrap:"wrap"}}>
-                              <span>Vị trí: <b>{v.vt||"—"}</b></span>
-                              <span style={{color:"#065f46",fontWeight:700}}>Cần: {fmt(slCN)} {v.dv}</span>
-                              {canhBao&&<span style={{color:"#b45309",fontWeight:700,background:"#fef3c7",borderRadius:4,padding:"0 5px"}}>⚠️ Đã giao XH duyệt: {fmt(daGiaoXHDuyet)} {v.dv} (còn thiếu {fmt(conThieu)})</span>}
+                            <div style={{display:"flex",alignItems:"baseline",gap:8,whiteSpace:"nowrap",overflow:"hidden"}}>
+                              <span style={{fontWeight:700,fontSize:12,color:mauP,fontFamily:"monospace",flexShrink:0}}>{v.ma}</span>
+                              <span style={{fontSize:11,color:on?"#9ca3af":"#374151",textDecoration:on?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.ten}</span>
+                            </div>
+                            <div style={{fontSize:10,color:"#6b7280",marginTop:1,display:"flex",gap:8,flexWrap:"nowrap",overflow:"hidden",whiteSpace:"nowrap"}}>
+                              <span style={{flexShrink:0}}>VT: <b>{v.vt||"—"}</b></span>
+                              <span style={{color:"#065f46",fontWeight:700,flexShrink:0}}>Cần: {fmt(slCN)} {v.dv}</span>
+                              {canhBao&&<span style={{color:"#b45309",fontWeight:700,background:"#fef3c7",borderRadius:4,padding:"0 5px",flexShrink:1,overflow:"hidden",textOverflow:"ellipsis"}}>⚠️ Đã giao: {fmt(daGiaoXHDuyet)} {v.dv} (thiếu {fmt(conThieu)})</span>}
                             </div>
                           </div>
-                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
-                            <label style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>SL THỰC</label>
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
+                            <label style={{fontSize:8,color:"#9ca3af",fontWeight:700}}>SL THỰC</label>
                             <SlStepper value={slV} warn={canhBao||slV!==slCN} onChange={n=>setSlSoan(v.ma,n,slCN)}/>
-                            {canhBao&&<span style={{fontSize:9,color:"#f59e0b",textAlign:"center"}}>còn thiếu {fmt(conThieu)}</span>}
-                            {!canhBao&&slV!==slCN&&<span style={{fontSize:9,color:"#f59e0b"}}>≠ kế hoạch</span>}
+                            {canhBao&&<span style={{fontSize:8,color:"#f59e0b",textAlign:"center"}}>thiếu {fmt(conThieu)}</span>}
+                            {!canhBao&&slV!==slCN&&<span style={{fontSize:8,color:"#f59e0b"}}>≠ KH</span>}
                           </div>
-                          <div style={{width:24,height:24,borderRadius:"50%",background:on?"#d1fae5":"#f1f5f9",color:on?"#065f46":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0}}>{v.stt}</div>
+                          <div style={{width:20,height:20,borderRadius:"50%",background:on?"#d1fae5":"#f1f5f9",color:on?"#065f46":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,flexShrink:0}}>{v.stt}</div>
                         </div>
                       );
                     })}
