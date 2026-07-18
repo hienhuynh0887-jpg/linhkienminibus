@@ -949,7 +949,7 @@ export default function App(){
   const [lang, setLang] = useState(()=>localStorage.getItem("appLang")||"vi");
   const setLangSaved = l=>{setLang(l);localStorage.setItem("appLang",l);};
   const t = k => (APP_I18N[k]&&APP_I18N[k][lang]) || APP_I18N[k]?.vi || k;
-  const [user,     setUser]     = useState(null);   // logged-in user
+  const [user,     setUser]     = useState(()=>{try{const s=localStorage.getItem("loggedInUser");return s?JSON.parse(s):null;}catch{return null;}});   // logged-in user
   const [users,    setUsers]    = useState(USERS_DEF);
   const [dbErr,    setDbErr]    = useState("");
   const [projs,    setProjs]    = useState(PROJS_DEF);
@@ -1165,7 +1165,13 @@ export default function App(){
       }
     };
     load();
-  },[]);
+    // ✅ Chỉ tự động tải lại dữ liệu NGẦM (không reload cả trang) khi đã đăng nhập —
+    // giúp nhận thay đổi mới nhất từ người dùng khác mà không làm mất dữ liệu đang
+    // gõ dở trên các form khác trong lúc tải.
+    if(!user) return;
+    const pollTimer=setInterval(load,10000);
+    return ()=>clearInterval(pollTimer);
+  },[user]);
 
   // ── Realtime: lắng nghe bảng bom_log để nhật ký thay đổi BOM cập nhật tức thời,
   // kể cả khi thay đổi được thực hiện bởi người dùng khác trên thiết bị khác ──
@@ -1650,6 +1656,14 @@ export default function App(){
 
   // ── Lưu soanDB vào localStorage mỗi khi thay đổi ──
   useEffect(()=>{try{localStorage.setItem("soanDB",JSON.stringify(soanDB));}catch{};},[soanDB]);
+
+  // ── Đồng bộ phiên đăng nhập vào localStorage (giữ đăng nhập qua các lần auto-reload) ──
+  useEffect(()=>{
+    try{
+      if(user) localStorage.setItem("loggedInUser",JSON.stringify(user));
+      else localStorage.removeItem("loggedInUser");
+    }catch{}
+  },[user]);
 
   // ── BOM CRUD ──
   const save=async()=>{
@@ -2807,6 +2821,7 @@ Bạn có chắc chắn không?`;
   if(!user) return (
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <LoginScreen onLogin={(u,us)=>{setUser(u);if(us)setUsers(us);
+        try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
         // Set default tab per role
         setTab(u.role==="thck"||u.role==="kho"?"soan":"duyet");
       }}/>
@@ -2860,7 +2875,7 @@ Bạn có chắc chắn không?`;
             <button onClick={()=>setShowChangePw(true)} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700}}>🔑 Đổi MK</button>
             <button onClick={()=>setShowSignPad(true)} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700}}>{user.chu_ky?"✍️ Sửa chữ ký":"✍️ Tạo chữ ký"}</button>
             <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"5px 10px 5px 6px",cursor:"pointer"}}
-              onClick={()=>{if(window.confirm("Đăng xuất?"))setUser(null);}}>
+              onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");}catch{}setUser(null);}}}>
               <span style={{fontSize:16}}>{user.avatar}</span>
               <div>
                 <div style={{fontSize:11,fontWeight:700,lineHeight:1.2}}>{user.ten}</div>
