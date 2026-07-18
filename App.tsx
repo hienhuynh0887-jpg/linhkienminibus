@@ -938,6 +938,44 @@ function Prog({p,done,h=8}){
   );
 }
 
+// ✅ Ô nhập SL dạng stepper (−/+) dễ bấm trên điện thoại.
+// Cho phép XOÁ HẲN số (kể cả số 0) để gõ số mới: giá trị hiển thị trong ô là state
+// chữ (raw) cục bộ, chỉ "chốt" (parse + báo lên cha qua onChange) khi bấm nút −/+ hoặc
+// khi rời khỏi ô (onBlur) — không ép về 0 ngay khi người dùng đang gõ dở.
+function SlStepper({value,onChange,warn}){
+  const [raw,setRaw]=useState(String(value));
+  useEffect(()=>{ setRaw(String(value)); },[value]);
+  const commit=(s)=>{
+    const n=s===""?0:Math.max(0,parseInt(s,10)||0);
+    setRaw(String(n));
+    if(n!==value)onChange(n);
+  };
+  const step=(d)=>{
+    const cur=raw===""?0:(parseInt(raw,10)||0);
+    const n=Math.max(0,cur+d);
+    setRaw(String(n));
+    onChange(n);
+  };
+  const bd=warn?"#f59e0b":"#c7d2fe";
+  const bg=warn?"#fffbeb":"#f0f4ff";
+  const cl=warn?"#92400e":"#1d4ed8";
+  return(
+    <div onClick={e=>e.stopPropagation()} style={{display:"flex",alignItems:"center",border:`1.5px solid ${bd}`,borderRadius:8,overflow:"hidden",background:bg,height:30}}>
+      <button type="button" onClick={()=>step(-1)}
+        style={{width:26,height:"100%",border:"none",borderRight:`1px solid ${bd}`,background:"transparent",color:cl,fontSize:16,fontWeight:700,cursor:"pointer",touchAction:"manipulation"}}>−</button>
+      <input
+        type="text" inputMode="numeric" pattern="[0-9]*"
+        value={raw}
+        onChange={e=>setRaw(e.target.value.replace(/[^0-9]/g,""))}
+        onBlur={()=>commit(raw)}
+        onFocus={e=>e.target.select()}
+        style={{width:36,textAlign:"center",border:"none",outline:"none",background:"transparent",fontSize:13,fontWeight:700,color:cl,fontFamily:"inherit",padding:0}}/>
+      <button type="button" onClick={()=>step(1)}
+        style={{width:26,height:"100%",border:"none",borderLeft:`1px solid ${bd}`,background:"transparent",color:cl,fontSize:16,fontWeight:700,cursor:"pointer",touchAction:"manipulation"}}>+</button>
+    </div>
+  );
+}
+
 export default function App(){
   const I=S=>S.inp; // shorthand for style
   const B=S=>S.btn;
@@ -998,7 +1036,8 @@ export default function App(){
   const [showChoXN, setShowChoXN] = useState(8); // ✅ Số phiếu "Chờ duyệt" hiển thị (mặc định 8)
   const [showPhList, setShowPhList] = useState(5); // ✅ Số phiếu "Phiếu đã gửi" hiển thị (mặc định 5)
   const [soanSearch, setSoanSearch] = useState("");
-  const [soanChiThieu, setSoanChiThieu] = useState(false);
+  const [soanFilter, setSoanFilter] = useState("all"); // "all" | "chua" | "da" | "thieu" — bộ lọc nhanh tab Soạn Hàng
+  const [soanCollapsed, setSoanCollapsed] = useState({}); // {[viTri]: true} — nhóm vị trí nào đang thu gọn
   const [showThemMa, setShowThemMa] = useState(false);
   const [themMaForm, setThemMaForm] = useState({ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:""});
   const [showChangePw, setShowChangePw] = useState(false);
@@ -2864,23 +2903,29 @@ Bạn có chắc chắn không?`;
             </div>
           </div>
           {/* User + logout */}
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {msg&&<span style={{fontSize:11,color:"#6ee7b7",background:"rgba(0,0,0,0.2)",borderRadius:20,padding:"3px 10px"}}>{msg}</span>}
-            {dbErr&&<span style={{fontSize:11,color:"#fee2e2",background:"rgba(220,38,38,0.3)",borderRadius:20,padding:"3px 10px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={dbErr}>⚠️ {dbErr}</span>}
-            <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.12)",borderRadius:20,padding:2}}>
-              {[["vi","VI"],["zh","中文"]].map(([code,lbl])=>(
-                <button key={code} onClick={()=>setLangSaved(code)} style={{border:"none",borderRadius:16,cursor:"pointer",fontSize:10,fontWeight:700,padding:"4px 9px",background:lang===code?"rgba(255,255,255,0.9)":"transparent",color:lang===code?"#1f2937":"rgba(255,255,255,0.7)"}}>{lbl}</button>
-              ))}
-            </div>
-            <button onClick={()=>setShowChangePw(true)} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700}}>🔑 Đổi MK</button>
-            <button onClick={()=>setShowSignPad(true)} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700}}>{user.chu_ky?"✍️ Sửa chữ ký":"✍️ Tạo chữ ký"}</button>
-            <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"5px 10px 5px 6px",cursor:"pointer"}}
-              onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");}catch{}setUser(null);}}}>
-              <span style={{fontSize:16}}>{user.avatar}</span>
-              <div>
-                <div style={{fontSize:11,fontWeight:700,lineHeight:1.2}}>{user.ten}</div>
-                <div style={{fontSize:9,opacity:.6,lineHeight:1.2}}>Đăng xuất 🚪</div>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+            {msg&&<span style={{fontSize:11,color:"#6ee7b7",background:"rgba(0,0,0,0.2)",borderRadius:20,padding:"3px 10px",alignSelf:"center"}}>{msg}</span>}
+            {dbErr&&<span style={{fontSize:11,color:"#fee2e2",background:"rgba(220,38,38,0.3)",borderRadius:20,padding:"3px 10px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",alignSelf:"center"}} title={dbErr}>⚠️ {dbErr}</span>}
+            {/* ✅ 4 nút tròn kích thước bằng nhau, mỗi nút 1 màu nền riêng — Ngôn ngữ / Đổi MK / Tạo chữ ký / Tài khoản */}
+            <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:54}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:"#0ea5e9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff",boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>
+                {lang==="vi"?"VI":"中文"}
               </div>
+              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2}}>{lang==="vi"?"Tiếng Việt":"中文"}</div>
+            </div>
+            <div onClick={()=>setShowChangePw(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:54}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:"#8b5cf6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>🔑</div>
+              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2}}>Đổi MK</div>
+            </div>
+            <div onClick={()=>setShowSignPad(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:54}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>✍️</div>
+              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2}}>{user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}</div>
+            </div>
+            <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");}catch{}setUser(null);}}}
+              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",width:60}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:"#ec4899",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>{user.avatar}</div>
+              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.2,maxWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.ten}</div>
+              <div style={{fontSize:8,color:"rgba(255,255,255,0.65)",lineHeight:1}}>Đăng xuất 🚪</div>
             </div>
           </div>
         </div>
@@ -2919,10 +2964,10 @@ Bạn có chắc chắn không?`;
           <button onClick={editSoXe} style={{...btn,background:"rgba(251,191,36,0.15)",color:"#fbbf24",border:"1px solid rgba(251,191,36,0.3)",padding:"5px 11px",fontSize:12}}>🚌 {soXe} xe</button>
           {/* Stats */}
           <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[[fmt(bom.length),"Mã VT","#fff"],[fmt(phList.length),"Phiếu","#fbbf24"],[fmt(ls.length),"GD","#6ee7b7"]].map(([v,l,c])=>(
-              <div key={l} style={{textAlign:"center",background:"rgba(255,255,255,0.1)",padding:"4px 10px",borderRadius:8,minWidth:44}}>
+            {[[fmt(bom.length),"Mã VT","#fff","rgba(59,130,246,0.25)"],[fmt(phList.length),"Phiếu","#fde68a","rgba(245,158,11,0.25)"],[fmt(ls.length),"GD","#a7f3d0","rgba(16,185,129,0.25)"]].map(([v,l,c,bg])=>(
+              <div key={l} style={{textAlign:"center",background:bg,padding:"4px 10px",borderRadius:8,minWidth:44}}>
                 <div style={{fontWeight:800,fontSize:13,color:c,lineHeight:1}}>{v}</div>
-                <div style={{opacity:.55,fontSize:9,marginTop:2}}>{l}</div>
+                <div style={{opacity:.85,fontSize:9,marginTop:2,color:c}}>{l}</div>
               </div>
             ))}
           </div>
@@ -3205,10 +3250,17 @@ Bạn có chắc chắn không?`;
           const soanThieuSet=new Set(th.filter(v=>v.giaoThieu&&v.dnXN>0).map(v=>v.ma));
           // Chỉ giữ lại: chưa được soạn HOẶC đã soạn nhưng thiếu SL (loại bỏ đã duyệt đủ)
           const bomHienThiGoc=bom.filter(v=>!daDuyetDuSet.has(v.ma)||thieuSlSet.has(v.ma)||soanThieuSet.has(v.ma));
-          // Nếu bật lọc "chỉ hiện mã thiếu SL" → hiển thị TOÀN BỘ mã thuộc soanThieuSet, không ẩn mã nào
-          const bomHienThi=soanChiThieu?bom.filter(v=>soanThieuSet.has(v.ma)):bomHienThiGoc;
+          // ✅ Bộ lọc nhanh: Tất cả / Chưa soạn / Đã soạn / Thiếu SL.
+          // "Thiếu SL" hiển thị TOÀN BỘ mã thuộc soanThieuSet (không ẩn mã nào, kể cả đã duyệt đủ).
+          const bomHienThi = soanFilter==="thieu" ? bom.filter(v=>soanThieuSet.has(v.ma))
+                            : soanFilter==="da"    ? bomHienThiGoc.filter(v=>soan[v.ma]?.on)
+                            : soanFilter==="chua"  ? bomHienThiGoc.filter(v=>!soan[v.ma]?.on)
+                            : bomHienThiGoc;
+          const daSoanHienGoc=bomHienThiGoc.filter(v=>soan[v.ma]?.on).length;
           const soMaDaDuyet=daDuyetDuSet.size;
           const nhom={};bomHienThi.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!nhom[k])nhom[k]=[];nhom[k].push(v);});
+          const nhomKeys=Object.keys(nhom);
+          const toggleGrp=(k)=>setSoanCollapsed(s=>({...s,[k]:!s[k]}));
           return(
             <div>
               <div style={{background:"#fff",borderRadius:12,padding:"16px 20px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
@@ -3223,18 +3275,38 @@ Bạn có chắc chắn không?`;
                       <Prog p={pct} done={xong} h={10}/>
                       <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:60}}>{daSoan.length}/{bom.length} ({pct}%)</span>
                     </div>
-                    <div style={{fontSize:11,color:"#6b7280",marginTop:4,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                      <span>✅ Đã soạn: <b style={{color:"#16a34a"}}>{daSoan.length}</b> · ⏳ Chưa: <b style={{color:"#dc2626"}}>{chuaSoan.length}</b></span>
-                      {soanThieuSet.size>0&&(
-                        <button onClick={()=>setSoanChiThieu(x=>!x)}
-                          style={{border:`1px solid ${soanChiThieu?"#f59e0b":"#fde68a"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
-                            padding:"2px 10px",fontSize:11,fontWeight:700,
-                            background:soanChiThieu?"#f59e0b":"#fef3c7",color:soanChiThieu?"#fff":"#92400e"}}>
-                          ⚠️ Nhận thiếu SL: {soanThieuSet.size} mã{soanChiThieu?" · đang lọc ✕":" · xem tất cả"}
-                        </button>
-                      )}
+                    {/* ── Thẻ thống kê nhanh ── */}
+                    <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                      {[
+                        ["Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
+                        ["✅ Đã soạn",daSoan.length,"#16a34a","#f0fdf4"],
+                        ["⏳ Chưa soạn",chuaSoan.length,"#dc2626","#fef2f2"],
+                        ["⚠️ Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
+                      ].map(([l,v,c,bg])=>(
+                        <div key={l} style={{background:bg,borderRadius:8,padding:"6px 12px",minWidth:76,textAlign:"center"}}>
+                          <div style={{fontWeight:800,fontSize:16,color:c}}>{v}</div>
+                          <div style={{fontSize:9,color:c,fontWeight:600,opacity:.85}}>{l}</div>
+                        </div>
+                      ))}
                     </div>
-                    {bomHienThi.length<bom.length&&<div style={{fontSize:11,color:"#6b7280",marginTop:2,fontStyle:"italic"}}>Đang hiển thị {bomHienThi.length}/{bom.length} mã — ẩn {bom.length-bomHienThi.length} mã đã duyệt đủ</div>}
+                    {/* ── Bộ lọc nhanh ── */}
+                    <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
+                      {[
+                        ["all",`Tất cả (${bomHienThiGoc.length})`],
+                        ["chua",`⏳ Chưa soạn (${bomHienThiGoc.length-daSoanHienGoc})`],
+                        ["da",`✅ Đã soạn (${daSoanHienGoc})`],
+                        ...(soanThieuSet.size>0?[["thieu",`⚠️ Thiếu SL (${soanThieuSet.size})`]]:[]),
+                      ].map(([k,l])=>(
+                        <button key={k} onClick={()=>setSoanFilter(k)}
+                          style={{border:`1.5px solid ${soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#e5e7eb"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
+                            padding:"4px 12px",fontSize:11,fontWeight:700,
+                            background:soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#f9fafb",
+                            color:soanFilter===k?"#fff":"#374151"}}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                    {bomHienThi.length<bom.length&&<div style={{fontSize:11,color:"#6b7280",marginTop:6,fontStyle:"italic"}}>Đang hiển thị {bomHienThi.length}/{bom.length} mã{soanFilter==="all"?` — ẩn ${bom.length-bomHienThi.length} mã đã duyệt đủ`:""}</div>}
                   </div>
                   <div style={{display:"flex",gap:8}}>
                     <ExportBar
@@ -3285,15 +3357,23 @@ Bạn có chắc chắn không?`;
                   </div>
                 </div>
               </div>
-              <div style={{background:"#fff",borderRadius:10,padding:"10px 16px",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{background:"#fff",borderRadius:10,padding:"10px 16px",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <span style={{fontSize:15,color:"#9ca3af",flexShrink:0}}>🔍</span>
                 <input
                   value={soanSearch}
                   onChange={e=>setSoanSearch(e.target.value)}
                   placeholder="Nhập mã VT"
-                  style={{...inp,border:"none",outline:"none",padding:"2px 0",fontSize:13,background:"transparent",flex:1}}
+                  style={{...inp,border:"none",outline:"none",padding:"2px 0",fontSize:13,background:"transparent",flex:1,minWidth:120}}
                 />
                 {soanSearch&&<button onClick={()=>setSoanSearch("")} style={{border:"none",background:"none",cursor:"pointer",color:"#9ca3af",fontSize:16,padding:"0 2px",lineHeight:1}}>✕</button>}
+                {nhomKeys.length>1&&(
+                  <div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <button onClick={()=>setSoanCollapsed(Object.fromEntries(nhomKeys.map(k=>[k,true])))}
+                      style={{...btn,background:"#f3f4f6",color:"#374151",padding:"5px 10px",fontSize:11}}>⬆ Thu gọn tất cả</button>
+                    <button onClick={()=>setSoanCollapsed({})}
+                      style={{...btn,background:"#f3f4f6",color:"#374151",padding:"5px 10px",fontSize:11}}>⬇ Mở rộng tất cả</button>
+                  </div>
+                )}
               </div>
               {Object.entries(nhom).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
                 const filteredItems=soanSearch.trim()
@@ -3303,17 +3383,19 @@ Bạn có chắc chắn không?`;
                 const dG=filteredItems.filter(v=>soan[v.ma]?.on).length;
                 const aD=dG===filteredItems.length;
                 const aC=filteredItems.every(v=>soan[v.ma]?.on);
+                const isCollapsed=!!soanCollapsed[dm];
                 return(
                   <div key={dm} style={{background:"#fff",borderRadius:10,marginBottom:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:`1px solid ${aD?"#bbf7d0":"#e5e7eb"}`}}>
-                    <div style={{padding:"10px 16px",background:aD?"#f0fdf4":"#f8fafc",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:10}}>
+                    <div onClick={()=>toggleGrp(dm)} style={{padding:"10px 16px",background:aD?"#f0fdf4":"#f8fafc",borderBottom:isCollapsed?"none":"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+                      <span style={{fontSize:11,color:"#9ca3af",transform:isCollapsed?"rotate(-90deg)":"none",transition:"transform .15s",display:"inline-block",width:12}}>▼</span>
                       <Tag bg={aD?"#16a34a":"#1d4ed8"} c="#fff" ch={dm}/>
                       <span style={{fontSize:12,color:"#6b7280"}}>{dG}/{filteredItems.length}</span>
                       {aD&&<span>✅</span>}
-                      <button onClick={()=>togGrp(filteredItems,aC)} style={{...btn,marginLeft:"auto",background:"#eff6ff",color:"#1d4ed8",padding:"4px 12px",fontSize:11}}>
+                      <button onClick={e=>{e.stopPropagation();togGrp(filteredItems,aC);}} style={{...btn,marginLeft:"auto",background:"#eff6ff",color:"#1d4ed8",padding:"4px 12px",fontSize:11}}>
                         {aC?"Bỏ chọn":"Chọn cả nhóm"}
                       </button>
                     </div>
-                    {filteredItems.map((v,i)=>{
+                    {!isCollapsed&&filteredItems.map((v,i)=>{
                       const on=soan[v.ma]?.on||false;
                       const slCN=v.dm*soXe;
                       const slV=soan[v.ma]?.sl??slCN; // SL THỰC người dùng nhập/chuẩn bị gửi — chỉ dùng cho ô nhập, KHÔNG dùng để tính "còn thiếu"
@@ -3346,8 +3428,7 @@ Bạn có chắc chắn không?`;
                           </div>
                           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
                             <label style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>SL THỰC</label>
-                            <input type="number" min={0} value={slV} onChange={e=>setSlSoan(v.ma,parseInt(e.target.value)||0,slCN)} onClick={e=>e.stopPropagation()}
-                              style={{width:64,textAlign:"center",padding:"4px 6px",border:`1px solid ${canhBao?"#f59e0b":slV!==slCN?"#f59e0b":"#d1d5db"}`,borderRadius:6,fontSize:13,fontWeight:700,color:canhBao?"#92400e":slV!==slCN?"#92400e":"#065f46",outline:"none",background:canhBao?"#fffbeb":slV!==slCN?"#fffbeb":"#f0fdf4"}}/>
+                            <SlStepper value={slV} warn={canhBao||slV!==slCN} onChange={n=>setSlSoan(v.ma,n,slCN)}/>
                             {canhBao&&<span style={{fontSize:9,color:"#f59e0b",textAlign:"center"}}>còn thiếu {fmt(conThieu)}</span>}
                             {!canhBao&&slV!==slCN&&<span style={{fontSize:9,color:"#f59e0b"}}>≠ kế hoạch</span>}
                           </div>
@@ -3755,53 +3836,54 @@ Bạn có chắc chắn không?`;
                   <span>📊 Bảng Tích Lũy ({f2.length} mã)</span>
                   <span style={{fontSize:11,color:"#6b7280",fontWeight:400}}>Cộng dồn {phList.length} phiếu</span>
                 </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                        {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thDM"),`${t("thCan")}(×${soXe})`,t("thDaNhan"),t("thConThieu"),t("thTienDo"),t("thNguonGoc")].map((h,i)=>(
-                          <th key={i} style={{padding:"8px 10px",textAlign:i>=4?"center":"left",fontWeight:700,color:h===t("thDaNhan")?"#065f46":h===t("thConThieu")?"#dc2626":"#374151",whiteSpace:"nowrap",fontSize:11}}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {f2.length===0&&<tr><td colSpan={10} style={{textAlign:"center",padding:40,color:"#9ca3af"}}>Không có dữ liệu</td></tr>}
-                      {f2.map((v,i)=>{
-                        const isSel=selMa===v.ma;
-                        return(
-                        <tr key={v.ma} onClick={()=>setSelMa(s=>s===v.ma?null:v.ma)} style={{borderBottom:"1px solid #f1f5f9",background:isSel?"#fff7ed":v.done?"#f0fdf4":i%2===0?"#fff":"#f9fafb",cursor:"pointer",transition:"background .15s"}}>
-                          <td style={{padding:"7px 10px",textAlign:"center",color:"#9ca3af",fontSize:11}}>{v.stt}</td>
-                          <td style={{padding:"7px 10px",fontWeight:700,color:mauP,fontFamily:"monospace",fontSize:10,whiteSpace:"nowrap"}}>{v.ma}</td>
-                          <td style={{padding:"7px 10px",maxWidth:200,fontSize:12,textAlign:"left"}}><span title={v.ten}>{v.ten.length>40?v.ten.slice(0,40)+"…":v.ten}</span></td>
-                          <td style={{padding:"7px 10px",color:"#6b7280",textAlign:"center"}}>{v.dv}</td>
-                          <td style={{padding:"7px 10px",textAlign:"center",color:"#6b7280"}}>{fmt(v.dm)}</td>
-                          <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700}}>{fmt(v.cn)}</td>
-                          <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700,color:v.dn>0?"#065f46":"#9ca3af"}}>
-                            {fmt(v.dn)}{v.vuot>0&&<span style={{fontSize:9,color:"#b45309",display:"block"}}>+{fmt(v.vuot)} vượt</span>}
-                          </td>
-                          <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700,color:v.done?"#16a34a":isSel?"#dc2626":"#ea580c"}}>{v.done?"✅":fmt(v.ct)}</td>
-                          <td style={{padding:"7px 10px",minWidth:100}}>
-                            <div style={{display:"flex",alignItems:"center",gap:6}}>
-                              <Prog p={v.p} done={v.done}/>
-                              <span style={{fontSize:10,fontWeight:700,minWidth:32,color:v.done?"#16a34a":"#6b7280"}}>{v.p}%</span>
-                            </div>
-                          </td>
-                          <td style={{padding:"7px 10px",whiteSpace:"nowrap"}}><Tag ch={v.ng}/></td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{background:"#f8fafc",borderTop:"2px solid #e5e7eb"}}>
-                        <td colSpan={4} style={{padding:"9px 10px",fontWeight:700}}>Tổng ({f2.length} mã)</td>
-                        <td/><td style={{padding:"9px 10px",textAlign:"center",fontWeight:700}}>{fmt(f2.reduce((s,v)=>s+v.cn,0))}</td>
-                        <td style={{padding:"9px 10px",textAlign:"center",fontWeight:700,color:"#065f46"}}>{fmt(f2.reduce((s,v)=>s+v.dn,0))}</td>
-                        <td style={{padding:"9px 10px",textAlign:"center",fontWeight:700,color:"#dc2626"}}>{fmt(f2.reduce((s,v)=>s+v.ct,0))}</td>
-                        <td/>
-                        <td/>
-                      </tr>
-                    </tfoot>
-                  </table>
+                <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
+                  {f2.length===0&&(
+                    <div style={{textAlign:"center",padding:40,color:"#9ca3af",fontSize:13}}>Không có dữ liệu</div>
+                  )}
+                  {f2.map((v,i)=>{
+                    const isSel=selMa===v.ma;
+                    return(
+                      <div key={v.ma} onClick={()=>setSelMa(s=>s===v.ma?null:v.ma)}
+                        style={{background:isSel?"#fff7ed":v.done?"#f0fdf4":"#fff",borderRadius:10,padding:"10px 12px",
+                          boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:`1px solid ${isSel?"#fdba74":v.done?"#bbf7d0":"#f1f5f9"}`,
+                          display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"background .15s"}}>
+                        <div style={{minWidth:28,height:28,borderRadius:7,background:"#f0f4ff",
+                          display:"flex",alignItems:"center",justifyContent:"center",
+                          fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>
+                          {v.stt}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:13,color:mauP,fontFamily:"monospace",
+                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ma}</div>
+                          <div style={{fontSize:12,color:"#374151",marginTop:1,
+                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={v.ten}>{v.ten}</div>
+                          <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+                            {v.ng&&<Tag ch={v.ng}/>}
+                            <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv}</span>
+                            <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thCan")}: {fmt(v.cn)}</span>
+                            <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
+                            {v.vuot>0&&<span style={{background:"#fef3c7",color:"#b45309",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
+                            <span style={{background:v.done?"#dcfce7":"#fff7ed",color:v.done?"#16a34a":"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{v.done?"✅ Đủ":`${t("thConThieu")}: ${fmt(v.ct)}`}</span>
+                          </div>
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,minWidth:52}}>
+                          <Prog p={v.p} done={v.done}/>
+                          <span style={{fontSize:10,fontWeight:700,color:v.done?"#16a34a":"#6b7280"}}>{v.p}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {f2.length>0&&(
+                    <div style={{background:"#f8fafc",borderRadius:10,padding:"10px 12px",border:"1px solid #e5e7eb",
+                      display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,marginTop:4}}>
+                      <span style={{fontWeight:700,fontSize:12,color:"#374151"}}>Tổng ({f2.length} mã)</span>
+                      <span style={{display:"flex",gap:16,fontSize:11,flexWrap:"wrap"}}>
+                        <span>{t("progCan")}: <b>{fmt(f2.reduce((s,v)=>s+v.cn,0))}</b></span>
+                        <span style={{color:"#065f46"}}>{t("thDaNhan")}: <b>{fmt(f2.reduce((s,v)=>s+v.dn,0))}</b></span>
+                        <span style={{color:"#dc2626"}}>{t("thConThieu")}: <b>{fmt(f2.reduce((s,v)=>s+v.ct,0))}</b></span>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3977,92 +4059,87 @@ Bạn có chắc chắn không?`;
                       <span style={{fontSize:11,color:dDn?"#16a34a":"#dc2626"}}>Thiếu: <b>{fmt(dT)}</b></span>
                     </div>
                     {isO&&(
-                      <div style={{overflowX:"auto"}}>
-                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                          <thead>
-                            <tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-                              {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thDM"),`${t("thCan")}(×${soXe})`,t("thDaNhan"),t("thThieu"),t("thVuot"),t("thTienDo"),t("thNguonGoc"),t("thPhieu")].map((h,i)=>(
-                                <th key={i} style={{padding:"7px 10px",textAlign:i>=4?"center":"left",fontWeight:700,color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {fil.map((v,ri)=>{
-                              const isSel2=selMa===v.ma;
-                              return(
-                              <Fragment key={v.ma}>
-                                <tr onClick={()=>setSelMa(s=>s===v.ma?null:v.ma)} style={{borderBottom:"1px solid #f1f5f9",background:isSel2?"#fff7ed":v.done?"#f0fdf4":ri%2===0?"#fff":"#fafafa",cursor:"pointer",transition:"background .15s"}}>
-                                  <td style={{padding:"7px 10px",textAlign:"center",color:"#9ca3af",fontSize:11}}>{v.stt}</td>
-                                  <td style={{padding:"7px 10px",fontWeight:700,color:mauP,fontFamily:"monospace",fontSize:10,whiteSpace:"nowrap"}}>{v.ma}</td>
-                                  <td style={{padding:"7px 10px",maxWidth:180,textAlign:"left"}}><span title={v.ten}>{v.ten.length>35?v.ten.slice(0,35)+"…":v.ten}</span></td>
-                                  <td style={{padding:"7px 10px",color:"#6b7280",textAlign:"center"}}>{v.dv}</td>
-                                  <td style={{padding:"7px 10px",textAlign:"center",color:"#6b7280"}}>{fmt(v.dm)}</td>
-                                  <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700}}>{fmt(v.cn)}</td>
-                                  <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700,color:v.dn>0?"#065f46":"#9ca3af"}}>{fmt(v.dn)}</td>
-                                  <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700,color:v.done?"#16a34a":isSel2?"#dc2626":"#ea580c"}}>
-                                    {v.done?"✅":v.chuaSoan
-                                      ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:8,padding:"1px 6px",fontSize:10,fontWeight:700}}>📭 Chưa soạn</span>
-                                      :<span><span style={{color:isSel2?"#dc2626":"#ea580c"}}>{fmt(v.ct)}</span><br/><span style={{fontSize:9,color:"#f59e0b",fontWeight:600}}>📉 Giao thiếu</span></span>
-                                    }
-                                  </td>
-                                  <td style={{padding:"7px 10px",textAlign:"center",fontSize:11}}>{v.vuot>0?<span style={{background:"#fef3c7",padding:"1px 6px",borderRadius:8,fontWeight:700,color:"#b45309"}}>+{fmt(v.vuot)}</span>:"—"}</td>
-                                  <td style={{padding:"7px 10px",minWidth:90}}>
-                                    <div style={{display:"flex",alignItems:"center",gap:5}}>
-                                      <Prog p={v.p} done={v.done}/>
-                                      <span style={{fontSize:10,fontWeight:700,minWidth:30,color:v.done?"#16a34a":"#6b7280"}}>{v.p}%</span>
-                                    </div>
-                                  </td>
-                                  <td style={{padding:"7px 10px",whiteSpace:"nowrap"}}><Tag ch={v.ng}/></td>
-                                  <td style={{padding:"7px 10px",textAlign:"center"}}>
-                                    {v.phs.length>0&&(
-                                      <button onClick={()=>togExp(v.ma)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"2px 8px",fontSize:10}}>
-                                        {bcExp[v.ma]?"▲ Ẩn":`▼ ${v.phs.length} phiếu`}
-                                      </button>
-                                    )}
-                                  </td>
-                                </tr>
-                                {bcExp[v.ma]&&v.phs.map((ph,pi)=>{
-                                  const cumSl=v.phs.slice(0,pi+1).reduce((s,x)=>s+x.sl,0);
-                                  const cumP=v.cn>0?Math.min(100,Math.round(cumSl/v.cn*100)):0;
-                                  const prevSl=pi===0?0:v.phs.slice(0,pi).reduce((s,x)=>s+x.sl,0);
-                                  const reached=cumSl>=v.cn&&prevSl<v.cn;
-                                  return(
-                                    <tr key={pi} style={{background:reached?"#ecfdf5":"#f8faff",borderBottom:"1px solid #e0e7ff"}}>
-                                      <td colSpan={4} style={{padding:"5px 10px 5px 36px",fontSize:11,color:"#6b7280"}}>
-                                        {reached&&<span style={{color:"#16a34a",fontWeight:700,marginRight:6}}>✅ Đã nhận đủ tại đây!</span>}
-                                        📄 {ph.sp} · {ph.ngay}
-                                      </td>
-                                      <td style={{padding:"5px 10px",textAlign:"center",fontSize:11,fontWeight:700,color:"#1d4ed8"}}>+{fmt(ph.sl)}</td>
-                                      <td/>
-                                      <td style={{padding:"5px 10px",textAlign:"center",fontSize:11,fontWeight:700,color:"#065f46"}}>{fmt(cumSl)}</td>
-                                      <td style={{padding:"5px 10px",textAlign:"center",fontSize:11,color:cumSl>=v.cn?"#16a34a":"#dc2626",fontWeight:700}}>{cumSl>=v.cn?"✅":fmt(v.cn-cumSl)}</td>
-                                      <td/>
-                                      <td style={{padding:"5px 10px"}}>
-                                        <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
+                        {fil.map((v,ri)=>{
+                          const isSel2=selMa===v.ma;
+                          return(
+                            <div key={v.ma} style={{background:isSel2?"#fff7ed":v.done?"#f0fdf4":"#fff",borderRadius:10,
+                              border:`1px solid ${isSel2?"#fdba74":v.done?"#bbf7d0":"#f1f5f9"}`,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+                              <div onClick={()=>setSelMa(s=>s===v.ma?null:v.ma)}
+                                style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",cursor:"pointer",transition:"background .15s"}}>
+                                <div style={{minWidth:28,height:28,borderRadius:7,background:"#f0f4ff",
+                                  display:"flex",alignItems:"center",justifyContent:"center",
+                                  fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>
+                                  {v.stt}
+                                </div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontWeight:700,fontSize:13,color:mauP,fontFamily:"monospace",
+                                    whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ma}</div>
+                                  <div style={{fontSize:12,color:"#374151",marginTop:1,
+                                    whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={v.ten}>{v.ten}</div>
+                                  <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+                                    {v.ng&&<Tag ch={v.ng}/>}
+                                    <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv}</span>
+                                    <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thCan")}: {fmt(v.cn)}</span>
+                                    <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
+                                    {v.vuot>0&&<span style={{background:"#fef3c7",color:"#b45309",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
+                                    {v.done
+                                      ?<span style={{background:"#dcfce7",color:"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>✅ Đủ</span>
+                                      :v.chuaSoan
+                                        ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📭 Chưa soạn</span>
+                                        :<span style={{background:"#fff7ed",color:"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📉 Thiếu {fmt(v.ct)}</span>}
+                                  </div>
+                                </div>
+                                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,minWidth:52}}>
+                                  <Prog p={v.p} done={v.done}/>
+                                  <span style={{fontSize:10,fontWeight:700,color:v.done?"#16a34a":"#6b7280"}}>{v.p}%</span>
+                                </div>
+                                {v.phs.length>0&&(
+                                  <button onClick={e=>{e.stopPropagation();togExp(v.ma);}}
+                                    style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"4px 9px",fontSize:10,flexShrink:0}}>
+                                    {bcExp[v.ma]?"▲":`▼ ${v.phs.length}`}
+                                  </button>
+                                )}
+                              </div>
+                              {bcExp[v.ma]&&v.phs.length>0&&(
+                                <div style={{borderTop:"1px solid #e0e7ff",background:"#f8faff",padding:"6px 12px 8px",display:"flex",flexDirection:"column",gap:5}}>
+                                  {v.phs.map((ph,pi)=>{
+                                    const cumSl=v.phs.slice(0,pi+1).reduce((s,x)=>s+x.sl,0);
+                                    const cumP=v.cn>0?Math.min(100,Math.round(cumSl/v.cn*100)):0;
+                                    const prevSl=pi===0?0:v.phs.slice(0,pi).reduce((s,x)=>s+x.sl,0);
+                                    const reached=cumSl>=v.cn&&prevSl<v.cn;
+                                    return(
+                                      <div key={pi} style={{background:reached?"#ecfdf5":"#fff",borderRadius:7,padding:"6px 10px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                                        <span style={{fontSize:11,color:"#6b7280",flex:"1 1 140px"}}>
+                                          {reached&&<span style={{color:"#16a34a",fontWeight:700,marginRight:4}}>✅</span>}
+                                          📄 {ph.sp} · {ph.ngay}
+                                        </span>
+                                        <span style={{fontSize:11,fontWeight:700,color:"#1d4ed8"}}>+{fmt(ph.sl)}</span>
+                                        <span style={{fontSize:11,fontWeight:700,color:"#065f46"}}>Cộng: {fmt(cumSl)}</span>
+                                        <span style={{fontSize:11,fontWeight:700,color:cumSl>=v.cn?"#16a34a":"#dc2626"}}>{cumSl>=v.cn?"✅ Đủ":`Còn ${fmt(v.cn-cumSl)}`}</span>
+                                        <div style={{display:"flex",alignItems:"center",gap:4,flex:"1 1 80px",minWidth:60}}>
                                           <div style={{flex:1,height:6,background:"#e5e7eb",borderRadius:99,overflow:"hidden"}}>
                                             <div style={{width:`${cumP}%`,height:"100%",background:cumSl>=v.cn?"#16a34a":"#3b82f6",borderRadius:99}}/>
                                           </div>
                                           <span style={{fontSize:9,color:"#6b7280",minWidth:28}}>{cumP}%</span>
                                         </div>
-                                      </td>
-                                      <td/>
-                                      <td/>
-                                    </tr>
-                                  );
-                                })}
-                              </Fragment>
-                            );})}
-                          </tbody>
-                          <tfoot>
-                            <tr style={{background:dDn?"#f0fdf4":"#f8fafc",borderTop:"2px solid #e5e7eb"}}>
-                              <td colSpan={4} style={{padding:"8px 10px",fontWeight:700,fontSize:12}}>Cộng {dm}</td>
-                              <td/><td style={{padding:"8px 10px",textAlign:"center",fontWeight:700}}>{fmt(dC)}</td>
-                              <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:"#065f46"}}>{fmt(dD)}</td>
-                              <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:dDn?"#16a34a":"#dc2626"}}>{dDn?"✅":fmt(dT)}</td>
-                              <td colSpan={4}/>
-                            </tr>
-                          </tfoot>
-                        </table>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div style={{background:dDn?"#f0fdf4":"#f8fafc",borderRadius:10,padding:"9px 12px",border:"1px solid #e5e7eb",
+                          display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                          <span style={{fontWeight:700,fontSize:12}}>Cộng {dm}</span>
+                          <span style={{display:"flex",gap:14,fontSize:11,flexWrap:"wrap"}}>
+                            <span>Cần: <b>{fmt(dC)}</b></span>
+                            <span style={{color:"#065f46"}}>Đã nhận: <b>{fmt(dD)}</b></span>
+                            <span style={{color:dDn?"#16a34a":"#dc2626"}}>Thiếu: <b>{dDn?"✅":fmt(dT)}</b></span>
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -4129,40 +4206,40 @@ Bạn có chắc chắn không?`;
                     }}
                   />
                 </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                        {[t("thThoiGian"),...(showProj?[t("thDuAn")]:[]),t("thMaVT"),t("thTenVT"),t("thLoai"),t("thSL"),t("thNguoiDuyet"),t("thGhiChu")].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:h===t("thNguoiDuyet")?"#7c3aed":"#374151"}}>{h}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lsAll.map((r,i)=>{
-                        const pj=getProjInfo(r._projId);
-                        return(
-                        <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
-                          <td style={{padding:"7px 12px",color:"#6b7280",whiteSpace:"nowrap",fontSize:11}}>{new Date(r.ts).toLocaleString("vi-VN")}</td>
-                          {showProj&&<td style={{padding:"7px 12px",fontSize:11,fontWeight:700,color:pj.mau,whiteSpace:"nowrap"}}>{pj.icon} {pj.ten}</td>}
-                          <td style={{padding:"7px 12px",fontWeight:700,color:pj.mau,fontFamily:"monospace",fontSize:11}}>{r.ma}</td>
-                          <td style={{padding:"7px 12px",fontSize:12,textAlign:"left"}}>{r.ten}</td>
-                          <td style={{padding:"7px 12px"}}>
-                            <Tag bg={r.loai==="Xuất kho"?"#fee2e2":r.loai==="Tạo mới"?"#f3e8ff":r.loai==="Duyệt phiếu"||r.loai==="Duyệt tất cả"||r.loai==="Duyệt mã VT"?"#ede9fe":"#d1fae5"} c={r.loai==="Xuất kho"?"#991b1b":r.loai==="Tạo mới"?"#7c3aed":r.loai==="Duyệt phiếu"||r.loai==="Duyệt tất cả"||r.loai==="Duyệt mã VT"?"#6d28d9":"#065f46"} ch={r.loai}/>
-                          </td>
-                          <td style={{padding:"7px 12px",fontWeight:700,color:r.sl<0?"#dc2626":"#16a34a",textAlign:"right"}}>{r.sl>0?"+":""}{fmt(r.sl)}</td>
-                          <td style={{padding:"7px 12px"}}>
-                            {r.nguoi_duyet
-                              ?<div>
-                                  <div style={{fontWeight:700,fontSize:11,color:"#7c3aed"}}>{r.nguoi_duyet}</div>
-                                  {r.don_vi_duyet&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{r.don_vi_duyet}</div>}
-                                </div>
-                              :<span style={{color:"#d1d5db",fontSize:11}}>—</span>}
-                          </td>
-                          <td style={{padding:"7px 12px",color:"#6b7280"}}>{r.gc||"—"}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
+                  {lsAll.map((r,i)=>{
+                    const pj=getProjInfo(r._projId);
+                    const badgeBg=r.loai==="Xuất kho"?"#fee2e2":r.loai==="Tạo mới"?"#f3e8ff":(r.loai==="Duyệt phiếu"||r.loai==="Duyệt tất cả"||r.loai==="Duyệt mã VT")?"#ede9fe":"#d1fae5";
+                    const badgeC=r.loai==="Xuất kho"?"#991b1b":r.loai==="Tạo mới"?"#7c3aed":(r.loai==="Duyệt phiếu"||r.loai==="Duyệt tất cả"||r.loai==="Duyệt mã VT")?"#6d28d9":"#065f46";
+                    return(
+                      <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px 12px",
+                        boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:"1px solid #f1f5f9",
+                        display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                        <div style={{flex:"1 1 220px",minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:2}}>
+                            <span style={{fontWeight:700,fontSize:13,color:pj.mau,fontFamily:"monospace"}}>{r.ma}</span>
+                            {showProj&&<span style={{fontSize:10,fontWeight:700,color:pj.mau,background:"#f8fafc",borderRadius:4,padding:"1px 6px"}}>{pj.icon} {pj.ten}</span>}
+                          </div>
+                          <div style={{fontSize:12,color:"#374151",marginBottom:4,
+                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={r.ten}>{r.ten}</div>
+                          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                            <span style={{background:badgeBg,color:badgeC,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{r.loai}</span>
+                            <span style={{background:r.sl<0?"#fee2e2":"#dcfce7",color:r.sl<0?"#dc2626":"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{r.sl>0?"+":""}{fmt(r.sl)}</span>
+                            <span style={{fontSize:10,color:"#9ca3af"}}>{new Date(r.ts).toLocaleString("vi-VN")}</span>
+                            {r.gc&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{r.gc}</span>}
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          {r.nguoi_duyet
+                            ?<div>
+                                <div style={{fontWeight:700,fontSize:11,color:"#7c3aed"}}>👤 {r.nguoi_duyet}</div>
+                                {r.don_vi_duyet&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{r.don_vi_duyet}</div>}
+                              </div>
+                            :<span style={{color:"#d1d5db",fontSize:11}}>—</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -4234,41 +4311,35 @@ Bạn có chắc chắn không?`;
                   <div>Chưa có thay đổi nào được ghi nhận</div>
                 </div>
               ):(
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                        {["Thời gian","Tài khoản","Dự án","Hành động","Mã VT","Tên vật tư","Ghi chú"].map(h=>
-                          <th key={h} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:h==="Tài khoản"?"#7c3aed":"#374151",whiteSpace:"nowrap"}}>{h}</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r,i)=>{
-                        const a=ACTIONS[r.hanh_dong]||{label:r.hanh_dong,icon:"•",bg:"#f3f4f6",c:"#374151"};
-                        const pj=getProjInfo(r.pid);
-                        return(
-                        <tr key={r.id||i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
-                          <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
-                            <div style={{fontWeight:600,color:"#374151",fontSize:12}}>{new Date(r.ts).toLocaleString("vi-VN")}</div>
-                          </td>
-                          <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
-                            <span style={{fontWeight:700,color:"#7c3aed"}}>👤 {r.user_ten||"Không rõ"}</span>
-                          </td>
-                          <td style={{padding:"7px 12px",fontWeight:700,color:pj.mau,whiteSpace:"nowrap"}}>{pj.icon} {pj.ten}</td>
-                          <td style={{padding:"7px 12px"}}>
+                <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
+                  {rows.map((r,i)=>{
+                    const a=ACTIONS[r.hanh_dong]||{label:r.hanh_dong,icon:"•",bg:"#f3f4f6",c:"#374151"};
+                    const pj=getProjInfo(r.pid);
+                    return(
+                      <div key={r.id||i} style={{background:"#fff",borderRadius:10,padding:"10px 12px",
+                        boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:"1px solid #f1f5f9",
+                        display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                        <div style={{flex:"1 1 220px",minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:4}}>
                             <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:a.bg,color:a.c,whiteSpace:"nowrap"}}>
                               {a.icon} {a.label}
                             </span>
-                          </td>
-                          <td style={{padding:"7px 12px",fontWeight:700,fontFamily:"monospace",fontSize:11,color:pj.mau}}>{r.ma||"—"}</td>
-                          <td style={{padding:"7px 12px"}}>{r.ten||"—"}</td>
-                          <td style={{padding:"7px 12px",color:"#6b7280"}}>{r.chi_tiet||"—"}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            <span style={{fontSize:10,fontWeight:700,color:pj.mau,background:"#f8fafc",borderRadius:4,padding:"1px 6px"}}>{pj.icon} {pj.ten}</span>
+                          </div>
+                          <div style={{fontWeight:700,fontSize:13,color:pj.mau,fontFamily:"monospace"}}>{r.ma||"—"}</div>
+                          <div style={{fontSize:12,color:"#374151",marginTop:1,
+                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.ten||"—"}</div>
+                          <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+                            <span style={{fontSize:10,color:"#9ca3af"}}>{new Date(r.ts).toLocaleString("vi-VN")}</span>
+                            {r.chi_tiet&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{r.chi_tiet}</span>}
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <span style={{fontWeight:700,fontSize:11,color:"#7c3aed"}}>👤 {r.user_ten||"Không rõ"}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
