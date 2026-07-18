@@ -3020,12 +3020,14 @@ Bạn có chắc chắn không?`;
         {/* ── DANH SÁCH BOM ── */}
         {tab==="ds"&&(
           <div>
-            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-              <input placeholder="🔍 STT, mã, tên, vị trí..." value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,width:260,flex:"0 0 auto"}}/>
-              <select value={fdm} onChange={e=>setFdm(e.target.value)} style={{...inp,width:200,flex:"0 0 auto"}}>
+            <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+              <input placeholder="🔍 STT, mã, tên, vị trí..." value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,flex:"1 1 200px",minWidth:150}}/>
+              <select value={fdm} onChange={e=>setFdm(e.target.value)} style={{...inp,flex:"1 1 140px",minWidth:120}}>
                 <option>Tất cả</option>{DMS.map(d=><option key={d}>{d}</option>)}
               </select>
-              <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:12}}>
+              <div style={{gridColumn:"1 / -1"}}>
                 <ExportBar
                   shareTitle={`📦 Danh sách vật tư — ${proj.ten}`}
                   shareText={`BOM ${proj.ten}: ${filtered.length} mã vật tư, ${soXe} xe`}
@@ -3052,129 +3054,10 @@ Bạn có chắc chắn không?`;
                       `VatTu_${proj.ten}`);
                   }}
                 />
-                <button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 14px",fontSize:13,border:"1px solid #bbf7d0"}}>📊 Import Excel</button>
-                <button onClick={()=>setShowUpdateNg(true)} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"7px 14px",fontSize:13,border:"1px solid #fcd34d"}}>🔄 Cập nhật Nguồn gốc / JIG</button>
-                <div style={{position:"relative",display:"inline-block"}}>
-                  <button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 14px",fontSize:13,border:"1px solid #bfdbfe"}}>➕ Thêm vật tư</button>
-                  <span style={{position:"absolute",top:"calc(100% + 3px)",left:"50%",transform:"translateX(-50%)",fontSize:9,color:"#9ca3af",whiteSpace:"nowrap",pointerEvents:"none"}}>thêm VT mới cập nhật</span>
-                </div>
-                {isXH&&<button onClick={()=>{setCur({...E0,ng:DMS[0]||""});setModal("add");}} style={{...btn,background:mauP,color:"#fff",padding:"7px 16px",fontSize:13}}>+ Thêm mới</button>}
               </div>
-            </div>
-
-            {/* ── THÊM MÃ VT BỔ SUNG ── */}
-            <div style={{marginBottom:12}}>
-              <button
-                onClick={()=>{setShowThemMa(v=>!v);setThemMaForm({ma:"",ten:"",dv:"Cái",dm:1,ng:DMS[0]||"",vt:""}); }}
-                style={{...btn,background:showThemMa?"#fef3c7":"#fff7ed",color:"#92400e",border:"1px solid #fcd34d",padding:"7px 16px",fontSize:13,fontWeight:600,width:"100%",textAlign:"left",borderRadius:8}}
-              >
-                ➕ Thêm mã VT {showThemMa?"▲":"▼"}
-              </button>
-              {showThemMa&&(
-                <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderTop:"none",borderRadius:"0 0 8px 8px",padding:"12px 10px",display:"flex",flexDirection:"column",gap:8}}>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 140px",minWidth:120}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>Mã VT <span style={{color:"#dc2626"}}>*</span></div>
-                      <input
-                        placeholder="VD: KL2801 999MN16-1"
-                        value={themMaForm.ma}
-                        onChange={e=>setThemMaForm(f=>({...f,ma:e.target.value.toUpperCase()}))}
-                        style={{...inp,width:"100%",fontFamily:"monospace",fontSize:12}}
-                      />
-                    </div>
-                    <div style={{flex:"2 1 200px",minWidth:160}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>Tên vật tư <span style={{color:"#dc2626"}}>*</span></div>
-                      <input
-                        placeholder="Tên vật tư bổ sung..."
-                        value={themMaForm.ten}
-                        onChange={e=>setThemMaForm(f=>({...f,ten:e.target.value}))}
-                        style={{...inp,width:"100%",fontSize:12}}
-                      />
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 80px",minWidth:70}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>{t("thDVT")}</div>
-                      <select value={themMaForm.dv} onChange={e=>setThemMaForm(f=>({...f,dv:e.target.value}))} style={{...inp,width:"100%",fontSize:12}}>
-                        {["Cái","Bộ","Chiếc","Tấm","m","m²","kg","Cuộn","Thanh","Hộp","Lọ","Gói","Đôi"].map(u=><option key={u}>{u}</option>)}
-                      </select>
-                    </div>
-                    <div style={{flex:"1 1 80px",minWidth:70}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>ĐM/1XE</div>
-                      <input
-                        type="number" min={0} step={0.5}
-                        value={themMaForm.dm}
-                        onChange={e=>setThemMaForm(f=>({...f,dm:+e.target.value||1}))}
-                        style={{...inp,width:"100%",fontSize:12,textAlign:"center"}}
-                      />
-                    </div>
-                    <div style={{flex:"1 1 100px",minWidth:90}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>Nguồn gốc</div>
-                      <select value={themMaForm.ng} onChange={e=>setThemMaForm(f=>({...f,ng:e.target.value}))} style={{...inp,width:"100%",fontSize:12}}>
-                        {DMS.map(d=><option key={d}>{d}</option>)}
-                      </select>
-                    </div>
-                    <div style={{flex:"1 1 120px",minWidth:100}}>
-                      <div style={{fontSize:11,color:"#92400e",fontWeight:600,marginBottom:3}}>Vị trí</div>
-                      <input
-                        placeholder="VD: SUB MINI 1"
-                        value={themMaForm.vt}
-                        onChange={e=>setThemMaForm(f=>({...f,vt:e.target.value}))}
-                        style={{...inp,width:"100%",fontSize:12}}
-                      />
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}>
-                    <button onClick={()=>setShowThemMa(false)} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 16px",fontSize:13}}>Huỷ</button>
-                    <button onClick={async()=>{
-                      const ma=themMaForm.ma.trim();
-                      const ten=themMaForm.ten.trim();
-                      if(!ma||!ten){flash("⚠️ Vui lòng nhập Mã VT và Tên vật tư!");return;}
-                      if(bom.find(v=>v.ma===ma)){flash(`⚠️ Mã "${ma}" đã tồn tại trong danh sách!`);return;}
-                      // ✅ Tìm vị trí chèn: sau mã cuối cùng có cùng ng+vt
-                      // Nếu không tìm thấy nhóm cùng ng+vt, chèn sau nhóm cùng ng
-                      // Nếu không có cùng ng, chèn cuối danh sách
-                      const newRow={id:uid(),pid,stt:0,ma,ten,dv:themMaForm.dv,dm:themMaForm.dm,ng:themMaForm.ng,vt:themMaForm.vt,gc:"",anh:""};
-                      let renumbered=null;
-                      setBomDB(s=>{
-                        const old=s[pid]||[];
-                        // Tìm index cuối của nhóm cùng ng+vt
-                        let insertIdx=old.length; // mặc định: cuối
-                        // Ưu tiên 1: cùng ng + cùng vt
-                        const idxSameVt=old.map((v,i)=>v.ng===themMaForm.ng&&v.vt===themMaForm.vt?i:-1).filter(i=>i>=0);
-                        if(idxSameVt.length>0){
-                          insertIdx=Math.max(...idxSameVt)+1;
-                        } else {
-                          // Ưu tiên 2: cùng ng (không cần cùng vt)
-                          const idxSameDm=old.map((v,i)=>v.ng===themMaForm.ng?i:-1).filter(i=>i>=0);
-                          if(idxSameDm.length>0) insertIdx=Math.max(...idxSameDm)+1;
-                        }
-                        const updated=[...old.slice(0,insertIdx),newRow,...old.slice(insertIdx)];
-                        // Cập nhật lại stt toàn bộ theo thứ tự mới
-                        renumbered=updated.map((v,i)=>({...v,stt:i+1}));
-                        return{...s,[pid]:renumbered};
-                      });
-                      addLS(pid,{pid,ma,ten,loai:"Tạo mới",sl:themMaForm.dm,gc:"Thêm mã bổ sung"});
-                      addBomLog("them",{ma,ten},"Thêm mã bổ sung");
-                      setThemMaForm({ma:"",ten:"",dv:"Cái",dm:1,ng:DMS[0]||"",vt:""});
-                      // ✅ Không dùng dbUpsertBom (xóa-theo-khác-biệt) — thao tác này không hề
-                      // xóa mã nào, chỉ thêm 1 mã + đánh lại STT, nên chỉ cần upsert (an toàn).
-                      // Và PHẢI await xác nhận lưu xong rồi mới báo "✓ Đã thêm", không báo
-                      // thành công giả khi chưa biết có lưu được lên Supabase hay không.
-                      flash("⏳ Đang lưu...");
-                      try{
-                        await dbUpsertBomRows(pid,renumbered);
-                        flash(`✓ Đã thêm mã "${ma}" — ${ten}`);
-                      }catch(e){
-                        console.error("Thêm mã bổ sung error:",e);
-                        flash("❌ Lưu lên máy chủ thất bại: "+e.message+" — hãy thử lại!");
-                      }
-                    }} style={{...btn,background:"#d97706",color:"#fff",padding:"7px 20px",fontSize:13,fontWeight:700}}>
-                      ✔ Thêm vào BOM
-                    </button>
-                  </div>
-                </div>
-              )}
+              <button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 10px",fontSize:13,border:"1px solid #bbf7d0",width:"100%",justifyContent:"center"}}>📊 Import Excel</button>
+              <button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>
+              {isXH&&<button onClick={()=>{setCur({...E0,ng:DMS[0]||""});setModal("add");}} style={{...btn,background:mauP,color:"#fff",padding:"7px 10px",fontSize:13,width:"100%",justifyContent:"center",gridColumn:"1 / -1"}}>+ Thêm mới</button>}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
               {filtered.length===0&&(
@@ -4093,7 +3976,7 @@ Bạn có chắc chắn không?`;
                                   {v.stt}
                                 </div>
                                 <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontWeight:700,fontSize:13,color:mauP,fontFamily:"monospace",
+                                  <div style={{fontWeight:800,fontSize:13,color:mauP,fontFamily:"monospace",
                                     whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ma}</div>
                                   <div style={{fontSize:12,color:"#374151",marginTop:1,
                                     whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={v.ten}>{v.ten}</div>
@@ -4101,13 +3984,15 @@ Bạn có chắc chắn không?`;
                                     {v.ng&&<Tag ch={v.ng}/>}
                                     <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv}</span>
                                     <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thCan")}: {fmt(v.cn)}</span>
-                                    <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
+                                    <span style={{display:"flex",gap:6,flexShrink:0,whiteSpace:"nowrap"}}>
+                                      <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
+                                      {v.done
+                                        ?<span style={{background:"#dcfce7",color:"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>✅ Đủ</span>
+                                        :v.chuaSoan
+                                          ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📭 Chưa soạn</span>
+                                          :<span style={{background:"#fff7ed",color:"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📉 Thiếu {fmt(v.ct)}</span>}
+                                    </span>
                                     {v.vuot>0&&<span style={{background:"#fef3c7",color:"#b45309",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
-                                    {v.done
-                                      ?<span style={{background:"#dcfce7",color:"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>✅ Đủ</span>
-                                      :v.chuaSoan
-                                        ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📭 Chưa soạn</span>
-                                        :<span style={{background:"#fff7ed",color:"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📉 Thiếu {fmt(v.ct)}</span>}
                                   </div>
                                 </div>
                                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,minWidth:52}}>
