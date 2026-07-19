@@ -2964,13 +2964,12 @@ Bạn có chắc chắn không?`;
           {/* Actions */}
           <button onClick={()=>setNewP(true)} style={{...btn,background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",padding:"5px 11px",fontSize:12}}>＋ Thêm</button>
           {projs.length>1&&<button onClick={()=>delProj(pid)} style={{...btn,background:"rgba(220,38,38,0.3)",color:"#fca5a5",border:"1px solid rgba(220,38,38,0.4)",padding:"5px 10px",fontSize:11}}>🗑</button>}
-          <button onClick={editSoXe} style={{...btn,background:"rgba(251,191,36,0.15)",color:"#fbbf24",border:"1px solid rgba(251,191,36,0.3)",padding:"5px 11px",fontSize:12}}>🚌 {soXe} xe</button>
-          {/* Stats */}
+          {/* Stats — 4 ô đồng bộ: 15 xe / Mã VT / Phiếu / GD */}
           <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[[fmt(bom.length),"Mã VT","#fff","rgba(59,130,246,0.25)"],[fmt(phList.length),"Phiếu","#fde68a","rgba(245,158,11,0.25)"],[fmt(ls.length),"GD","#a7f3d0","rgba(16,185,129,0.25)"]].map(([v,l,c,bg])=>(
-              <div key={l} style={{textAlign:"center",background:bg,padding:"4px 10px",borderRadius:8,minWidth:44}}>
-                <div style={{fontWeight:800,fontSize:13,color:c,lineHeight:1}}>{v}</div>
-                <div style={{opacity:.85,fontSize:9,marginTop:2,color:c}}>{l}</div>
+            {[[fmt(soXe),"xe",true],[fmt(bom.length),"Mã VT",false],[fmt(phList.length),"Phiếu",false],[fmt(ls.length),"GD",false]].map(([v,l,isXe])=>(
+              <div key={l} onClick={isXe?editSoXe:undefined} style={{textAlign:"center",background:"#7f1d1d",padding:"4px 10px",borderRadius:8,minWidth:44,cursor:isXe?"pointer":"default"}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#fff",lineHeight:1}}>{isXe?`🚌 ${v}`:v}</div>
+                <div style={{opacity:.9,fontSize:9,marginTop:2,color:"#fff"}}>{l}</div>
               </div>
             ))}
           </div>
