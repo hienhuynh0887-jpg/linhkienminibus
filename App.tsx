@@ -3529,6 +3529,22 @@ Bạn có chắc chắn không?`;
 
         {/* ── PHIẾU GN ── */}
         {tab==="pgn"&&(()=>{
+          // ✅ Đồng bộ với Soạn Hàng: "Kho vật tư" chỉ quản mã Nguồn gốc = CKD,
+          // "Nhà máy THCK" chỉ quản mã Nguồn gốc = THCK. Xưởng Hàn xem đầy đủ (để xác nhận).
+          // Trước đây tab này dùng bom/th KHÔNG lọc theo vai trò — số "Còn thiếu" tổng/scoped
+          // bị lệch với danh sách phiếu GN (đã lọc theo nguoi_soan ở dưới), gây hiểu nhầm.
+          const bom = isKHO ? bomFull.filter(v=>(v.ng||"").trim().toUpperCase()==="CKD")
+                    : isTHCK ? bomFull.filter(v=>(v.ng||"").trim().toUpperCase()==="THCK")
+                    : bomFull;
+          const th = isKHO ? thFull.filter(v=>(v.ng||"").trim().toUpperCase()==="CKD")
+                   : isTHCK ? thFull.filter(v=>(v.ng||"").trim().toUpperCase()==="THCK")
+                   : thFull;
+          const maDone=th.filter(v=>v.done).length;
+          const totCN=th.reduce((s,v)=>s+v.cn,0);
+          const totDN=th.reduce((s,v)=>s+v.dn,0);
+          const totCT=th.reduce((s,v)=>s+v.ct,0);
+          const pctT=bom.length>0?Math.round(maDone/bom.length*100):0;
+          const duAll=maDone===bom.length&&bom.length>0;
           const DMP=["Tất cả",...[...new Set(bom.map(v=>v.vt).filter(Boolean))].sort(sapXepDM)];
           const f2=th.filter(v=>{
             if(pgnDm!=="Tất cả"&&v.vt!==pgnDm)return false;
