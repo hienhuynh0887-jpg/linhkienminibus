@@ -1325,7 +1325,7 @@ export default function App(){
   // tồn tại (case save/sửa/xóa 1 dòng — next[pid] là toàn bộ danh sách) VÀ id mới
   // (case import) — insert thuần sẽ lỗi trùng khóa chính với các id cũ.
   // Không dùng pid giả/tạm vì cột pid có thể có foreign key tới bảng projects.
-  const dbUpsertBom=async(pid,rows)=>{
+  const dbUpsertBom=async(pid,rows,oldIds=[])=>{
     // Làm sạch + validate từng dòng trước khi gửi lên Supabase để tránh 1 dòng lỗi
     // (vd. dm là NaN, ma/ten rỗng, chuỗi quá dài so với giới hạn cột) làm fail cả chunk.
     const cleanRows=(rows||[]).map(r=>({
@@ -1348,16 +1348,15 @@ export default function App(){
         (rows||[]).filter(r=>!String(r.ma??"").trim()||!String(r.ten??"").trim()));
     }
 
-    // ⚠️ FIX (2026-07-20): Bản cũ đọc trước danh sách id cũ bằng 1 câu SELECT riêng
-    // (`select("id").eq("pid",pid)`) rồi mới upsert + xóa theo đúng id đó. Đây là bước
-    // DUY NHẤT khác với dbUpsertBomRows (hàm dùng cho "Thêm vào" — vốn chạy tốt bình
-    // thường). Nếu SELECT này lỗi/bị chặn vì bất kỳ lý do gì (RLS, mạng chập chờn...)
-    // thì hàm throw NGAY TỪ ĐẦU — trước khi kịp upsert bất kỳ dòng nào — nên "Thay thế"
-    // không lưu được gì lên Supabase, trong khi "Thêm vào" (không có bước SELECT này)
-    // vẫn chạy bình thường. Đây đúng là triệu chứng người dùng gặp phải.
-    // → Bỏ hẳn bước SELECT riêng này. Thay vào đó: upsert dữ liệu mới trước, sau đó xóa
-    // các dòng cũ bằng 1 lệnh DELETE có điều kiện thẳng trên Supabase (theo pid, loại trừ
-    // các id vừa upsert) — không cần đọc id cũ về client trước, giảm 1 điểm có thể lỗi.
+    // ⚠️ FIX (2026-07-20, lần 2): Bản trước xóa dòng cũ bằng 1 câu DELETE với điều kiện
+    // "id NOT IN (...toàn bộ id MỚI...)". Khi BOM có hàng trăm mã, chuỗi id nối lại trong
+    // URL request rất dài → dễ lỗi/timeout giữa chừng, làm cả thao tác "Thay thế" thất bại
+    // dù mới chỉ upsert được vài dòng đầu (đúng triệu chứng "chỉ lưu được 7 mã").
+    // → Sửa lại: (1) upsert dữ liệu mới bằng ĐÚNG cơ chế của dbUpsertBomRows (hàm "Thêm
+    // vào" vốn đã chạy ổn định với hàng trăm dòng), (2) xóa dòng CŨ dựa trên danh sách
+    // oldIds mà caller đã có sẵn từ state local (không cần query lại Supabase), xóa theo
+    // từng lô nhỏ bằng "id IN (...)" — danh sách này chỉ gồm các id CŨ (thường ít hơn
+    // nhiều so với tổng số dòng mới import) nên không bị lỗi độ dài URL.
     try{
       if(cleanRows.length){
         const batch=100;
@@ -1387,20 +1386,32 @@ export default function App(){
       }
 
       // ✅ Toàn bộ dữ liệu mới đã upsert thành công → giờ mới xóa các dòng CŨ không còn
-      // xuất hiện trong danh sách mới. Xóa thẳng trên Supabase bằng 1 điều kiện
-      // (pid = ... AND id NOT IN (...id mới...)) — không cần đọc id cũ về trước.
-      const newIds=cleanRows.map(r=>r.id);
-      let delQuery=supabase.from("bom_items").delete().eq("pid",pid);
-      if(newIds.length) delQuery=delQuery.not("id","in",`(${newIds.join(",")})`);
-      const {data:delData,error:delErr}=await delQuery.select("id");
-      if(delErr){
-        console.error("dbUpsertBom delete old error:",delErr.message,delErr);
-        throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
+      // xuất hiện trong danh sách mới (theo id cụ thể, dựa trên oldIds caller truyền vào —
+      // không query lại Supabase). Xóa theo lô nhỏ, kiểm tra đúng số dòng xóa được để phát
+      // hiện trường hợp RLS âm thầm chặn DELETE (giống cách đã kiểm tra ở bước upsert).
+      const newIdSet=new Set(cleanRows.map(r=>r.id));
+      const idsToDelete=(oldIds||[]).filter(oid=>!newIdSet.has(oid));
+      let deletedCount=0;
+      if(idsToDelete.length){
+        const delBatch=150;
+        for(let i=0;i<idsToDelete.length;i+=delBatch){
+          const idsChunk=idsToDelete.slice(i,i+delBatch);
+          const {data:delData,error:delErr}=await supabase.from("bom_items").delete().in("id",idsChunk).select("id");
+          if(delErr){
+            console.error("dbUpsertBom delete old error:",delErr.message,delErr);
+            throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
+          }
+          deletedCount+=delData?.length||0;
+        }
+        if(deletedCount<idsToDelete.length){
+          console.error("dbUpsertBom: RLS/permission chặn âm thầm khi XÓA — cần xóa",idsToDelete.length,"dòng nhưng DB chỉ xác nhận xóa",deletedCount,"dòng.");
+          throw new Error(`Supabase chỉ xóa được ${deletedCount}/${idsToDelete.length} mã cũ (khả năng cao do RLS chặn quyền DELETE bảng bom_items) — mã mới đã lưu, nhưng mã cũ chưa xóa hết, hãy Thay thế lại lần nữa`);
+        }
       }
 
-      console.log("dbUpsertBom OK:",pid,cleanRows.length,"rows, đã xóa",delData?.length||0,"dòng cũ",
+      console.log("dbUpsertBom OK:",pid,cleanRows.length,"rows, đã xóa",deletedCount,"dòng cũ",
         nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
-      return {ok:true,count:cleanRows.length,skipped:nSkipped,deleted:delData?.length||0};
+      return {ok:true,count:cleanRows.length,skipped:nSkipped,deleted:deletedCount};
     }catch(e){
       // ✅ Lỗi giữa đường: KHÔNG rollback bằng xóa id, vì với upsert một số id đó có thể
       // là dòng CŨ vốn đã tồn tại từ trước (xóa sẽ làm mất dữ liệu cũ hợp lệ, đúng lỗi
@@ -1890,6 +1901,10 @@ export default function App(){
   const doImport=async()=>{
     const seed=getBomMauRows(importSrc);
     const rows=mkBom(pid,seed);
+    // ✅ Lấy id các mã CŨ ngay tại đây (đồng bộ, từ state hiện có) — không phụ thuộc vào
+    // biến "old" tính bên trong setBomDB (updater có thể được React gọi trễ hơn dòng code
+    // tiếp theo), và không cần query lại Supabase để lấy id cũ.
+    const oldIdsSnapshot = bom.map(v=>v.id);
     let removedRows=[];
     let rowsToSave=rows;
     const replaceAll = importMode==="thay";
@@ -1928,7 +1943,7 @@ export default function App(){
     // lại trang (hoặc máy khác) sẽ thấy BOM cũ, giống hệt triệu chứng "mất dữ liệu".
     try{
       const res=replaceAll
-        ? await dbUpsertBom(pid,rowsToSave)
+        ? await dbUpsertBom(pid,rowsToSave,oldIdsSnapshot)
         : await dbUpsertBomRows(pid,rowsToSave);
       if(res?.skipped>0){
         setBomDB(s=>({...s,[pid]:(s[pid]||[]).filter(r=>String(r.ma||"").trim()&&String(r.ten||"").trim())}));
@@ -2183,6 +2198,10 @@ export default function App(){
     let rowsToSave=rows;  // ✅ đúng những dòng cần ghi lên Supabase
     const replaceAll = mode==="thay";
     let removedRows=[]; // ✅ các mã CŨ bị xóa (chỉ có ở mode "thay") — dùng để ghi Nhật ký
+    // ✅ Lấy id các mã CŨ ngay tại đây (đồng bộ, từ state hiện có) — không phụ thuộc vào
+    // biến "oldRows" tính bên trong setBomDB (updater có thể được React gọi trễ hơn dòng
+    // code tiếp theo), và không cần query lại Supabase để lấy id cũ.
+    const oldIdsSnapshot = (bomDB[targetPid]||[]).map(v=>v.id);
     setBomDB(s=>{
       const oldRows=s[targetPid]||[];
       let next;
@@ -2229,7 +2248,7 @@ export default function App(){
       // dòng vừa thêm (dbUpsertBomRows — không xóa gì), an toàn khi nhiều người dùng khác
       // đang thao tác song song ở các trạm/mã khác.
       const res=replaceAll
-        ? await dbUpsertBom(targetPid,rowsToSave)
+        ? await dbUpsertBom(targetPid,rowsToSave,oldIdsSnapshot)
         : await dbUpsertBomRows(targetPid,rowsToSave);
       // ✅ Nếu Supabase bỏ qua vài dòng lỗi (thiếu mã/tên...), đồng bộ lại state
       // local cho khớp với DB, để tránh UI hiện đủ nhưng DB thiếu.
