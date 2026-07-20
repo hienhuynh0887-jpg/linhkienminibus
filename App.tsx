@@ -1348,13 +1348,16 @@ export default function App(){
         (rows||[]).filter(r=>!String(r.ma??"").trim()||!String(r.ten??"").trim()));
     }
 
-    // Lấy danh sách id cũ đang có trên DB (để xóa sau, KHÔNG xóa trước)
-    const {data:oldData,error:selErr}=await supabase.from("bom_items").select("id").eq("pid",pid);
-    if(selErr){console.error("dbUpsertBom select old error:",selErr.message,selErr);throw new Error("Lỗi đọc dữ liệu cũ: "+selErr.message);}
-    const oldIds=(oldData||[]).map(r=>r.id);
-
-    const insertedIds=[]; // theo dõi id đã insert thành công, để biết rollback nếu lỗi
-
+    // ⚠️ FIX (2026-07-20): Bản cũ đọc trước danh sách id cũ bằng 1 câu SELECT riêng
+    // (`select("id").eq("pid",pid)`) rồi mới upsert + xóa theo đúng id đó. Đây là bước
+    // DUY NHẤT khác với dbUpsertBomRows (hàm dùng cho "Thêm vào" — vốn chạy tốt bình
+    // thường). Nếu SELECT này lỗi/bị chặn vì bất kỳ lý do gì (RLS, mạng chập chờn...)
+    // thì hàm throw NGAY TỪ ĐẦU — trước khi kịp upsert bất kỳ dòng nào — nên "Thay thế"
+    // không lưu được gì lên Supabase, trong khi "Thêm vào" (không có bước SELECT này)
+    // vẫn chạy bình thường. Đây đúng là triệu chứng người dùng gặp phải.
+    // → Bỏ hẳn bước SELECT riêng này. Thay vào đó: upsert dữ liệu mới trước, sau đó xóa
+    // các dòng cũ bằng 1 lệnh DELETE có điều kiện thẳng trên Supabase (theo pid, loại trừ
+    // các id vừa upsert) — không cần đọc id cũ về client trước, giảm 1 điểm có thể lỗi.
     try{
       if(cleanRows.length){
         const batch=100;
@@ -1380,29 +1383,24 @@ export default function App(){
             console.error("dbUpsertBom: RLS/permission chặn âm thầm — gửi",chunk.length,"dòng nhưng DB chỉ xác nhận ghi",insData?.length||0,"dòng. Sample:",chunk[0]);
             throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng cao do Row Level Security policy chặn quyền ghi bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
           }
-          insertedIds.push(...chunk.map(r=>r.id));
         }
       }
 
       // ✅ Toàn bộ dữ liệu mới đã upsert thành công → giờ mới xóa các dòng CŨ không còn
-      // xuất hiện trong danh sách mới (theo id cụ thể, không xóa theo pid để tránh lỡ
-      // tay xóa luôn dữ liệu vừa upsert ở trên).
-      const newIdSet=new Set(cleanRows.map(r=>r.id));
-      const idsToDelete=oldIds.filter(oid=>!newIdSet.has(oid));
-      if(idsToDelete.length){
-        const delBatch=200;
-        for(let i=0;i<idsToDelete.length;i+=delBatch){
-          const idsChunk=idsToDelete.slice(i,i+delBatch);
-          const {error:delErr}=await supabase.from("bom_items").delete().in("id",idsChunk).select("id");
-          if(delErr){
-            console.error("dbUpsertBom delete old error:",delErr.message,delErr);
-            throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
-          }
-        }
+      // xuất hiện trong danh sách mới. Xóa thẳng trên Supabase bằng 1 điều kiện
+      // (pid = ... AND id NOT IN (...id mới...)) — không cần đọc id cũ về trước.
+      const newIds=cleanRows.map(r=>r.id);
+      let delQuery=supabase.from("bom_items").delete().eq("pid",pid);
+      if(newIds.length) delQuery=delQuery.not("id","in",`(${newIds.join(",")})`);
+      const {data:delData,error:delErr}=await delQuery.select("id");
+      if(delErr){
+        console.error("dbUpsertBom delete old error:",delErr.message,delErr);
+        throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
       }
 
-      console.log("dbUpsertBom OK:",pid,cleanRows.length,"rows",nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
-      return {ok:true,count:cleanRows.length,skipped:nSkipped};
+      console.log("dbUpsertBom OK:",pid,cleanRows.length,"rows, đã xóa",delData?.length||0,"dòng cũ",
+        nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
+      return {ok:true,count:cleanRows.length,skipped:nSkipped,deleted:delData?.length||0};
     }catch(e){
       // ✅ Lỗi giữa đường: KHÔNG rollback bằng xóa id, vì với upsert một số id đó có thể
       // là dòng CŨ vốn đã tồn tại từ trước (xóa sẽ làm mất dữ liệu cũ hợp lệ, đúng lỗi
@@ -1952,7 +1950,9 @@ export default function App(){
       // có 1 phần) — báo rõ ràng, không im lặng coi như thành công, để người dùng biết cần
       // thử lại ngay, tránh rời trang rồi mất trắng thao tác vừa làm.
       console.error("doImport save error:",e);
-      flash(`❌ LƯU SUPABASE THẤT BẠI: ${e.message} — Dữ liệu trên màn hình CHƯA chắc đã lưu lên server, hãy thử Import lại ngay!`);
+      const msg=`❌ LƯU SUPABASE THẤT BẠI: ${e.message}\n\nDữ liệu trên màn hình CHƯA chắc đã lưu lên server — hãy thử Import lại ngay!`;
+      flash(`❌ LƯU SUPABASE THẤT BẠI: ${e.message} — hãy thử Import lại ngay!`);
+      alert(msg); // ✅ dùng thêm alert() vì flash() tự biến mất sau vài giây, dễ bị bỏ lỡ lỗi quan trọng này
     }
   };
   // ── CORE: đọc file Excel/CSV và trả kết quả qua callback ──
@@ -2243,8 +2243,10 @@ export default function App(){
       // ✅ Lưu thất bại giữa đường: state local hiện đang có finalRows nhưng Supabase
       // KHÔNG có (hoặc chỉ có 1 phần) → báo rõ + để người dùng thử "Import Excel" lại,
       // không tự ý xóa state local để họ không mất bản xem trước vừa đọc từ file.
-      flash(`❌ LƯU SUPABASE THẤT BẠI: ${e.message} — Dữ liệu đang hiện trên màn hình CHƯA được lưu lên server, hãy thử Import lại`);
+      const msg=`❌ LƯU SUPABASE THẤT BẠI: ${e.message}\n\nDữ liệu đang hiện trên màn hình CHƯA được lưu lên server, hãy thử Import lại.`;
+      flash(`❌ LƯU SUPABASE THẤT BẠI: ${e.message} — hãy thử Import lại`);
       console.error("doXlsImport save error:",e);
+      alert(msg); // ✅ dùng thêm alert() vì flash() tự biến mất sau vài giây, dễ bị bỏ lỡ lỗi quan trọng này
     }
   };
 
