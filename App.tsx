@@ -1348,18 +1348,42 @@ export default function App(){
         (rows||[]).filter(r=>!String(r.ma??"").trim()||!String(r.ten??"").trim()));
     }
 
-    // ⚠️ FIX (2026-07-20, lần 2): Bản trước xóa dòng cũ bằng 1 câu DELETE với điều kiện
-    // "id NOT IN (...toàn bộ id MỚI...)". Khi BOM có hàng trăm mã, chuỗi id nối lại trong
-    // URL request rất dài → dễ lỗi/timeout giữa chừng, làm cả thao tác "Thay thế" thất bại
-    // dù mới chỉ upsert được vài dòng đầu (đúng triệu chứng "chỉ lưu được 7 mã").
-    // → Sửa lại: (1) upsert dữ liệu mới bằng ĐÚNG cơ chế của dbUpsertBomRows (hàm "Thêm
-    // vào" vốn đã chạy ổn định với hàng trăm dòng), (2) xóa dòng CŨ dựa trên danh sách
-    // oldIds mà caller đã có sẵn từ state local (không cần query lại Supabase), xóa theo
-    // từng lô nhỏ bằng "id IN (...)" — danh sách này chỉ gồm các id CŨ (thường ít hơn
-    // nhiều so với tổng số dòng mới import) nên không bị lỗi độ dài URL.
+    // ⚠️ FIX (2026-07-20, lần 3): Theo yêu cầu — đổi thứ tự thao tác: XÓA hết mã CŨ
+    // trước (theo lô nhỏ 40 id/lần), rồi mới GHI mã MỚI vào từ từ (cũng theo lô nhỏ,
+    // có nghỉ ngắn giữa các lô) thay vì gửi 1 lô lớn 100 dòng cùng lúc — để tránh
+    // request quá nặng/timeout trên mạng di động làm rớt giữa chừng, gây thiếu mã.
+    // Đánh đổi: nếu mất mạng giữa chừng SAU khi đã xóa nhưng TRƯỚC khi ghi xong mã mới,
+    // dữ liệu có thể tạm thời thiếu cho tới khi bấm "Thay thế" lại — người dùng đã xác
+    // nhận chấp nhận đánh đổi này để đổi lấy khả năng lưu được ĐẦY ĐỦ dữ liệu.
+    const sleep=(ms)=>new Promise(res=>setTimeout(res,ms));
     try{
+      // ── BƯỚC 1: Xóa mã CŨ (không còn trong danh sách mới) theo lô nhỏ 40 id/lần ──
+      const newIdSet=new Set(cleanRows.map(r=>r.id));
+      const idsToDelete=(oldIds||[]).filter(oid=>!newIdSet.has(oid));
+      let deletedCount=0;
+      if(idsToDelete.length){
+        const delBatch=40;
+        for(let i=0;i<idsToDelete.length;i+=delBatch){
+          const idsChunk=idsToDelete.slice(i,i+delBatch);
+          const {data:delData,error:delErr}=await supabase.from("bom_items").delete().in("id",idsChunk).select("id");
+          if(delErr){
+            console.error("dbUpsertBom delete old error:",delErr.message,delErr,
+              `(lô ${i+1}-${i+idsChunk.length}/${idsToDelete.length})`);
+            throw new Error(`Lỗi xóa mã cũ (lô ${i+1}-${i+idsChunk.length}/${idsToDelete.length}): ${delErr.message}`);
+          }
+          deletedCount+=delData?.length||0;
+          console.log(`dbUpsertBom: đã xóa ${deletedCount}/${idsToDelete.length} mã cũ...`);
+          if(i+delBatch<idsToDelete.length) await sleep(120); // nghỉ ngắn giữa các lô, tránh dồn request
+        }
+        if(deletedCount<idsToDelete.length){
+          console.error("dbUpsertBom: RLS/permission chặn âm thầm khi XÓA — cần xóa",idsToDelete.length,"dòng nhưng DB chỉ xác nhận xóa",deletedCount,"dòng.");
+          throw new Error(`Supabase chỉ xóa được ${deletedCount}/${idsToDelete.length} mã cũ (khả năng cao do RLS chặn quyền DELETE bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
+        }
+      }
+
+      // ── BƯỚC 2: Ghi mã MỚI vào từ từ, theo lô nhỏ 40 dòng/lần (thay vì 100) ──
       if(cleanRows.length){
-        const batch=100;
+        const batch=40;
         for(let i=0;i<cleanRows.length;i+=batch){
           const chunk=cleanRows.slice(i,i+batch);
           // ✅ Dùng upsert (theo khóa "id") thay vì insert thuần: rows truyền vào hàm này
@@ -1375,37 +1399,15 @@ export default function App(){
           const {data:insData,error:insErr}=await supabase.from("bom_items").upsert(chunk,{onConflict:"id"}).select("id");
           if(insErr){
             console.error("dbUpsertBom upsert error:",insErr.message,insErr,
-              "sample:",chunk[0],`(batch dòng ${i+1}-${i+chunk.length}/${cleanRows.length})`);
-            throw new Error(`Lỗi lưu mã VT (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
+              "sample:",chunk[0],`(lô dòng ${i+1}-${i+chunk.length}/${cleanRows.length})`);
+            throw new Error(`Đã xóa xong mã cũ nhưng lỗi khi ghi mã mới (lô ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message} — hãy Thay thế lại để ghi tiếp`);
           }
           if((insData?.length||0)<chunk.length){
             console.error("dbUpsertBom: RLS/permission chặn âm thầm — gửi",chunk.length,"dòng nhưng DB chỉ xác nhận ghi",insData?.length||0,"dòng. Sample:",chunk[0]);
-            throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng cao do Row Level Security policy chặn quyền ghi bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
+            throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng cao do RLS chặn quyền ghi bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
           }
-        }
-      }
-
-      // ✅ Toàn bộ dữ liệu mới đã upsert thành công → giờ mới xóa các dòng CŨ không còn
-      // xuất hiện trong danh sách mới (theo id cụ thể, dựa trên oldIds caller truyền vào —
-      // không query lại Supabase). Xóa theo lô nhỏ, kiểm tra đúng số dòng xóa được để phát
-      // hiện trường hợp RLS âm thầm chặn DELETE (giống cách đã kiểm tra ở bước upsert).
-      const newIdSet=new Set(cleanRows.map(r=>r.id));
-      const idsToDelete=(oldIds||[]).filter(oid=>!newIdSet.has(oid));
-      let deletedCount=0;
-      if(idsToDelete.length){
-        const delBatch=150;
-        for(let i=0;i<idsToDelete.length;i+=delBatch){
-          const idsChunk=idsToDelete.slice(i,i+delBatch);
-          const {data:delData,error:delErr}=await supabase.from("bom_items").delete().in("id",idsChunk).select("id");
-          if(delErr){
-            console.error("dbUpsertBom delete old error:",delErr.message,delErr);
-            throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
-          }
-          deletedCount+=delData?.length||0;
-        }
-        if(deletedCount<idsToDelete.length){
-          console.error("dbUpsertBom: RLS/permission chặn âm thầm khi XÓA — cần xóa",idsToDelete.length,"dòng nhưng DB chỉ xác nhận xóa",deletedCount,"dòng.");
-          throw new Error(`Supabase chỉ xóa được ${deletedCount}/${idsToDelete.length} mã cũ (khả năng cao do RLS chặn quyền DELETE bảng bom_items) — mã mới đã lưu, nhưng mã cũ chưa xóa hết, hãy Thay thế lại lần nữa`);
+          console.log(`dbUpsertBom: đã ghi ${Math.min(i+batch,cleanRows.length)}/${cleanRows.length} mã mới...`);
+          if(i+batch<cleanRows.length) await sleep(120); // nghỉ ngắn giữa các lô, tránh dồn request
         }
       }
 
@@ -1413,9 +1415,6 @@ export default function App(){
         nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
       return {ok:true,count:cleanRows.length,skipped:nSkipped,deleted:deletedCount};
     }catch(e){
-      // ✅ Lỗi giữa đường: KHÔNG rollback bằng xóa id, vì với upsert một số id đó có thể
-      // là dòng CŨ vốn đã tồn tại từ trước (xóa sẽ làm mất dữ liệu cũ hợp lệ, đúng lỗi
-      // ban đầu mà fix này muốn tránh). Cứ để nguyên trạng DB, báo lỗi cho người gọi xử lý.
       console.error("dbUpsertBom exception:",e);
       throw e;
     }
