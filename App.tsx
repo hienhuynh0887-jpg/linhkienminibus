@@ -1348,72 +1348,26 @@ export default function App(){
         (rows||[]).filter(r=>!String(r.ma??"").trim()||!String(r.ten??"").trim()));
     }
 
-    // ⚠️ FIX (2026-07-20, lần 3): Theo yêu cầu — đổi thứ tự thao tác: XÓA hết mã CŨ
-    // trước (theo lô nhỏ 40 id/lần), rồi mới GHI mã MỚI vào từ từ (cũng theo lô nhỏ,
-    // có nghỉ ngắn giữa các lô) thay vì gửi 1 lô lớn 100 dòng cùng lúc — để tránh
-    // request quá nặng/timeout trên mạng di động làm rớt giữa chừng, gây thiếu mã.
-    // Đánh đổi: nếu mất mạng giữa chừng SAU khi đã xóa nhưng TRƯỚC khi ghi xong mã mới,
-    // dữ liệu có thể tạm thời thiếu cho tới khi bấm "Thay thế" lại — người dùng đã xác
-    // nhận chấp nhận đánh đổi này để đổi lấy khả năng lưu được ĐẦY ĐỦ dữ liệu.
-    const sleep=(ms)=>new Promise(res=>setTimeout(res,ms));
+    // ⚠️ FIX (2026-07-20, lần 4): Theo yêu cầu — copy lại đúng cách "Tạo dự án mới" đang
+    // làm (mkProj): lúc tạo dự án mới, BOM luôn được ghi bằng dbUpsertBomRows — ĐƠN GIẢN,
+    // không có bước dò/xóa id cũ nào cả — và chưa từng báo lỗi dù BOM tới 136+ mã. Sở dĩ
+    // nó đơn giản được vì dự án mới luôn RỖNG.
+    // → Áp dụng y hệt cho "Thay thế": chủ động làm dự án RỖNG LẠI trước (xóa toàn bộ
+    // bom_items theo đúng 1 giá trị pid — 1 lệnh DELETE DUY NHẤT, KHÔNG cần liệt kê từng
+    // id nên không có rủi ro URL quá dài), rồi gọi ĐÚNG dbUpsertBomRows để ghi mã mới vào
+    // — y hệt cách "Thêm vào" và "Tạo dự án mới" đang làm, đã được chứng minh chạy ổn định.
     try{
-      // ── BƯỚC 1: Xóa mã CŨ (không còn trong danh sách mới) theo lô nhỏ 40 id/lần ──
-      const newIdSet=new Set(cleanRows.map(r=>r.id));
-      const idsToDelete=(oldIds||[]).filter(oid=>!newIdSet.has(oid));
-      let deletedCount=0;
-      if(idsToDelete.length){
-        const delBatch=40;
-        for(let i=0;i<idsToDelete.length;i+=delBatch){
-          const idsChunk=idsToDelete.slice(i,i+delBatch);
-          const {data:delData,error:delErr}=await supabase.from("bom_items").delete().in("id",idsChunk).select("id");
-          if(delErr){
-            console.error("dbUpsertBom delete old error:",delErr.message,delErr,
-              `(lô ${i+1}-${i+idsChunk.length}/${idsToDelete.length})`);
-            throw new Error(`Lỗi xóa mã cũ (lô ${i+1}-${i+idsChunk.length}/${idsToDelete.length}): ${delErr.message}`);
-          }
-          deletedCount+=delData?.length||0;
-          console.log(`dbUpsertBom: đã xóa ${deletedCount}/${idsToDelete.length} mã cũ...`);
-          if(i+delBatch<idsToDelete.length) await sleep(120); // nghỉ ngắn giữa các lô, tránh dồn request
-        }
-        if(deletedCount<idsToDelete.length){
-          console.error("dbUpsertBom: RLS/permission chặn âm thầm khi XÓA — cần xóa",idsToDelete.length,"dòng nhưng DB chỉ xác nhận xóa",deletedCount,"dòng.");
-          throw new Error(`Supabase chỉ xóa được ${deletedCount}/${idsToDelete.length} mã cũ (khả năng cao do RLS chặn quyền DELETE bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
-        }
+      const {error:delErr}=await supabase.from("bom_items").delete().eq("pid",pid);
+      if(delErr){
+        console.error("dbUpsertBom (xóa toàn bộ theo pid) lỗi:",delErr.message,delErr);
+        throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
       }
-
-      // ── BƯỚC 2: Ghi mã MỚI vào từ từ, theo lô nhỏ 40 dòng/lần (thay vì 100) ──
-      if(cleanRows.length){
-        const batch=40;
-        for(let i=0;i<cleanRows.length;i+=batch){
-          const chunk=cleanRows.slice(i,i+batch);
-          // ✅ Dùng upsert (theo khóa "id") thay vì insert thuần: rows truyền vào hàm này
-          // có thể chứa CẢ id cũ đã tồn tại trên DB (trường hợp save/del 1 dòng — next[pid]
-          // là toàn bộ danh sách, gồm các dòng không đổi) VÀ id mới (trường hợp import).
-          // insert thuần sẽ báo lỗi trùng khóa chính với các id cũ; upsert xử lý đúng cả 2 case.
-          //
-          // ✅ QUAN TRỌNG: thêm .select("id") sau upsert. Nếu Row Level Security (RLS) của
-          // Supabase chặn quyền INSERT/UPDATE (vd. policy chỉ cho phép SELECT với anon key),
-          // Postgrest KHÔNG trả lỗi (error vẫn null) — nó chỉ âm thầm ghi được 0 dòng. Không
-          // có .select() thì không cách nào phát hiện việc này; "thành công" giả sẽ khiến dữ
-          // liệu biến mất sau reload mà không có cảnh báo gì (đúng triệu chứng đang gặp).
-          const {data:insData,error:insErr}=await supabase.from("bom_items").upsert(chunk,{onConflict:"id"}).select("id");
-          if(insErr){
-            console.error("dbUpsertBom upsert error:",insErr.message,insErr,
-              "sample:",chunk[0],`(lô dòng ${i+1}-${i+chunk.length}/${cleanRows.length})`);
-            throw new Error(`Đã xóa xong mã cũ nhưng lỗi khi ghi mã mới (lô ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message} — hãy Thay thế lại để ghi tiếp`);
-          }
-          if((insData?.length||0)<chunk.length){
-            console.error("dbUpsertBom: RLS/permission chặn âm thầm — gửi",chunk.length,"dòng nhưng DB chỉ xác nhận ghi",insData?.length||0,"dòng. Sample:",chunk[0]);
-            throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${chunk.length} dòng (khả năng cao do RLS chặn quyền ghi bảng bom_items) — kiểm tra lại RLS policy trên Supabase`);
-          }
-          console.log(`dbUpsertBom: đã ghi ${Math.min(i+batch,cleanRows.length)}/${cleanRows.length} mã mới...`);
-          if(i+batch<cleanRows.length) await sleep(120); // nghỉ ngắn giữa các lô, tránh dồn request
-        }
-      }
-
-      console.log("dbUpsertBom OK:",pid,cleanRows.length,"rows, đã xóa",deletedCount,"dòng cũ",
-        nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
-      return {ok:true,count:cleanRows.length,skipped:nSkipped,deleted:deletedCount};
+      console.log("dbUpsertBom: đã xóa sạch mã cũ của dự án",pid,"— bắt đầu ghi",cleanRows.length,"mã mới...");
+      // ✅ Ghi mã mới bằng ĐÚNG hàm dbUpsertBomRows (dùng chung với "Thêm vào" + lúc Tạo
+      // dự án mới) — đã có sẵn: chia lô, kiểm tra RLS chặn âm thầm, báo lỗi rõ theo từng lô.
+      const res=await dbUpsertBomRows(pid,rows);
+      console.log("dbUpsertBom OK:",pid,res.count,"mã đã ghi",nSkipped?`(bỏ qua ${nSkipped} dòng lỗi)`:"");
+      return res;
     }catch(e){
       console.error("dbUpsertBom exception:",e);
       throw e;
@@ -1474,6 +1428,18 @@ export default function App(){
       throw new Error("Lỗi xóa mã VT: "+error.message);
     }
     return {ok:true,count:clean.length};
+  };
+  // ✅ Xóa TOÀN BỘ vật tư (bom_items) của MỘT dự án theo pid — dùng cho nút "🗑️ Xoá Bom"
+  // (chỉ dành cho tài khoản Xưởng hàn). Khác với dbDeleteBomItems (xóa theo danh sách id
+  // cụ thể), hàm này xóa thẳng theo pid — 1 lệnh DELETE DUY NHẤT, không phụ thuộc mảng
+  // local có đầy đủ hay không.
+  const dbDeleteBomByPid=async(pidToDelete)=>{
+    const {error}=await supabase.from("bom_items").delete().eq("pid",pidToDelete);
+    if(error){
+      console.error("dbDeleteBomByPid error:",error.message,error);
+      throw new Error("Lỗi xóa toàn bộ vật tư: "+error.message);
+    }
+    return {ok:true};
   };
   // Đồng bộ toàn bộ 1 BOM Mẫu (theo "loai") lên Supabase — dùng CHUNG 1 bảng "bom_mau"
   // cho mọi loại (phân biệt bằng cột "loai"), khóa duy nhất là cặp (loai, id).
@@ -1765,6 +1731,26 @@ export default function App(){
     }catch(e){
       console.error("del() error:",e);
       flash("❌ Xóa trên máy chủ thất bại: "+e.message+" — hãy thử lại!");
+    }
+  };
+  // ── Xoá TOÀN BỘ vật tư (BOM) của dự án đang xem — chỉ dành cho tài khoản Xưởng hàn ──
+  const xoaToanBoBom=async()=>{
+    if(!isXH)return;
+    if(!bom.length){flash("Dự án này chưa có vật tư nào.");return;}
+    if(!window.confirm(`⚠️ XOÁ TOÀN BỘ ${bom.length} mã vật tư của dự án "${proj.ten}"?\n\nHành động này sẽ xoá VĨNH VIỄN toàn bộ danh sách vật tư (kể cả trạng thái đã nhận, ảnh...) và KHÔNG THỂ hoàn tác.`))return;
+    if(!window.confirm(`Xác nhận lần cuối: XOÁ VĨNH VIỄN ${bom.length} mã vật tư?`))return;
+    const rowsCu=bom;
+    setBomDB(s=>({...s,[pid]:[]}));
+    addBomLog("xoa",{ma:"—",ten:`Xoá toàn bộ BOM (${rowsCu.length} mã)`});
+    flash("⏳ Đang xoá toàn bộ vật tư...");
+    try{
+      await dbDeleteBomByPid(pid);
+      flash(`✓ Đã xoá toàn bộ ${rowsCu.length} mã vật tư`);
+    }catch(e){
+      console.error("xoaToanBoBom() error:",e);
+      // Khôi phục lại state local nếu xóa trên server thất bại
+      setBomDB(s=>({...s,[pid]:rowsCu}));
+      flash("❌ Xoá trên máy chủ thất bại: "+e.message+" — hãy thử lại!");
     }
   };
   const doIO=()=>{
@@ -3056,7 +3042,7 @@ Bạn có chắc chắn không?`;
               </select>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:12}}>
-              <div style={{gridColumn:"1 / -1"}}>
+              <div style={{gridColumn:"1 / -1",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
                 <ExportBar
                   shareTitle={`📦 Danh sách vật tư — ${proj.ten}`}
                   shareText={`BOM ${proj.ten}: ${filtered.length} mã vật tư, ${soXe} xe`}
@@ -3083,6 +3069,12 @@ Bạn có chắc chắn không?`;
                       `VatTu_${proj.ten}`);
                   }}
                 />
+                {isXH&&(
+                  <button onClick={xoaToanBoBom} title="Xoá toàn bộ vật tư của dự án này"
+                    style={{border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,padding:"6px 13px",display:"flex",alignItems:"center",gap:5,background:"#fef2f2",color:"#dc2626"}}>
+                    <span>🗑️</span> Xoá Bom
+                  </button>
+                )}
               </div>
               <button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 10px",fontSize:13,border:"1px solid #bbf7d0",width:"100%",justifyContent:"center"}}>📊 Import Excel</button>
               <button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>
