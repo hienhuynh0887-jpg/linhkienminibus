@@ -1885,6 +1885,17 @@ export default function App(){
 
   const doImport=async()=>{
     const seed=getBomMauRows(importSrc);
+    // ✅ CHẨN ĐOÁN: nếu BOM Mẫu nguồn đang trống hoặc thiếu Mã số/Tên ở nhiều dòng, báo
+    // ngay từ đầu — trước đây các trường hợp này chỉ lặng lẽ import ra 0 mã mà không có
+    // cảnh báo rõ ràng nào (chỉ có flash() tự ẩn sau ~2.5s, rất dễ bị bỏ lỡ).
+    if(!seed.length){
+      alert(`⚠️ BOM Mẫu nguồn đang KHÔNG CÓ mã vật tư nào (0 mã) — không có gì để import.`);
+      return;
+    }
+    const seedThieu=seed.filter(v=>!String(v.id??"").trim()||!String(v.ten??"").trim());
+    if(seedThieu.length){
+      console.warn(`doImport: ${seedThieu.length}/${seed.length} dòng trong BOM Mẫu nguồn thiếu Mã số hoặc Tên vật tư — các dòng này sẽ bị BỎ QUA khi import:`, seedThieu);
+    }
     const rows=mkBom(pid,seed);
     // ✅ Lấy id các mã CŨ ngay tại đây (đồng bộ, từ state hiện có) — không phụ thuộc vào
     // biến "old" tính bên trong setBomDB (updater có thể được React gọi trễ hơn dòng code
@@ -1918,6 +1929,13 @@ export default function App(){
       return next;
     });
     setShowImport(false);
+    // ✅ CHẨN ĐOÁN: nếu ở chế độ "Thêm vào" mà KHÔNG có mã nào mới (toàn bộ đã trùng Mã số
+    // với dự án hiện tại), báo rõ ngay — đây chính là trường hợp trước đây khiến người dùng
+    // tưởng đã import 147 mã nhưng số liệu vẫn giữ nguyên như cũ, không thấy lỗi gì.
+    if(!replaceAll&&rowsToSave.length===0){
+      alert(`⚠️ KHÔNG CÓ MÃ NÀO MỚI ĐƯỢC THÊM.\n\nTất cả ${rows.length} mã trong BOM Mẫu nguồn đều đã trùng Mã số với dự án hiện tại (chế độ "Thêm vào" tự bỏ qua mã đã có).\n\nNếu bạn muốn ghi đè/thay toàn bộ, hãy chọn "Thay thế toàn bộ danh sách" thay vì "Thêm vào".`);
+      return;
+    }
     flash(`⏳ Đang lưu ${rowsToSave.length} mã lên server...`);
     const tenNguon=bomMauLoaiList.find(l=>l.id===importSrc)?.ten||importSrc;
     // ✅ QUAN TRỌNG: PHẢI await và xác nhận Supabase lưu thành công rồi mới báo "✓ Import
@@ -1945,6 +1963,12 @@ export default function App(){
       flash(res?.skipped>0
         ? `⚠️ Đã lưu ${res.count}/${rowsToSave.length} mã — ${res.skipped} dòng bị bỏ qua (thiếu Mã số/Tên vật tư)`
         : `✓ Đã lưu ${rowsToSave.length} mã lên Supabase (${tenNguon})`);
+      // ✅ CHẨN ĐOÁN: dùng thêm alert() cho trường hợp "skipped" — trước đây chỉ có flash()
+      // tự ẩn sau ~2.5s, người dùng rất dễ bỏ lỡ cảnh báo quan trọng này (ví dụ vừa xảy ra:
+      // import 147 mã nhưng bị bỏ qua gần hết do thiếu Mã số/Tên ở nguồn).
+      if(res?.skipped>0){
+        alert(`⚠️ CHỈ LƯU ĐƯỢC ${res.count}/${rowsToSave.length} MÃ.\n\n${res.skipped} dòng bị bỏ qua vì thiếu Mã số hoặc Tên vật tư trong BOM Mẫu nguồn.\n\nHãy vào tab "BOM Mẫu" kiểm tra lại dữ liệu nguồn (${tenNguon}) — mở Console (F12) để xem chi tiết từng dòng bị bỏ qua.`);
+      }
     }catch(e){
       // ❌ Lưu thất bại: local đang hiển thị dữ liệu MỚI nhưng Supabase CHƯA có (hoặc chỉ
       // có 1 phần) — báo rõ ràng, không im lặng coi như thành công, để người dùng biết cần
@@ -2953,7 +2977,7 @@ Bạn có chắc chắn không?`;
         <div style={{padding:"8px 16px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           {/* Project select */}
           <div style={{position:"relative",flex:"0 0 auto"}}>
-            <div onClick={()=>setProjPickerOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.1)",borderRadius:8,padding:"4px 10px",cursor:"pointer"}}>
+            <div onClick={()=>setProjPickerOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,background:"#7c3aed",borderRadius:8,padding:"4px 10px",cursor:"pointer"}}>
               <span style={{fontSize:11,opacity:.7,whiteSpace:"nowrap"}}>Dự án:</span>
               <span style={{fontSize:13}}>{proj.icon}</span>
               <span style={{fontSize:12,fontWeight:700,color:"#fff",maxWidth:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{proj.ten}</span>
@@ -2978,12 +3002,12 @@ Bạn có chắc chắn không?`;
             )}
           </div>
           {/* Actions */}
-          <button onClick={()=>setNewP(true)} style={{...btn,background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",padding:"5px 11px",fontSize:12}}>＋ Thêm</button>
+          <button onClick={()=>setNewP(true)} style={{...btn,background:"#7c3aed",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",padding:"5px 11px",fontSize:12}}>＋ Thêm</button>
           {projs.length>1&&<button onClick={()=>delProj(pid)} style={{...btn,background:"rgba(220,38,38,0.3)",color:"#fca5a5",border:"1px solid rgba(220,38,38,0.4)",padding:"5px 10px",fontSize:11}}>🗑</button>}
           {/* Stats — 4 ô đồng bộ: 15 xe / Mã VT / Phiếu / GD */}
           <div style={{marginLeft:"auto",display:"flex",gap:6}}>
             {[[fmt(soXe),"xe",true],[fmt(bom.length),"Mã VT",false],[fmt(phList.length),"Phiếu",false],[fmt(ls.length),"GD",false]].map(([v,l,isXe])=>(
-              <div key={l} onClick={isXe?editSoXe:undefined} style={{textAlign:"center",background:"#7f1d1d",padding:"4px 10px",borderRadius:8,minWidth:44,cursor:isXe?"pointer":"default"}}>
+              <div key={l} onClick={isXe?editSoXe:undefined} style={{textAlign:"center",background:"#ea580c",padding:"4px 10px",borderRadius:8,minWidth:44,cursor:isXe?"pointer":"default"}}>
                 <div style={{fontWeight:800,fontSize:13,color:"#fff",lineHeight:1}}>{isXe?`🚌 ${v}`:v}</div>
                 <div style={{opacity:.9,fontSize:9,marginTop:2,color:"#fff"}}>{l}</div>
               </div>
