@@ -2880,8 +2880,8 @@ Bạn có chắc chắn không?`;
   const maChuaSoan=th.filter(v=>v.chuaSoan).length;
   const maGiaoThieu=th.filter(v=>v.giaoThieu).length;
   // ── Thiếu THCK / CKD = (Chưa soạn ∪ Giao thiếu SL), lọc theo biến Nguồn gốc (v.ng) ──
-  const maThieuTHCK=th.filter(v=>(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="THCK").length;
-  const maThieuCKD =th.filter(v=>(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="CKD").length;
+  const maThieuTHCK=th.filter(v=>(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK").length;
+  const maThieuCKD =th.filter(v=>(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD").length;
   const totCN=th.reduce((s,v)=>s+v.cn,0);
   const totDN=th.reduce((s,v)=>s+v.dn,0);
   const totCT=th.reduce((s,v)=>s+v.ct,0);
@@ -3970,7 +3970,7 @@ Bạn có chắc chắn không?`;
                   shareText={`Báo cáo ${proj.ten}: tiến độ ${pctT}%, đã đủ ${maDone}/${bom.length} mã, còn thiếu ${bom.length-maDone} mã`}
                   onExcel={()=>{
                     const allBcRows=Object.values(nhomDM).flat();
-                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="CKD"));
+                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD"));
                     xuatExcel(
                       filtered2.map(v=>({
                         "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
@@ -3986,7 +3986,7 @@ Bạn có chắc chắn không?`;
                   }}
                   onPDF={()=>{
                     const allBcRows=Object.values(nhomDM).flat();
-                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="CKD"));
+                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD"));
                     const rows=filtered2.map(v=>`<tr>
                       <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
                       <td style="text-align:center">${v.dv}</td>
@@ -4005,7 +4005,7 @@ Bạn có chắc chắn không?`;
                 />
               </div>
               {Object.entries(nhomDM).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
-                const fil=items.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&(v.ng||"").trim().toUpperCase()==="CKD"));
+                const fil=items.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD"));
                 if(fil.length===0)return null;
                 const isO=bcDmO[dm]!==false;
                 const dC=fil.reduce((s,v)=>s+v.cn,0),dD=fil.reduce((s,v)=>s+v.dn,0),dT=fil.reduce((s,v)=>s+v.ct,0);
