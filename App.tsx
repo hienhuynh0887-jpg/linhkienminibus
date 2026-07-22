@@ -2857,19 +2857,41 @@ Bạn có chắc chắn không?`;
     return{dnMap,dnXNMap,hasOkMap,phByMa};
   },[phList,pid]);
 
+  // ✅ EPS: dung sai nhỏ cho phép so sánh số thực (tránh lệch do làm tròn thập phân của
+  // ĐM × số xe). Không đổi kết quả với số nguyên, chỉ giúp trường hợp dm lẻ (vd 0.1) không
+  // bị kẹt "thiếu" 1 cách giả do sai số dấu phẩy động.
+  const EPS=1e-6;
+  // ✅ numOr0: ép kiểu số an toàn — nếu dm/sl_thuc_nhan lỡ là chuỗi rỗng, null, hoặc giá trị
+  // không hợp lệ (NaN) do nhập tay/lỗi import, coi như 0 thay vì để NaN âm thầm làm mọi phép
+  // so sánh (>=, <) luôn ra false — đây là nguồn gây bug "kẹt thiếu dù đã đủ" khó phát hiện
+  // nhất vì không có lỗi hiển thị, số liệu chỉ lặng lẽ sai.
+  const numOr0=x=>{const n=Number(x);return Number.isFinite(n)?n:0;};
+
   const th=useMemo(()=>bom.map(v=>{
-    const cn=v.dm*soXe;
-    const dnGui=dnMap[v.ma]||0; // Tổng SL đã GỬI (kể cả phần đang chờ Xưởng Hàn duyệt) — chỉ dùng nội bộ (vd tính toán khi soạn/gửi đơn tiếp theo), KHÔNG hiển thị cho người dùng
-    const dn=dnXNMap[v.ma]||0; // ✅ "Đã nhận" HIỂN THỊ = SL đã được Xưởng Hàn xác nhận — NGUỒN DUY NHẤT cho mọi nơi hiển thị (Báo Cáo, Phiếu GN, Soạn Hàng) để số liệu luôn đồng nhất
+    const cn=numOr0(v.dm)*numOr0(soXe);
+    const dnGui=numOr0(dnMap[v.ma]); // Tổng SL đã GỬI (kể cả phần đang chờ Xưởng Hàn duyệt) — chỉ dùng nội bộ (vd tính toán khi soạn/gửi đơn tiếp theo), KHÔNG hiển thị cho người dùng
+    const dn=numOr0(dnXNMap[v.ma]); // ✅ "Đã nhận" HIỂN THỊ = SL đã được Xưởng Hàn xác nhận — NGUỒN DUY NHẤT cho mọi nơi hiển thị (Báo Cáo, Phiếu GN, Soạn Hàng) để số liệu luôn đồng nhất
     const dnXN=dn; // giữ tên cũ để tương thích các chỗ khác đang tham chiếu v.dnXN
     const ct=Math.max(0,cn-dn),vuot=Math.max(0,dn-cn);
     const p=cn>0?Math.min(100,Math.round(dn/cn*100)):0;
+    // ✅ done: SL đã xác nhận >= SL cần (dùng EPS để không kẹt do sai số thập phân).
+    // Đây là ĐIỀU KIỆN DUY NHẤT quyết định "Đã nhận đủ" — hễ dn ≥ cn (kể cả dn > cn, tức
+    // giao/nhận vượt) thì LUÔN done=true, bất kể trạng thái chuaSoan/giaoThieu bên dưới.
+    const done=dn+EPS>=cn;
     // chuaSoan: chưa có trong bất kỳ phiếu nào
     const chuaSoan=!phByMa[v.ma]||phByMa[v.ma].length===0;
     // giaoThieu: đã từng được XƯỞNG HÀN duyệt nhưng tổng SL THỰC NHẬN xác nhận vẫn < SL cần
     // (vẫn tính là "giao thiếu" kể cả khi đã soạn/gửi bù phần thiếu mà CHƯA được duyệt lại)
-    const giaoThieu=!chuaSoan&&!!hasOkMap[v.ma]&&dnXN<cn;
-    return{...v,cn,dn,dnGui,dnXN,ct,vuot,p,done:dn>=cn,phs:phByMa[v.ma]||[],chuaSoan,giaoThieu};
+    // — ràng buộc !done ở đây đảm bảo dn ≥ cn thì KHÔNG BAO GIỜ bị tính là giao thiếu nữa.
+    const giaoThieu=!chuaSoan&&!!hasOkMap[v.ma]&&!done;
+    // ✅ Thiếu THCK/CKD = (Chưa soạn ∪ Giao thiếu SL) VÀ CHƯA đủ — tính SẴN 1 LẦN DUY NHẤT
+    // ngay tại đây, theo Nguồn gốc (v.ng), để mọi nơi hiển thị/xuất Excel/PDF dùng chung
+    // đúng 1 nguồn, không lặp lại biểu thức lọc rải rác nhiều chỗ (tránh lệch nhau về sau).
+    const ng=(v.ng||"").trim().toUpperCase();
+    const thieu=!done&&(chuaSoan||giaoThieu);
+    const thieuTHCK=thieu&&ng==="THCK";
+    const thieuCKD=thieu&&ng==="CKD";
+    return{...v,cn,dn,dnGui,dnXN,ct,vuot,p,done,phs:phByMa[v.ma]||[],chuaSoan,giaoThieu,thieuTHCK,thieuCKD};
   }),[bom,dnMap,dnXNMap,hasOkMap,phByMa,soXe]);
   // Map tra cứu nhanh theo mã — dùng làm NGUỒN DUY NHẤT để tính "Còn thiếu" ở Soạn Hàng:
   // Còn thiếu = Cần nhận (cn) − Đã giao cho XH và ĐÃ ĐƯỢC DUYỆT (dnXN)
@@ -2879,9 +2901,9 @@ Bạn có chắc chắn không?`;
   const maDone=th.filter(v=>v.done).length;
   const maChuaSoan=th.filter(v=>v.chuaSoan).length;
   const maGiaoThieu=th.filter(v=>v.giaoThieu).length;
-  // ── Thiếu THCK / CKD = (Chưa soạn ∪ Giao thiếu SL), lọc theo biến Nguồn gốc (v.ng) ──
-  const maThieuTHCK=th.filter(v=>(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK").length;
-  const maThieuCKD =th.filter(v=>(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD").length;
+  // ── Thiếu THCK / CKD — đọc thẳng từ field đã tính sẵn trong th (nguồn duy nhất) ──
+  const maThieuTHCK=th.filter(v=>v.thieuTHCK).length;
+  const maThieuCKD =th.filter(v=>v.thieuCKD).length;
   const totCN=th.reduce((s,v)=>s+v.cn,0);
   const totDN=th.reduce((s,v)=>s+v.dn,0);
   const totCT=th.reduce((s,v)=>s+v.ct,0);
@@ -3970,7 +3992,7 @@ Bạn có chắc chắn không?`;
                   shareText={`Báo cáo ${proj.ten}: tiến độ ${pctT}%, đã đủ ${maDone}/${bom.length} mã, còn thiếu ${bom.length-maDone} mã`}
                   onExcel={()=>{
                     const allBcRows=Object.values(nhomDM).flat();
-                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD"));
+                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&v.thieuTHCK)||(bcFlt==="thieu_ckd"&&v.thieuCKD));
                     xuatExcel(
                       filtered2.map(v=>({
                         "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
@@ -3986,7 +4008,7 @@ Bạn có chắc chắn không?`;
                   }}
                   onPDF={()=>{
                     const allBcRows=Object.values(nhomDM).flat();
-                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD"));
+                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&v.thieuTHCK)||(bcFlt==="thieu_ckd"&&v.thieuCKD));
                     const rows=filtered2.map(v=>`<tr>
                       <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
                       <td style="text-align:center">${v.dv}</td>
@@ -4005,7 +4027,7 @@ Bạn có chắc chắn không?`;
                 />
               </div>
               {Object.entries(nhomDM).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
-                const fil=items.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="THCK")||(bcFlt==="thieu_ckd"&&(v.chuaSoan||v.giaoThieu)&&!v.done&&(v.ng||"").trim().toUpperCase()==="CKD"));
+                const fil=items.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&v.thieuTHCK)||(bcFlt==="thieu_ckd"&&v.thieuCKD));
                 if(fil.length===0)return null;
                 const isO=bcDmO[dm]!==false;
                 const dC=fil.reduce((s,v)=>s+v.cn,0),dD=fil.reduce((s,v)=>s+v.dn,0),dT=fil.reduce((s,v)=>s+v.ct,0);
