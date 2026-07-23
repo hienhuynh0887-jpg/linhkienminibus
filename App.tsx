@@ -536,6 +536,20 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
+  // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "Phòng KH-TH" — chỉ xem, không thao tác)
+  const [customDepts, setCustomDepts] = useState(()=>{try{const s=localStorage.getItem("customDepts");return s?JSON.parse(s):[];}catch{return [];}});
+  const addCustomDept=()=>{
+    const name=window.prompt("Nhập tên phòng/ban muốn thêm (VD: Ban CN, Phòng KT):");
+    if(!name||!name.trim())return;
+    const label=name.trim();
+    setCustomDepts(l=>{
+      if(l.includes(label))return l;
+      const updated=[...l,label];
+      try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
+      return updated;
+    });
+    setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));
+  };
   const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
   const fl=m=>{setFlash2(m);setTimeout(()=>setFlash2(""),2500);};
@@ -608,11 +622,20 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
           </div>
           <div>
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Vai trò</label>
-            <select value={form.role} onChange={e=>{const r=e.target.value;setForm(f=>({...f,role:r,don_vi:r==="thck"?"Nhà máy THCK":r==="kho"?"KHO VẬT TƯ":r==="khth"?"Phòng KH-TH":"XƯỞNG HÀN",avatar:r==="thck"?"🏭":r==="kho"?"📦":r==="khth"?"📋":"🚗"}));}} style={inp}>
+            <select
+              value={form.role==="khth"&&form.don_vi&&form.don_vi!=="Phòng KH-TH"?`khth::${form.don_vi}`:form.role}
+              onChange={e=>{
+                const v=e.target.value;
+                if(v==="__add_new__"){addCustomDept();return;}
+                if(v.startsWith("khth::")){const label=v.slice(6);setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));return;}
+                const r=v;setForm(f=>({...f,role:r,don_vi:r==="thck"?"Nhà máy THCK":r==="kho"?"KHO VẬT TƯ":r==="khth"?"Phòng KH-TH":"XƯỞNG HÀN",avatar:r==="thck"?"🏭":r==="kho"?"📦":r==="khth"?"📋":"🚗"}));
+              }} style={inp}>
               <option value="thck">🏭 Nhà máy THCK</option>
               <option value="xuonghan">🚗 XƯỞNG HÀN</option>
               <option value="kho">📦 KHO VẬT TƯ</option>
               <option value="khth">📋 Phòng KH-TH (chỉ xem)</option>
+              {customDepts.map(d=><option key={d} value={`khth::${d}`}>📋 {d} (chỉ xem)</option>)}
+              <option value="__add_new__">➕ Thêm phòng/ban khác...</option>
             </select>
           </div>
           <div>
@@ -1692,12 +1715,26 @@ export default function App(){
   const save=async()=>{
     if(!cur.ma.trim()||!cur.ten.trim())return;
     const edit=modal==="edit";
-    let savedRow=null;
+    // ✅ FIX: tính savedRow TRỰC TIẾP từ bomDB hiện có, KHÔNG gán bên trong callback của
+    // setBomDB nữa. Trước đây savedRow chỉ được gán khi callback của setBomDB chạy, nhưng
+    // React KHÔNG đảm bảo callback đó chạy đồng bộ ngay lúc gọi (tùy thời điểm/lượt render
+    // đang chờ xử lý) — nên có lúc await dbUpsertBomRows(pid,[savedRow]) chạy với savedRow
+    // vẫn còn là null, khiến việc "Sửa" xong bấm "Lưu" không được ghi lên Supabase. Tính
+    // savedRow ngay tại đây đảm bảo luôn có giá trị đúng trước khi gửi lên máy chủ.
+    const oldRows=bomDB[pid]||[];
+    let savedRow;
+    if(edit){
+      const existing=oldRows.find(v=>v.ma===cur.ma);
+      savedRow={...(existing||{}),...cur};
+    }else{
+      const ns=oldRows.length?Math.max(...oldRows.map(v=>v.stt))+1:1;
+      savedRow={id:uid(),pid,stt:ns,...cur};
+    }
     setBomDB(s=>{
       const old=s[pid]||[];
-      let next;
-      if(edit) next={...s,[pid]:old.map(v=>v.ma===cur.ma?(savedRow={...v,...cur}):v)};
-      else{const ns=old.length?Math.max(...old.map(v=>v.stt))+1:1;savedRow={id:uid(),pid,stt:ns,...cur};next={...s,[pid]:[...old,savedRow]};}
+      const next= edit
+        ? {...s,[pid]:old.map(v=>v.ma===cur.ma?{...v,...savedRow}:v)}
+        : {...s,[pid]:[...old,savedRow]};
       return next;
     });
     if(!edit)addLS(pid,{pid,ma:cur.ma,ten:cur.ten,loai:"Tạo mới",sl:cur.dm,gc:""});
