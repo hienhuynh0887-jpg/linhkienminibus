@@ -1062,7 +1062,7 @@ export default function App(){
   const [bcExp,    setBcExp]    = useState({});
   const [bcDmO,    setBcDmO]    = useState({});
   const [bcViTriChiTiet, setBcViTriChiTiet] = useState(false); // ẩn/hiện 2 bảng THCK · CKD trong "Tiến độ theo Vị trí"
-  const [bcBlockOpen, setBcBlockOpen] = useState({THCK:false, CKD:false}); // 2 sơ đồ khối THCK · CKD trong "Chi tiết vật tư theo nguồn"
+  const [bcBlockOpen, setBcBlockOpen] = useState({THCK:"", CKD:""}); // lọc theo nguồn: ""(đóng) · "done"(Đã nhận) · "thieu"(Còn thiếu)
   const [pgnSr,    setPgnSr]    = useState("");
   const [pgnDm,    setPgnDm]    = useState("Tất cả");
   const [pgnSO,    setPgnSO]    = useState("all");
@@ -3993,33 +3993,34 @@ Bạn có chắc chắn không?`;
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
                   const maConThieuNg=tongMa-maDaNhanNg;
-                  const isOpenBlock=!!bcBlockOpen[nguon];
-                  const nhomNg={};itemsNg.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!nhomNg[k])nhomNg[k]=[];nhomNg[k].push(v);});
+                  const filterMode=bcBlockOpen[nguon]||""; // ""(đóng) · "done"(Đã nhận) · "thieu"(Còn thiếu)
+                  const itemsFiltered=filterMode==="done"?itemsNg.filter(v=>v.done):filterMode==="thieu"?itemsNg.filter(v=>!v.done):[];
+                  const nhomNg={};itemsFiltered.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!nhomNg[k])nhomNg[k]=[];nhomNg[k].push(v);});
+                  const chonLoc=mode=>setBcBlockOpen(s=>({...s,[nguon]:s[nguon]===mode?"":mode}));
                   return(
                     <div key={nguon} style={{flex:"1 1 320px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:`1.5px solid ${bd}`}}>
-                      <div onClick={()=>setBcBlockOpen(s=>({...s,[nguon]:!s[nguon]}))}
-                        style={{cursor:"pointer",userSelect:"none",padding:"14px 16px",background:bgLight,display:"flex",flexDirection:"column",gap:10}}>
+                      <div style={{padding:"14px 16px",background:bgLight,display:"flex",flexDirection:"column",gap:10}}>
                         <div style={{display:"flex",alignItems:"center",gap:8}}>
                           <span style={{fontSize:18}}>{icon}</span>
                           <span style={{fontWeight:800,fontSize:14,color:mau}}>{nguon}</span>
-                          <div style={{flex:1}}/>
-                          <span style={{fontSize:12,fontWeight:700,color:mau}}>{isOpenBlock?"▲ Thu gọn":"▼ Xem chi tiết"}</span>
                         </div>
                         <div style={{display:"flex",gap:8}}>
                           <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
                             <div style={{fontWeight:800,fontSize:18,color:"#374151"}}>{tongMa}</div>
                             <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Tổng số mã</div>
                           </div>
-                          <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                          <div onClick={()=>chonLoc("done")} style={{flex:1,textAlign:"center",background:filterMode==="done"?"#dcfce7":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="done"?"1.5px solid #16a34a":"1.5px solid transparent"}}>
                             <div style={{fontWeight:800,fontSize:18,color:"#16a34a"}}>{maDaNhanNg}</div>
                             <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Đã nhận</div>
+                            <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>{filterMode==="done"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
                           </div>
-                          <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                          <div onClick={()=>chonLoc("thieu")} style={{flex:1,textAlign:"center",background:filterMode==="thieu"?"#fee2e2":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="thieu"?"1.5px solid #dc2626":"1.5px solid transparent"}}>
                             <div style={{fontWeight:800,fontSize:18,color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{maConThieuNg}</div>
                             <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Còn thiếu</div>
+                            <div style={{fontSize:9,fontWeight:700,color:"#dc2626",marginTop:2}}>{filterMode==="thieu"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
                           </div>
                         </div>
-                        <div onClick={e=>e.stopPropagation()} style={{display:"flex",justifyContent:"flex-end"}}>
+                        <div style={{display:"flex",justifyContent:"flex-end"}}>
                           <ExportBar
                             shareTitle={`📋 Chi tiết vật tư ${nguon} — ${proj.ten}`}
                             shareText={`${nguon}: ${tongMa} mã, đã nhận ${maDaNhanNg}, còn thiếu ${maConThieuNg}`}
@@ -4050,9 +4051,12 @@ Bạn có chắc chắn không?`;
                           />
                         </div>
                       </div>
-                      {isOpenBlock&&(
+                      {filterMode&&(
                         <div style={{padding:10,display:"flex",flexDirection:"column",gap:8,maxHeight:520,overflowY:"auto"}}>
-                          {tongMa===0?(
+                          <div style={{fontSize:11,fontWeight:700,color:filterMode==="done"?"#16a34a":"#dc2626",padding:"2px 4px"}}>
+                            {filterMode==="done"?`✅ Danh sách Đã nhận (${itemsFiltered.length} mã)`:`📉 Danh sách Còn thiếu (${itemsFiltered.length} mã)`}
+                          </div>
+                          {itemsFiltered.length===0?(
                             <div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>— Không có mã nào —</div>
                           ):Object.entries(nhomNg).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
                             const isO=bcDmO[nguon+"__"+dm]!==false;
