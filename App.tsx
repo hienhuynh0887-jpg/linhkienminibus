@@ -2911,24 +2911,36 @@ Bạn có chắc chắn không?`;
     const dnXN=dn; // giữ tên cũ để tương thích các chỗ khác đang tham chiếu v.dnXN
     const ct=Math.max(0,cn-dn),vuot=Math.max(0,dn-cn);
     const p=cn>0?Math.min(100,Math.round(dn/cn*100)):0;
-    // ✅ done: SL đã xác nhận >= SL cần (dùng EPS để không kẹt do sai số thập phân).
-    // Đây là ĐIỀU KIỆN DUY NHẤT quyết định "Đã nhận đủ" — hễ dn ≥ cn (kể cả dn > cn, tức
-    // giao/nhận vượt) thì LUÔN done=true, bất kể trạng thái chuaSoan/giaoThieu bên dưới.
+    // ✅ done: SL đã XÁC NHẬN (Xưởng Hàn duyệt) >= SL cần (dùng EPS để không kẹt do sai số
+    // thập phân). Điều kiện này quyết định badge "✅ Đã nhận / Đủ" ở các tab liên quan tới
+    // XÁC NHẬN THỰC NHẬN (Phiếu GN, Soạn Hàng…) — PHẢI giữ nguyên gắn với xác nhận thực tế.
     const done=dn+EPS>=cn;
-    // chuaSoan: chưa có trong bất kỳ phiếu nào
+    // ✅ doneGui: SL đã GỬI (kể cả phần đang chờ Xưởng Hàn duyệt) >= SL cần. Đây là điều kiện
+    // để xác định TRÁCH NHIỆM GIAO HÀNG của bên soạn (THCK/CKD) đã hoàn thành hay chưa — khác
+    // với "done" (bên NHẬN đã xác nhận hay chưa). Trước đây "Thiếu THCK/CKD" dùng chung điều
+    // kiện "done" nên mã đã giao đủ/giao dư nhưng Xưởng Hàn CHƯA bấm duyệt bị kẹt mãi trong
+    // danh sách "Thiếu THCK/CKD" dù bên giao đã hoàn thành nhiệm vụ — ĐÂY LÀ LỖI GỐC cần sửa.
+    const doneGui=dnGui+EPS>=cn;
+    // chuaSoan: chưa có trong bất kỳ phiếu nào (chưa gửi lần nào)
     const chuaSoan=!phByMa[v.ma]||phByMa[v.ma].length===0;
     // giaoThieu: đã từng được XƯỞNG HÀN duyệt nhưng tổng SL THỰC NHẬN xác nhận vẫn < SL cần
     // (vẫn tính là "giao thiếu" kể cả khi đã soạn/gửi bù phần thiếu mà CHƯA được duyệt lại)
     // — ràng buộc !done ở đây đảm bảo dn ≥ cn thì KHÔNG BAO GIỜ bị tính là giao thiếu nữa.
     const giaoThieu=!chuaSoan&&!!hasOkMap[v.ma]&&!done;
-    // ✅ Thiếu THCK/CKD = (Chưa soạn ∪ Giao thiếu SL) VÀ CHƯA đủ — tính SẴN 1 LẦN DUY NHẤT
-    // ngay tại đây, theo Nguồn gốc (v.ng), để mọi nơi hiển thị/xuất Excel/PDF dùng chung
-    // đúng 1 nguồn, không lặp lại biểu thức lọc rải rác nhiều chỗ (tránh lệch nhau về sau).
+    // ✅ choDuyet: đã GỬI đủ/dư (doneGui) nhưng Xưởng Hàn CHƯA xác nhận đủ (done=false).
+    // Trạng thái trung gian này KHÔNG được tính là "thiếu" (bên giao đã xong việc), chỉ còn
+    // chờ bên nhận duyệt — hiển thị riêng để tránh gây hiểu lầm "còn thiếu vật tư".
+    const choDuyet=doneGui&&!done;
+    // ✅ FIX CHÍNH: Thiếu THCK/CKD = mã thuộc nguồn THCK/CKD MÀ BÊN GIAO CHƯA GỬI ĐỦ, xét theo
+    // "doneGui" (SL ĐÃ GỬI, không phụ thuộc đã được duyệt hay chưa) — KHÔNG dùng "done"/dn như
+    // trước. Nhờ vậy mã đã giao đủ hoặc giao dư sẽ biến mất khỏi danh sách "Thiếu THCK/CKD"
+    // NGAY LẬP TỨC tại thời điểm gửi, không phải đợi Xưởng Hàn duyệt xong mới hết "thiếu".
+    // Tính sẵn 1 lần duy nhất tại đây để mọi nơi hiển thị/xuất Excel/PDF dùng chung 1 nguồn.
     const ng=(v.ng||"").trim().toUpperCase();
     const thieu=!done&&(chuaSoan||giaoThieu);
-    const thieuTHCK=thieu&&ng==="THCK";
-    const thieuCKD=thieu&&ng==="CKD";
-    return{...v,cn,dn,dnGui,dnXN,ct,vuot,p,done,phs:phByMa[v.ma]||[],chuaSoan,giaoThieu,thieuTHCK,thieuCKD};
+    const thieuTHCK=!doneGui&&ng==="THCK";
+    const thieuCKD=!doneGui&&ng==="CKD";
+    return{...v,cn,dn,dnGui,dnXN,ct,vuot,p,done,doneGui,choDuyet,phs:phByMa[v.ma]||[],chuaSoan,giaoThieu,thieuTHCK,thieuCKD,thieu};
   }),[bom,dnMap,dnXNMap,hasOkMap,phByMa,soXe]);
   // Map tra cứu nhanh theo mã — dùng làm NGUỒN DUY NHẤT để tính "Còn thiếu" ở Soạn Hàng:
   // Còn thiếu = Cần nhận (cn) − Đã giao cho XH và ĐÃ ĐƯỢC DUYỆT (dnXN)
@@ -3871,7 +3883,7 @@ Bạn có chắc chắn không?`;
                             <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thCan")}: {fmt(v.cn)}</span>
                             <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
                             {v.vuot>0&&<span style={{background:"#fef3c7",color:"#b45309",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
-                            <span style={{background:v.done?"#dcfce7":"#fff7ed",color:v.done?"#16a34a":"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{v.done?"✅ Đủ":`${t("thConThieu")}: ${fmt(v.ct)}`}</span>
+                            <span style={{background:v.done?"#dcfce7":v.choDuyet?"#e0f2fe":"#fff7ed",color:v.done?"#16a34a":v.choDuyet?"#0369a1":"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{v.done?"✅ Đủ":v.choDuyet?"🕓 Đã giao đủ — chờ duyệt":`${t("thConThieu")}: ${fmt(v.ct)}`}</span>
                           </div>
                         </div>
                         <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,minWidth:52}}>
@@ -4037,7 +4049,7 @@ Bạn có chắc chắn không?`;
                         "Đã nhận":v.dn,"Còn thiếu":v.ct,"Vượt KH":v.vuot||0,
                         "Tiến độ":v.p,"Nguồn gốc":v.ng,
                         "Phiếu GN":v.phs.length,
-                        "Trạng thái":v.done?"✅ Đã nhận":v.chuaSoan?"📭 Chưa soạn":v.giaoThieu?"📉 Giao thiếu":"⚠️ Thiếu"
+                        "Trạng thái":v.done?"✅ Đã nhận":v.choDuyet?"🕓 Đã giao đủ - chờ duyệt":v.chuaSoan?"📭 Chưa soạn":v.giaoThieu?"📉 Giao thiếu":"⚠️ Thiếu"
                       })),
                       `BaoCao_${proj.ten.replace(/\s/g,"_")}`,
                       `Báo cáo vật tư — ${proj.ten}`
@@ -4054,7 +4066,7 @@ Bạn có chắc chắn không?`;
                       <td style="text-align:center;color:${v.done?"#16a34a":"#dc2626"};font-weight:700">${v.done?"✅":fmt(v.ct)}</td>
                       <td style="text-align:center">${v.p}%</td>
                       <td>${v.ng}</td>
-                      <td><span class="badge ${v.done?"ok":v.chuaSoan?"":"warn"}">${v.done?"✅":v.chuaSoan?"📭":v.giaoThieu?"📉":"⚠️"}</span></td>
+                      <td><span class="badge ${v.done?"ok":v.chuaSoan?"":"warn"}">${v.done?"✅":v.choDuyet?"🕓":v.chuaSoan?"📭":v.giaoThieu?"📉":"⚠️"}</span></td>
                     </tr>`).join("");
                     xuatPDF(`<h2>${t("titleBc")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${soXe} xe · ${phList.length} phiếu · Tiến độ: ${pctT}% · Đã nhận đủ: ${maDone}/${bom.length} mã</p>
@@ -4108,6 +4120,8 @@ Bạn có chắc chắn không?`;
                                       <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
                                       {v.done
                                         ?<span style={{background:"#dcfce7",color:"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>✅ Đủ</span>
+                                        :v.choDuyet
+                                          ?<span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>🕓 Đã giao đủ — chờ duyệt</span>
                                         :v.chuaSoan
                                           ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📭 Chưa soạn</span>
                                           :<span style={{background:"#fff7ed",color:"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📉 Thiếu {fmt(v.ct)}</span>}
