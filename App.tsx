@@ -4021,21 +4021,27 @@ Bạn có chắc chắn không?`;
                           </div>
                         </div>
                         <div style={{display:"flex",justifyContent:"flex-end"}}>
+                          {(()=>{
+                            // Khi đã chọn ô (Đã nhận / Còn thiếu) thì chỉ xuất đúng danh sách đang hiển thị (itemsFiltered).
+                            // Khi chưa chọn ô nào (đóng) thì xuất toàn bộ nguồn (itemsNg) như trước.
+                            const dataXuat=filterMode?itemsFiltered:itemsNg;
+                            const nhanXuat=filterMode==="done"?`Đã nhận (${dataXuat.length} mã)`:filterMode==="thieu"?`Còn thiếu (${dataXuat.length} mã)`:`Toàn bộ (${dataXuat.length} mã)`;
+                            return(
                           <ExportBar
-                            shareTitle={`📋 Chi tiết vật tư ${nguon} — ${proj.ten}`}
-                            shareText={`${nguon}: ${tongMa} mã, đã nhận ${maDaNhanNg}, còn thiếu ${maConThieuNg}`}
+                            shareTitle={`📋 Chi tiết vật tư ${nguon} — ${proj.ten} — ${nhanXuat}`}
+                            shareText={`${nguon} — ${nhanXuat}: đã nhận ${maDaNhanNg}, còn thiếu ${maConThieuNg}`}
                             onExcel={()=>xuatExcel(
-                              itemsNg.map(v=>({
+                              dataXuat.map(v=>({
                                 "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
                                 "Vị trí":v.vt||"","Nguồn gốc":nguon,
                                 "Cần":v.cn,"Đã nhận":v.dn,"Còn thiếu":v.ct,
                                 "Trạng thái":v.done?"Đã đủ":v.choDuyet?"Chờ duyệt":v.chuaSoan?"Chưa soạn":"Thiếu"
                               })),
-                              `ChiTietVatTu_${nguon}_${proj.ten.replace(/\s/g,"_")}`,
-                              `Chi tiết vật tư ${nguon} — ${proj.ten}`
+                              `ChiTietVatTu_${nguon}_${filterMode||"TatCa"}_${proj.ten.replace(/\s/g,"_")}`,
+                              `Chi tiết vật tư ${nguon} — ${proj.ten} — ${nhanXuat}`
                             )}
                             onPDF={()=>{
-                              const rowsHtml=itemsNg.map(v=>`<tr>
+                              const rowsHtml=dataXuat.map(v=>`<tr>
                                 <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
                                 <td style="text-align:center">${v.dv||""}</td>
                                 <td>${v.vt||""}</td>
@@ -4043,12 +4049,14 @@ Bạn có chắc chắn không?`;
                                 <td style="text-align:right;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
                                 <td style="text-align:right;color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                               </tr>`).join("");
-                              xuatPDF(`<h2>📋 Chi tiết vật tư ${nguon}</h2>
+                              xuatPDF(`<h2>📋 Chi tiết vật tư ${nguon} — ${nhanXuat}</h2>
                                 <p class="sub">${proj.icon} ${proj.ten} · ${tongMa} mã · Đã nhận ${maDaNhanNg} · Còn thiếu ${maConThieuNg}</p>
                                 <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Vị trí</th><th>Cần</th><th>Đã nhận</th><th>Còn thiếu</th></tr></thead><tbody>${rowsHtml}</tbody></table>`,
-                                `ChiTietVatTu_${nguon}_${proj.ten}`);
+                                `ChiTietVatTu_${nguon}_${filterMode||"TatCa"}_${proj.ten}`);
                             }}
                           />
+                            );
+                          })()}
                         </div>
                       </div>
                       {filterMode&&(
