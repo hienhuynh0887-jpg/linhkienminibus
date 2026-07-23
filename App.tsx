@@ -3011,7 +3011,7 @@ Bạn có chắc chắn không?`;
             </div>
             <div style={{minWidth:0}}>
               <div style={{fontSize:11,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t("brandTitle")}</div>
-              <div style={{fontSize:8,opacity:.6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?t("roleKHTH"):t("roleXH")}</div>
+              <div style={{fontSize:8,opacity:.6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}</div>
             </div>
           </div>
           {/* User + logout */}
@@ -3089,7 +3089,7 @@ Bạn có chắc chắn không?`;
         {/* Role strip */}
         <div style={{padding:"5px 16px 8px",display:"flex",alignItems:"center",gap:8}}>
           <span style={{background:isTHCK?"rgba(29,78,216,0.5)":isKHO?"rgba(15,118,110,0.5)":isKHTH?"rgba(124,58,237,0.5)":"rgba(180,83,9,0.5)",border:`1px solid rgba(255,255,255,0.2)`,borderRadius:20,padding:"2px 12px",fontSize:10,fontWeight:700,color:isTHCK?"#bfdbfe":isKHO?"#5eead4":isKHTH?"#ddd6fe":"#fed7aa",letterSpacing:.3}}>
-            {isTHCK?`🏭 ${t("roleTHCK")}`:isKHO?`📦 ${t("roleKHO")}`:isKHTH?`📋 ${t("roleKHTH")}`:`🚗 ${t("roleXH")}`}
+            {isTHCK?`🏭 ${t("roleTHCK")}`:isKHO?`📦 ${t("roleKHO")}`:isKHTH?`📋 ${user.don_vi||t("roleKHTH")}`:`🚗 ${t("roleXH")}`}
           </span>
           <span style={{fontSize:10,opacity:.5}}>{isTHCK||isKHO?t("subTHCK_KHO"):isKHTH?t("subKHTH"):t("subXH")}</span>
         </div>
