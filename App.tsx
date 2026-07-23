@@ -3449,7 +3449,7 @@ Bạn có chắc chắn không?`;
               {bom.length===0&&<div style={{background:"#fff",borderRadius:10,padding:60,textAlign:"center",color:"#9ca3af",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
                 <div style={{fontSize:48,marginBottom:12}}>🚐</div><div style={{fontSize:14,fontWeight:600}}>Dự án chưa có vật tư</div>
               </div>}
-              {bom.length>0&&(
+              {bom.length>0&&(isTHCK||isKHO)&&(
                 <div style={{position:"sticky",bottom:12,margin:"14px 0 0",background:xong?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#1e3a5f,#1d4ed8)",borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,boxShadow:"0 4px 20px rgba(0,0,0,0.2)",flexWrap:"wrap"}}>
                   <div>
                     <div style={{color:"#fff",fontWeight:700,fontSize:14}}>{xong?"✅ Đã soạn xong!":` ${daSoan.length}/${bom.length} mã đã soạn`}</div>
@@ -4052,7 +4052,7 @@ Bạn có chắc chắn không?`;
                         </div>
                       </div>
                       {filterMode&&(
-                        <div style={{padding:10,display:"flex",flexDirection:"column",gap:8,maxHeight:520,overflowY:"auto"}}>
+                        <div style={{padding:10,display:"flex",flexDirection:"column",gap:8}}>
                           <div style={{fontSize:11,fontWeight:700,color:filterMode==="done"?"#16a34a":"#dc2626",padding:"2px 4px"}}>
                             {filterMode==="done"?`✅ Danh sách Đã nhận (${itemsFiltered.length} mã)`:`📉 Danh sách Còn thiếu (${itemsFiltered.length} mã)`}
                           </div>
