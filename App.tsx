@@ -130,7 +130,7 @@ const USERS_DEF = [
 const TABS_ALL = [
   ["ds",      "📦 Vật tư"],
   ["soan",    "📋 Soạn Hàng"],
-  ["duyet",   "✅ Duyệt Đơn"],
+  ["duyet",   "✅ Nhận Hàng"],
   ["pgn",     "📄 Phiếu GN"],
   ["bc",      "📈 Báo Cáo"],
   ["ls",      "🕓 Lịch sử"],
@@ -139,7 +139,7 @@ const TABS_ALL = [
   ["users",   "👥 Người dùng"],
 ];
 const TABS_THCK     = TABS_ALL.filter(([k])=>!["users","duyet","bom_mau"].includes(k));
-const TABS_XUONGHAN = TABS_ALL.filter(([k])=>!["soan","users"].includes(k));
+const TABS_XUONGHAN = TABS_ALL.filter(([k])=>!["users"].includes(k));
 const TABS_KHO      = TABS_ALL.filter(([k])=>!["duyet","bom_mau"].includes(k));
 // KHTH: chỉ xem — bỏ hẳn các tab thao tác (Soạn Hàng, Duyệt Đơn, BOM Mẫu, Người dùng)
 const TABS_KHTH     = TABS_ALL.filter(([k])=>!["soan","duyet","bom_mau","users"].includes(k));
@@ -149,7 +149,7 @@ const APP_I18N = {
   // Tabs
   tab_ds:      {vi:"📦 Vật tư",        zh:"📦 物料"},
   tab_soan:    {vi:"📋 Soạn Hàng",     zh:"📋 备料"},
-  tab_duyet:   {vi:"✅ Duyệt Đơn",     zh:"✅ 审批订单"},
+  tab_duyet:   {vi:"✅ Nhận Hàng",     zh:"✅ 收货"},
   tab_pgn:     {vi:"📄 Phiếu GN",      zh:"📄 收发单"},
   tab_bc:      {vi:"📈 Báo Cáo",       zh:"📈 报表"},
   tab_ls:      {vi:"🕓 Lịch sử",       zh:"🕓 历史"},
@@ -1062,6 +1062,7 @@ export default function App(){
   const [bcExp,    setBcExp]    = useState({});
   const [bcDmO,    setBcDmO]    = useState({});
   const [bcViTriChiTiet, setBcViTriChiTiet] = useState(false); // ẩn/hiện 2 bảng THCK · CKD trong "Tiến độ theo Vị trí"
+  const [bcBlockOpen, setBcBlockOpen] = useState({THCK:false, CKD:false}); // 2 sơ đồ khối THCK · CKD trong "Chi tiết vật tư theo nguồn"
   const [pgnSr,    setPgnSr]    = useState("");
   const [pgnDm,    setPgnDm]    = useState("Tất cả");
   const [pgnSO,    setPgnSO]    = useState("all");
@@ -3171,8 +3172,8 @@ Bạn có chắc chắn không?`;
                   </button>
                 )}
               </div>
-              <button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 10px",fontSize:13,border:"1px solid #bbf7d0",width:"100%",justifyContent:"center"}}>📊 Import Excel</button>
-              <button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>
+              {!isKHTH&&<button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 10px",fontSize:13,border:"1px solid #bbf7d0",width:"100%",justifyContent:"center"}}>📊 Import Excel</button>}
+              {!isKHTH&&<button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>}
               {isXH&&<button onClick={()=>{setCur({...E0,ng:DMS[0]||""});setModal("add");}} style={{...btn,background:mauP,color:"#fff",padding:"7px 10px",fontSize:13,width:"100%",justifyContent:"center",gridColumn:"1 / -1"}}>+ Thêm mới</button>}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -3208,10 +3209,12 @@ Bạn có chắc chắn không?`;
                     {v.anh
                       ? <img src={v.anh} alt="" onClick={()=>setAnhPv(v.anh)} style={{width:30,height:30,objectFit:"cover",borderRadius:5,cursor:"zoom-in",border:"1px solid #e5e7eb"}}/>
                       : <span style={{color:"#d1d5db",fontSize:16}}>🖼</span>}
+                    {!isKHTH&&(
                     <div style={{display:"flex",gap:5}}>
                       <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"5px 9px",fontSize:12}}>✏️</button>
                       <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"5px 9px",fontSize:12}}>🗑️</button>
                     </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -3982,199 +3985,128 @@ Bạn có chắc chắn không?`;
                 )}
               </div>
               <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>📋 Chi tiết từng mã</span>
+                <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>📋 Chi tiết vật tư theo nguồn</span>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:12}}>
-                {[
-                  ["all","Tất cả","#6b7280"],
-                  ["thieu",`⚠️ Còn thiếu (${bom.length-maDone})`,"#dc2626"],
-                  ["chuasoan",`📭 Chưa soạn (${maChuaSoan})`,"#4f46e5"],
-                  ["thieu_thck",`🏭 Thiếu THCK (${maThieuTHCK})`,"#b45309"],
-                  ["thieu_ckd",`📦 Thiếu CKD (${maThieuCKD})`,"#0369a1"],
-                  ["giaothieu",`📉 Giao thiếu SL (${maGiaoThieu})`,"#7c3aed"],
-                  ["du",`✅ Đã nhận (${maDone})`,"#16a34a"],
-                ].map(([v,l,c])=>(
-                  <button key={v} onClick={()=>setBcFlt(v)}
-                    style={{border:`1.5px solid ${bcFlt===v?c:"#e5e7eb"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",
-                      padding:"10px 12px",fontSize:12,fontWeight:700,textAlign:"center",lineHeight:1.3,
-                      background:bcFlt===v?c:"#fff",color:bcFlt===v?"#fff":"#374151",
-                      boxShadow:bcFlt===v?`0 3px 10px ${c}4d`:"0 1px 3px rgba(0,0,0,0.06)",
-                      transition:"all .15s"}}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-              <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-                {bcFlt==="giaothieu"&&maGiaoThieu>0&&(
-                  <button onClick={()=>{
-                    // Lấy tất cả mã đang giao thiếu SL
-                    const maThieu=th.filter(v=>v.giaoThieu);
-                    if(!maThieu.length){flash("⚠️ Không có mã nào giao thiếu SL!");return;}
-                    let added=0;
-                    setSoanDB(s=>{
-                      const cur=s[pid]||{};
-                      const next={...cur};
-                      maThieu.forEach(v=>{
-                        const slConLai=Math.max(0,v.cn-v.dnXN); // SL thực tế còn thiếu (chưa được XH xác nhận)
-                        // ✅ FIX: slConLai là SỐ LƯỢNG CÒN THIẾU — đánh dấu tuPhieuThieu:true để
-                        // badge hiển thị đúng "Đã nhận X (còn thiếu Y)" thay vì hiểu ngược thành "đã có".
-                        if(slConLai>0&&!next[v.ma]){
-                          next[v.ma]={on:false,sl:slConLai,chuaDu:true,tuPhieuThieu:true};
-                          added++;
-                        } else if(slConLai>0&&next[v.ma]){
-                          // Nếu đã có rồi thì cập nhật SL còn thiếu
-                          next[v.ma]={...next[v.ma],sl:slConLai,chuaDu:true,tuPhieuThieu:true};
-                          added++;
-                        }
-                      });
-                      try{localStorage.setItem("soanDB",JSON.stringify({...s,[pid]:next}));}catch{}
-                      return{...s,[pid]:next};
-                    });
-                    flash(`✓ Đã đưa ${added} mã giao thiếu về Soạn Hàng để soạn tiếp`);
-                    setTab("soan");
-                  }} style={{...btn,background:"#7c3aed",color:"#fff",padding:"6px 14px",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
-                    📋 Đưa {maGiaoThieu} mã về Soạn Hàng
-                  </button>
-                )}
-                <ExportBar
-                  shareTitle={`📈 Báo Cáo Vật Tư — ${proj.ten}`}
-                  shareText={`Báo cáo ${proj.ten}: tiến độ ${pctT}%, đã đủ ${maDone}/${bom.length} mã, còn thiếu ${bom.length-maDone} mã`}
-                  onExcel={()=>{
-                    const allBcRows=Object.values(nhomDM).flat();
-                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&v.thieuTHCK)||(bcFlt==="thieu_ckd"&&v.thieuCKD));
-                    xuatExcel(
-                      filtered2.map(v=>({
-                        "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
-                        "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.cn,
-                        "Đã nhận":v.dn,"Còn thiếu":v.ct,"Vượt KH":v.vuot||0,
-                        "Tiến độ":v.p,"Nguồn gốc":v.ng,
-                        "Phiếu GN":v.phs.length,
-                        "Trạng thái":v.done?"✅ Đã nhận":v.choDuyet?"🕓 Đã giao đủ - chờ duyệt":v.chuaSoan?"📭 Chưa soạn":v.giaoThieu?"📉 Giao thiếu":"⚠️ Thiếu"
-                      })),
-                      `BaoCao_${proj.ten.replace(/\s/g,"_")}`,
-                      `Báo cáo vật tư — ${proj.ten}`
-                    );
-                  }}
-                  onPDF={()=>{
-                    const allBcRows=Object.values(nhomDM).flat();
-                    const filtered2=allBcRows.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&v.thieuTHCK)||(bcFlt==="thieu_ckd"&&v.thieuCKD));
-                    const rows=filtered2.map(v=>`<tr>
-                      <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
-                      <td style="text-align:center">${v.dv}</td>
-                      <td style="text-align:center">${fmt(v.cn)}</td>
-                      <td style="text-align:center;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
-                      <td style="text-align:center;color:${v.done?"#16a34a":"#dc2626"};font-weight:700">${v.done?"✅":fmt(v.ct)}</td>
-                      <td style="text-align:center">${v.p}%</td>
-                      <td>${v.ng}</td>
-                      <td><span class="badge ${v.done?"ok":v.chuaSoan?"":"warn"}">${v.done?"✅":v.choDuyet?"🕓":v.chuaSoan?"📭":v.giaoThieu?"📉":"⚠️"}</span></td>
-                    </tr>`).join("");
-                    xuatPDF(`<h2>${t("titleBc")}</h2>
-                      <p class="sub">${proj.icon} ${proj.ten} · ${soXe} xe · ${phList.length} phiếu · Tiến độ: ${pctT}% · Đã nhận đủ: ${maDone}/${bom.length} mã</p>
-                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thDaNhan")}</th><th>${t("thConThieu")}</th><th>%</th><th>${t("thNguonGoc")}</th><th>${t("thTinhTrang")}</th></tr></thead><tbody>${rows}</tbody></table>`,
-                      `BaoCao_${proj.ten}`);
-                  }}
-                />
-              </div>
-              {Object.entries(nhomDM).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
-                const fil=items.filter(v=>bcFlt==="all"||(bcFlt==="thieu"&&!v.done)||(bcFlt==="du"&&v.done)||(bcFlt==="chuasoan"&&v.chuaSoan)||(bcFlt==="giaothieu"&&v.giaoThieu)||(bcFlt==="thieu_thck"&&v.thieuTHCK)||(bcFlt==="thieu_ckd"&&v.thieuCKD));
-                if(fil.length===0)return null;
-                const isO=bcDmO[dm]!==false;
-                const dC=fil.reduce((s,v)=>s+v.cn,0),dD=fil.reduce((s,v)=>s+v.dn,0),dT=fil.reduce((s,v)=>s+v.ct,0);
-                const dDn=fil.every(v=>v.done);
-                return(
-                  <div key={dm} style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",marginBottom:10,border:`1px solid ${dDn?"#bbf7d0":"#e5e7eb"}`}}>
-                    <div onClick={()=>togDm(dm)} style={{padding:"10px 16px",background:dDn?"#f0fdf4":"#f8fafc",borderBottom:isO?"1px solid #e5e7eb":"none",display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
-                      <span>{isO?"▾":"▸"}</span>
-                      <span style={{fontWeight:700,fontSize:13,color:dDn?"#065f46":"#1f2937"}}>{dm}</span>
-                      {dDn&&<span>✅</span>}
-                      <span style={{fontSize:11,color:"#6b7280"}}>{fil.length} mã</span>
-                      <div style={{flex:1}}/>
-                      <span style={{fontSize:11,color:"#6b7280"}}>Cần: <b>{fmt(dC)}</b></span>
-                      <span style={{fontSize:11,color:"#065f46"}}>Đã nhận: <b>{fmt(dD)}</b></span>
-                      <span style={{fontSize:11,color:dDn?"#16a34a":"#dc2626"}}>Thiếu: <b>{fmt(dT)}</b></span>
-                    </div>
-                    {isO&&(
-                      <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
-                        {fil.map((v,ri)=>{
-                          const isSel2=selMa===v.ma;
-                          return(
-                            <div key={v.ma} style={{background:isSel2?"#fff7ed":v.done?"#f0fdf4":"#fff",borderRadius:10,
-                              border:`1px solid ${isSel2?"#fdba74":v.done?"#bbf7d0":"#f1f5f9"}`,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
-                              <div onClick={()=>setSelMa(s=>s===v.ma?null:v.ma)}
-                                style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",cursor:"pointer",transition:"background .15s"}}>
-                                <div style={{minWidth:28,height:28,borderRadius:7,background:"#f0f4ff",
-                                  display:"flex",alignItems:"center",justifyContent:"center",
-                                  fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>
-                                  {v.stt}
+              <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:14}}>
+                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                  const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
+                  const tongMa=itemsNg.length;
+                  const maDaNhanNg=itemsNg.filter(v=>v.done).length;
+                  const maConThieuNg=tongMa-maDaNhanNg;
+                  const isOpenBlock=!!bcBlockOpen[nguon];
+                  const nhomNg={};itemsNg.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!nhomNg[k])nhomNg[k]=[];nhomNg[k].push(v);});
+                  return(
+                    <div key={nguon} style={{flex:"1 1 320px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:`1.5px solid ${bd}`}}>
+                      <div onClick={()=>setBcBlockOpen(s=>({...s,[nguon]:!s[nguon]}))}
+                        style={{cursor:"pointer",userSelect:"none",padding:"14px 16px",background:bgLight,display:"flex",flexDirection:"column",gap:10}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:18}}>{icon}</span>
+                          <span style={{fontWeight:800,fontSize:14,color:mau}}>{nguon}</span>
+                          <div style={{flex:1}}/>
+                          <span style={{fontSize:12,fontWeight:700,color:mau}}>{isOpenBlock?"▲ Thu gọn":"▼ Xem chi tiết"}</span>
+                        </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                            <div style={{fontWeight:800,fontSize:18,color:"#374151"}}>{tongMa}</div>
+                            <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Tổng số mã</div>
+                          </div>
+                          <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                            <div style={{fontWeight:800,fontSize:18,color:"#16a34a"}}>{maDaNhanNg}</div>
+                            <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Đã nhận</div>
+                          </div>
+                          <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                            <div style={{fontWeight:800,fontSize:18,color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{maConThieuNg}</div>
+                            <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Còn thiếu</div>
+                          </div>
+                        </div>
+                        <div onClick={e=>e.stopPropagation()} style={{display:"flex",justifyContent:"flex-end"}}>
+                          <ExportBar
+                            shareTitle={`📋 Chi tiết vật tư ${nguon} — ${proj.ten}`}
+                            shareText={`${nguon}: ${tongMa} mã, đã nhận ${maDaNhanNg}, còn thiếu ${maConThieuNg}`}
+                            onExcel={()=>xuatExcel(
+                              itemsNg.map(v=>({
+                                "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
+                                "Vị trí":v.vt||"","Nguồn gốc":nguon,
+                                "Cần":v.cn,"Đã nhận":v.dn,"Còn thiếu":v.ct,
+                                "Trạng thái":v.done?"Đã đủ":v.choDuyet?"Chờ duyệt":v.chuaSoan?"Chưa soạn":"Thiếu"
+                              })),
+                              `ChiTietVatTu_${nguon}_${proj.ten.replace(/\s/g,"_")}`,
+                              `Chi tiết vật tư ${nguon} — ${proj.ten}`
+                            )}
+                            onPDF={()=>{
+                              const rowsHtml=itemsNg.map(v=>`<tr>
+                                <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
+                                <td style="text-align:center">${v.dv||""}</td>
+                                <td>${v.vt||""}</td>
+                                <td style="text-align:right">${fmt(v.cn)}</td>
+                                <td style="text-align:right;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
+                                <td style="text-align:right;color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
+                              </tr>`).join("");
+                              xuatPDF(`<h2>📋 Chi tiết vật tư ${nguon}</h2>
+                                <p class="sub">${proj.icon} ${proj.ten} · ${tongMa} mã · Đã nhận ${maDaNhanNg} · Còn thiếu ${maConThieuNg}</p>
+                                <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Vị trí</th><th>Cần</th><th>Đã nhận</th><th>Còn thiếu</th></tr></thead><tbody>${rowsHtml}</tbody></table>`,
+                                `ChiTietVatTu_${nguon}_${proj.ten}`);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      {isOpenBlock&&(
+                        <div style={{padding:10,display:"flex",flexDirection:"column",gap:8,maxHeight:520,overflowY:"auto"}}>
+                          {tongMa===0?(
+                            <div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>— Không có mã nào —</div>
+                          ):Object.entries(nhomNg).sort(([a],[b])=>sapXepDM(a,b)).map(([dm,items])=>{
+                            const isO=bcDmO[nguon+"__"+dm]!==false;
+                            const dC=items.reduce((s,v)=>s+v.cn,0),dD=items.reduce((s,v)=>s+v.dn,0),dT=items.reduce((s,v)=>s+v.ct,0);
+                            const dDn=items.every(v=>v.done);
+                            return(
+                              <div key={dm} style={{border:`1px solid ${dDn?"#bbf7d0":"#e5e7eb"}`,borderRadius:8,overflow:"hidden"}}>
+                                <div onClick={()=>togDm(nguon+"__"+dm)} style={{padding:"8px 12px",background:dDn?"#f0fdf4":"#f8fafc",borderBottom:isO?"1px solid #e5e7eb":"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",flexWrap:"wrap"}}>
+                                  <span>{isO?"▾":"▸"}</span>
+                                  <span style={{fontWeight:700,fontSize:12,color:dDn?"#065f46":"#1f2937"}}>{dm}</span>
+                                  {dDn&&<span>✅</span>}
+                                  <span style={{fontSize:10,color:"#6b7280"}}>{items.length} mã</span>
+                                  <div style={{flex:1}}/>
+                                  <span style={{fontSize:10,color:"#6b7280"}}>Cần: <b>{fmt(dC)}</b></span>
+                                  <span style={{fontSize:10,color:"#065f46"}}>Nhận: <b>{fmt(dD)}</b></span>
+                                  <span style={{fontSize:10,color:dDn?"#16a34a":"#dc2626"}}>Thiếu: <b>{fmt(dT)}</b></span>
                                 </div>
-                                <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontWeight:800,fontSize:13,color:mauP,fontFamily:"monospace",
-                                    whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ma}</div>
-                                  <div style={{fontSize:12,color:"#374151",marginTop:1,
-                                    whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={v.ten}>{v.ten}</div>
-                                  <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
-                                    {v.ng&&<Tag ch={v.ng}/>}
-                                    <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv}</span>
-                                    <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thCan")}: {fmt(v.cn)}</span>
-                                    <span style={{display:"flex",gap:6,flexShrink:0,whiteSpace:"nowrap"}}>
-                                      <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
-                                      {v.done
-                                        ?<span style={{background:"#dcfce7",color:"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>✅ Đủ</span>
-                                        :v.choDuyet
-                                          ?<span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>🕓 Đã giao đủ — chờ duyệt</span>
-                                        :v.chuaSoan
-                                          ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📭 Chưa soạn</span>
-                                          :<span style={{background:"#fff7ed",color:"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📉 Thiếu {fmt(v.ct)}</span>}
-                                    </span>
-                                    {v.vuot>0&&<span style={{background:"#fef3c7",color:"#b45309",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
-                                  </div>
-                                </div>
-                                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,minWidth:52}}>
-                                  <Prog p={v.p} done={v.done}/>
-                                  <span style={{fontSize:10,fontWeight:700,color:v.done?"#16a34a":"#6b7280"}}>{v.p}%</span>
-                                </div>
-                                {v.phs.length>0&&(
-                                  <button onClick={e=>{e.stopPropagation();togExp(v.ma);}}
-                                    style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"4px 9px",fontSize:10,flexShrink:0}}>
-                                    {bcExp[v.ma]?"▲":`▼ ${v.phs.length}`}
-                                  </button>
-                                )}
-                              </div>
-                              {bcExp[v.ma]&&v.phs.length>0&&(
-                                <div style={{borderTop:"1px solid #e0e7ff",background:"#f8faff",padding:"6px 12px 8px",display:"flex",flexDirection:"column",gap:5}}>
-                                  {v.phs.map((ph,pi)=>{
-                                    const cumSl=v.phs.slice(0,pi+1).reduce((s,x)=>s+x.sl,0);
-                                    const cumP=v.cn>0?Math.min(100,Math.round(cumSl/v.cn*100)):0;
-                                    const prevSl=pi===0?0:v.phs.slice(0,pi).reduce((s,x)=>s+x.sl,0);
-                                    const reached=cumSl>=v.cn&&prevSl<v.cn;
-                                    return(
-                                      <div key={pi} style={{background:reached?"#ecfdf5":"#fff",borderRadius:7,padding:"6px 10px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                                        <span style={{fontSize:11,color:"#6b7280",flex:"1 1 140px"}}>
-                                          {reached&&<span style={{color:"#16a34a",fontWeight:700,marginRight:4}}>✅</span>}
-                                          📄 {ph.sp} · {ph.ngay}
-                                        </span>
-                                        <span style={{fontSize:11,fontWeight:700,color:"#1d4ed8"}}>+{fmt(ph.sl)}</span>
-                                        <span style={{fontSize:11,fontWeight:700,color:"#065f46"}}>Cộng: {fmt(cumSl)}</span>
-                                        <span style={{fontSize:11,fontWeight:700,color:cumSl>=v.cn?"#16a34a":"#dc2626"}}>{cumSl>=v.cn?"✅ Đủ":`Còn ${fmt(v.cn-cumSl)}`}</span>
-                                        <div style={{display:"flex",alignItems:"center",gap:4,flex:"1 1 80px",minWidth:60}}>
-                                          <div style={{flex:1,height:6,background:"#e5e7eb",borderRadius:99,overflow:"hidden"}}>
-                                            <div style={{width:`${cumP}%`,height:"100%",background:cumSl>=v.cn?"#16a34a":"#3b82f6",borderRadius:99}}/>
+                                {isO&&(
+                                  <div style={{padding:8,display:"flex",flexDirection:"column",gap:5}}>
+                                    {items.map(v=>(
+                                      <div key={v.ma} style={{background:v.done?"#f0fdf4":"#fff",borderRadius:8,border:`1px solid ${v.done?"#bbf7d0":"#f1f5f9"}`,padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
+                                        <div style={{minWidth:24,height:24,borderRadius:6,background:"#f0f4ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#6366f1",flexShrink:0}}>{v.stt}</div>
+                                        <div style={{flex:1,minWidth:0}}>
+                                          <div style={{fontWeight:800,fontSize:12,color:mauP,fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v.ma}</div>
+                                          <div style={{fontSize:11,color:"#374151",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={v.ten}>{v.ten}</div>
+                                          <div style={{display:"flex",gap:5,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                                            <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:9}}>{t("thCan")}: {fmt(v.cn)}</span>
+                                            <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:9,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
+                                            {v.done
+                                              ?<span style={{background:"#dcfce7",color:"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:9,fontWeight:700}}>✅ Đủ</span>
+                                              :v.choDuyet
+                                                ?<span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:4,padding:"1px 6px",fontSize:9,fontWeight:700}}>🕓 Chờ duyệt</span>
+                                              :v.chuaSoan
+                                                ?<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:4,padding:"1px 6px",fontSize:9,fontWeight:700}}>📭 Chưa soạn</span>
+                                                :<span style={{background:"#fff7ed",color:"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:9,fontWeight:700}}>📉 Thiếu {fmt(v.ct)}</span>}
                                           </div>
-                                          <span style={{fontSize:9,color:"#6b7280",minWidth:28}}>{cumP}%</span>
+                                        </div>
+                                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0,minWidth:44}}>
+                                          <Prog p={v.p} done={v.done}/>
+                                          <span style={{fontSize:9,fontWeight:700,color:v.done?"#16a34a":"#6b7280"}}>{v.p}%</span>
                                         </div>
                                       </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })()}
