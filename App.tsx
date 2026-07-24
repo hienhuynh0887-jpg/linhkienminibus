@@ -422,6 +422,13 @@ const KL_LOGIN_CSS = `
   justify-content:center;
   padding:40px 6vw 70px;
 }
+/* ── Màn hình "Chọn trạng thái dự án" (Bước 3): đưa các thẻ Giai đoạn lên sát
+   ngay dưới đoạn mô tả, thay vì canh giữa màn hình (tạo khoảng trắng lớn). ── */
+#project-view main{
+  align-items:flex-start;
+  justify-content:flex-start;
+  padding-top:18px;
+}
 .kl-select-login .lines{
   display:grid;
   grid-template-columns:repeat(3, minmax(200px,260px));
@@ -1717,7 +1724,9 @@ export default function App(){
   const [phDB,     setPhDB]     = useState({});
   const [soanDB,   setSoanDB]   = useState(()=>{try{const s=localStorage.getItem("soanDB");return s?JSON.parse(s):{};}catch{return{};}});
   const [pid,      setPid]      = useState("proj_xh");
-  const [tab,      setTab]      = useState("ds");
+  // ✅ Nhớ tab đang xem qua localStorage — sau khi tạo dự án xong (hoặc bất kỳ lúc nào)
+  // reload/refresh trang, người dùng ở lại ĐÚNG tab đang xem, không bị nhảy về tab mặc định.
+  const [tab,      setTab]      = useState(()=>{try{return localStorage.getItem("lastTab")||"ds";}catch{return "ds";}});
   const [xhDaXNShowAll, setXhDaXNShowAll] = useState(false);
   const [search,   setSearch]   = useState("");
   const [fdm,      setFdm]      = useState("Tất cả");
@@ -2386,6 +2395,9 @@ export default function App(){
 
   // ── Lưu soanDB vào localStorage mỗi khi thay đổi ──
   useEffect(()=>{try{localStorage.setItem("soanDB",JSON.stringify(soanDB));}catch{};},[soanDB]);
+
+  // ── Lưu tab đang xem vào localStorage mỗi khi thay đổi (giữ đúng trang qua các lần reload) ──
+  useEffect(()=>{try{if(tab)localStorage.setItem("lastTab",tab);}catch{};},[tab]);
 
   // ── Đồng bộ phiên đăng nhập vào localStorage (giữ đăng nhập qua các lần auto-reload) ──
   useEffect(()=>{
