@@ -696,12 +696,13 @@ const KL_LOGIN_CSS = `
 .kl-select-login .gate-sub{color:#6b6b6b; font-size:13.5px; line-height:1.55; margin-bottom:28px;}
 .kl-select-login .field-icon .input-wrap{position:relative; display:flex; align-items:center;}
 .kl-select-login .field-icon .input-icon{
-  position:absolute; left:13px;
-  width:17px; height:17px;
+  position:absolute; left:14px;
+  width:16px; height:16px;
   color:#b5794a;
   pointer-events:none;
+  z-index:1;
 }
-.kl-select-login .field-icon input{padding-left:40px;}
+.kl-select-login .field-icon input{padding-left:46px !important;}
 .kl-select-login .field-icon .input-wrap:focus-within .input-icon{color:#ff6a00;}
 .kl-select-login .gate-row{
   display:flex; align-items:center; justify-content:space-between;
@@ -733,6 +734,7 @@ const KL_LOGIN_CSS = `
 }
 .kl-select-login .gate-box .field input::placeholder{color:#c9a583;}
 .kl-select-login .gate-box .field input:focus{border-color:#ff6a00; box-shadow:0 0 0 3px rgba(255,106,0,0.12);}
+.kl-select-login .gate-box .field.field-icon input{padding-left:46px !important;}
 .kl-select-login .gate-submit{
   width:100%;
   margin-top:2px;
@@ -846,13 +848,15 @@ const KL_LINES = [
 ];
 
 // ─── Trạng thái dự án — 3 thẻ thư mục sau khi chọn dòng xe ───
-// ⚠️ CHỈ trạng thái "inprogress" (Đang thực hiện) mới thực sự dẫn vào hệ thống
-// quản lý vật tư (web chính). 2 trạng thái còn lại hiện chỉ hiển thị giao diện.
+// ⚠️ "inprogress" (Đang thực hiện) dẫn thẳng vào hệ thống quản lý vật tư (web chính).
+// "new" (Khởi tạo Dự án) cũng dẫn vào hệ thống nhưng tự động mở sẵn modal "🆕 Thêm dự án mới"
+// (đúng y hệt nút "＋ Thêm" trên thanh dự án của trang chính).
+// "done" (Đã thực hiện) hiện chỉ hiển thị giao diện, chưa kích hoạt.
 const KL_PROJECT_STATUSES = [
   {
     id:"new", tagText:"Giai đoạn · 01", title:"Khởi tạo Dự án",
     desc:"Tạo mới dự án, thiết lập BOM và định mức ban đầu.",
-    accent:"var(--steel)", active:false,
+    accent:"var(--steel)", active:true,
     icon:(
       <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 7a2 2 0 0 1 2-2h4.2l2 2H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="var(--accent)" fillOpacity="0.18" stroke="var(--accent)" strokeWidth="1.6"/>
@@ -942,15 +946,16 @@ function LoginScreen({onLogin}){
   };
 
   // ── Bước 3: Chọn trạng thái dự án ──
-  // ⚠️ Chỉ trạng thái "Đang thực hiện" mới dẫn thẳng vào web quản lý vật tư minibus.
-  // 2 trạng thái còn lại chỉ hiển thị giao diện, chưa kích hoạt.
+  // "Đang thực hiện" → vào thẳng hệ thống quản lý vật tư như bình thường.
+  // "Khởi tạo Dự án" → vào hệ thống VÀ tự mở sẵn modal "🆕 Thêm dự án mới".
+  // "Đã thực hiện" → chưa kích hoạt, chỉ hiển thị giao diện.
   const chooseStatus=(s)=>{
     if(!s.active){
-      setErr(`Trạng thái "${s.title}" chưa được kích hoạt. Vui lòng chọn "Đang thực hiện" để vào hệ thống quản lý vật tư.`);
+      setErr(`Trạng thái "${s.title}" chưa được kích hoạt. Vui lòng chọn "Khởi tạo Dự án" hoặc "Đang thực hiện" để vào hệ thống.`);
       return;
     }
     setErr("");
-    onLogin(authedUser, userList);
+    onLogin(authedUser, userList, {openNewProject:s.id==="new"});
   };
 
   const backToSelect=()=>{ setErr(""); setStep("select"); };
@@ -1008,7 +1013,7 @@ function LoginScreen({onLogin}){
                     <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <input type="text" list="tk-list" value={uid2}
                       onChange={e=>{setUid2(e.target.value);setErr("");}}
-                      placeholder="Nhập mã nhân viên" autoComplete="off" required/>
+                      placeholder="Tên đăng nhập" autoComplete="off" required/>
                   </div>
                   <datalist id="tk-list">
                     {userList.filter(u=>!u.an).map(u=>(
@@ -1022,7 +1027,7 @@ function LoginScreen({onLogin}){
                     <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                     <input type="password" value={pw}
                       onChange={e=>{setPw(e.target.value);setErr("");}}
-                      placeholder="••••••••" required/>
+                      placeholder="Nhập mật khẩu" required/>
                   </div>
                 </div>
                 <div className="gate-row">
@@ -3649,10 +3654,13 @@ Bạn có chắc chắn không?`;
   // ── RENDER ──
   if(!user) return (
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
-      <LoginScreen onLogin={(u,us)=>{setUser(u);if(us)setUsers(us);
+      <LoginScreen onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
         try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
         // Set default tab per role
         setTab(u.role==="thck"||u.role==="kho"?"soan":u.role==="khth"?"ds":"duyet");
+        // Nếu vào từ thẻ "Khởi tạo Dự án" ở màn hình đăng nhập → tự mở sẵn modal
+        // "🆕 Thêm dự án mới" (đúng y hệt nút "＋ Thêm" trên thanh dự án).
+        if(opts?.openNewProject) setNewP(true);
       }}/>
     </LangCtx.Provider>
   );
