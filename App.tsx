@@ -335,11 +335,11 @@ const KL_LOGO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAA
 const KL_LOGIN_CSS = `
 .kl-select-login{
   --bg:#0d1318;
-  --panel:#161f26;
-  --panel-2:#1c2830;
-  --line:#2a3742;
-  --text:#eaf0f4;
-  --muted:#7c8b96;
+  --panel:#1c2831;
+  --panel-2:#22303a;
+  --line:#37474f;
+  --text:#f5f9fb;
+  --muted:#a6b6c0;
   --steel:#2f8fff;
   --teal:#0fe0a4;
   --amber:#ff9a1f;
@@ -354,6 +354,12 @@ const KL_LOGIN_CSS = `
   flex-direction:column;
   overflow-x:hidden;
   box-sizing:border-box;
+}
+.kl-select-login.kl-gate{
+  background:#ffffff;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
 }
 .kl-select-login *{box-sizing:border-box;}
 .kl-select-login header{
@@ -512,12 +518,15 @@ const KL_LOGIN_CSS = `
   color:var(--muted);
   letter-spacing:.08em;
 }
-.kl-select-login #login-view{
+.kl-select-login #project-view{
   flex:1;
-  align-items:center;
-  justify-content:center;
-  padding:40px 6vw 70px;
+  display:flex;
+  flex-direction:column;
 }
+.kl-select-login #project-view .hero{padding-top:36px;}
+.kl-select-login #project-view .hero .back-btn{margin-bottom:20px;}
+.kl-select-login #project-view .login-head{margin-bottom:14px;}
+.kl-select-login #project-view .hero p{color:var(--muted); font-size:14px; margin-top:2px;}
 .kl-select-login .login-box{
   width:100%;
   max-width:380px;
@@ -592,6 +601,175 @@ const KL_LOGIN_CSS = `
 @media (max-width:760px){
   .kl-select-login .lines{grid-template-columns:1fr; max-width:320px;}
 }
+
+/* ---------- GATE LOGIN (tài khoản / mật khẩu) ---------- */
+.kl-select-login .gate-grid{
+  width:100%;
+  max-width:1040px;
+  min-height:600px;
+  margin:5vh auto;
+  display:grid;
+  grid-template-columns:1.05fr 1fr;
+  background:#ffffff;
+  border:1px solid #ffd6ad;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 30px 70px -30px rgba(255,106,0,0.25);
+}
+.kl-select-login .gate-visual{
+  position:relative;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,106,0,0.10) 0%, transparent 55%),
+    #fff7f0;
+  border-right:1px solid #ffd6ad;
+  overflow:hidden;
+  display:flex;
+}
+.kl-select-login .gate-visual-inner{position:relative; flex:1; padding:48px 42px; display:flex; align-items:flex-end;}
+.kl-select-login .kl-blueprint{position:absolute; inset:0; width:100%; height:100%; opacity:.9;}
+.kl-select-login .kl-blueprint path, .kl-select-login .kl-blueprint circle, .kl-select-login .kl-blueprint line{stroke:rgba(255,106,0,0.45) !important;}
+.kl-select-login .kl-blueprint rect{opacity:.5;}
+.kl-select-login .kl-grid-pattern path{stroke:rgba(255,106,0,0.14) !important;}
+.kl-select-login .scan-line{
+  position:absolute; left:0; right:0; height:120px; top:-120px;
+  background:linear-gradient(180deg, transparent, rgba(255,106,0,0.16), transparent);
+  animation:kl-scan 7s linear infinite;
+}
+@keyframes kl-scan{ 0%{top:-120px;} 100%{top:100%;} }
+.kl-select-login .gate-visual-content{position:relative; z-index:1;}
+.kl-select-login .gate-visual-eyebrow{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; font-weight:700; letter-spacing:.18em;
+  color:#ff6a00; text-transform:uppercase; margin-bottom:14px;
+}
+.kl-select-login .gate-visual-title{
+  font-family:'Oswald', sans-serif;
+  font-size:clamp(26px, 3vw, 34px);
+  font-weight:700;
+  text-transform:uppercase;
+  line-height:1.15;
+  letter-spacing:.01em;
+  margin-bottom:16px;
+  background:linear-gradient(180deg, #1c1c1c, #4a4a4a);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.kl-select-login .gate-visual-sub{
+  color:#6b6b6b;
+  font-size:13.5px;
+  line-height:1.6;
+  max-width:340px;
+  margin-bottom:28px;
+}
+.kl-select-login .module-chips{display:flex; gap:10px; flex-wrap:wrap;}
+.kl-select-login .chip{
+  display:flex; align-items:center; gap:7px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; font-weight:600; letter-spacing:.04em;
+  color:#3a3a3a;
+  background:#fff2e6;
+  border:1px solid #ffcf9e;
+  border-radius:999px;
+  padding:6px 12px;
+}
+.kl-select-login .chip .dot{width:7px; height:7px; border-radius:50%; display:inline-block; background:#ff6a00 !important;}
+.kl-select-login .corner{position:absolute; width:22px; height:22px; border-color:#ff6a00; opacity:.5;}
+.kl-select-login .corner.tl{top:-30px; left:-6px; border-top:2px solid; border-left:2px solid;}
+.kl-select-login .corner.tr{top:-30px; right:-6px; border-top:2px solid; border-right:2px solid;}
+.kl-select-login .gate-form-panel{display:flex; align-items:center; justify-content:center; padding:48px 40px;}
+.kl-select-login .gate-box{width:100%; max-width:340px; --accent:#ff6a00;}
+.kl-select-login .gate-eyebrow{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; font-weight:700; letter-spacing:.18em;
+  color:#ff6a00; text-transform:uppercase; margin-bottom:8px;
+}
+.kl-select-login .gate-title{
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  font-size:clamp(24px, 3vw, 30px);
+  text-transform:uppercase;
+  letter-spacing:.01em;
+  color:#1c1c1c;
+  margin-bottom:8px;
+}
+.kl-select-login .gate-sub{color:#6b6b6b; font-size:13.5px; line-height:1.55; margin-bottom:28px;}
+.kl-select-login .field-icon .input-wrap{position:relative; display:flex; align-items:center;}
+.kl-select-login .field-icon .input-icon{
+  position:absolute; left:13px;
+  width:17px; height:17px;
+  color:#b5794a;
+  pointer-events:none;
+}
+.kl-select-login .field-icon input{padding-left:40px;}
+.kl-select-login .field-icon .input-wrap:focus-within .input-icon{color:#ff6a00;}
+.kl-select-login .gate-row{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:2px 0 18px;
+  font-size:12.5px;
+}
+.kl-select-login .remember{display:flex; align-items:center; gap:7px; color:#6b6b6b; cursor:pointer;}
+.kl-select-login .remember input{accent-color:#ff6a00; width:14px; height:14px;}
+.kl-select-login .forgot{color:#ff6a00; text-decoration:none; font-weight:600;}
+.kl-select-login .forgot:hover{text-decoration:underline;}
+.kl-select-login .gate-box .field{margin-bottom:16px;}
+.kl-select-login .gate-box .field label{
+  display:block;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:#ff6a00; margin-bottom:7px;
+}
+.kl-select-login .gate-box .field input{
+  width:100%;
+  background:#fffaf5;
+  border:1.5px solid #ffcf9e;
+  border-radius:10px;
+  padding:12px 13px;
+  color:#1c1c1c;
+  font-family:'Inter', sans-serif;
+  font-size:14px; font-weight:500;
+  outline:none;
+  transition:border-color .2s ease;
+}
+.kl-select-login .gate-box .field input::placeholder{color:#c9a583;}
+.kl-select-login .gate-box .field input:focus{border-color:#ff6a00; box-shadow:0 0 0 3px rgba(255,106,0,0.12);}
+.kl-select-login .gate-submit{
+  width:100%;
+  margin-top:2px;
+  padding:13px;
+  border:none;
+  border-radius:8px;
+  background:#ff6a00;
+  color:#ffffff;
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  font-size:14.5px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 10px 24px -10px rgba(255,106,0,0.55);
+  transition:filter .2s ease;
+}
+.kl-select-login .gate-submit:hover{filter:brightness(1.06);}
+.kl-select-login .gate-foot{
+  margin-top:26px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10.5px;
+  color:#9a9a9a;
+  letter-spacing:.08em;
+}
+.kl-select-login .gate-err{
+  background:#fee2e2; border:1px solid #fca5a5; border-radius:8px;
+  padding:9px 13px; font-size:12px; color:#991b1b; margin-bottom:14px;
+}
+@media (max-width:820px){
+  .kl-select-login .gate-grid{grid-template-columns:1fr; max-width:440px; margin:0; min-height:100vh; border-radius:0; border:none;}
+  .kl-select-login .gate-visual{display:none;}
+  .kl-select-login .gate-form-panel{padding:44px 30px;}
+}
+
+/* ---------- FOLDER / PROJECT STATUS CARDS ---------- */
+.kl-select-login .folder-card .desc{min-height:34px;}
 `;
 
 const KL_LINES = [
@@ -667,18 +845,60 @@ const KL_LINES = [
   },
 ];
 
-// ─── Login Screen — 1 biểu mẫu dùng chung ────────────────────
+// ─── Trạng thái dự án — 3 thẻ thư mục sau khi chọn dòng xe ───
+// ⚠️ CHỈ trạng thái "inprogress" (Đang thực hiện) mới thực sự dẫn vào hệ thống
+// quản lý vật tư (web chính). 2 trạng thái còn lại hiện chỉ hiển thị giao diện.
+const KL_PROJECT_STATUSES = [
+  {
+    id:"new", tagText:"Giai đoạn · 01", title:"Khởi tạo Dự án",
+    desc:"Tạo mới dự án, thiết lập BOM và định mức ban đầu.",
+    accent:"var(--steel)", active:false,
+    icon:(
+      <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7a2 2 0 0 1 2-2h4.2l2 2H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="var(--accent)" fillOpacity="0.18" stroke="var(--accent)" strokeWidth="1.6"/>
+        <line x1="12" y1="12" x2="12" y2="16.5" stroke="var(--accent)" strokeWidth="1.8"/>
+        <line x1="9.7" y1="14.2" x2="14.3" y2="14.2" stroke="var(--accent)" strokeWidth="1.8"/>
+      </svg>
+    ),
+  },
+  {
+    id:"inprogress", tagText:"Giai đoạn · 02", title:"Đang thực hiện",
+    desc:"Theo dõi tiến độ sản xuất, soạn hàng và phiếu giao nhận.",
+    accent:"var(--amber)", active:true,
+    icon:(
+      <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7a2 2 0 0 1 2-2h4.2l2 2H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="var(--accent)" fillOpacity="0.18" stroke="var(--accent)" strokeWidth="1.6"/>
+        <path d="M9 13.5l2 2 4-4.5" stroke="var(--accent)" strokeWidth="1.8"/>
+      </svg>
+    ),
+  },
+  {
+    id:"done", tagText:"Giai đoạn · 03", title:"Đã thực hiện",
+    desc:"Lưu trữ hồ sơ, đối chiếu và tổng kết dự án hoàn tất.",
+    accent:"var(--teal)", active:false,
+    icon:(
+      <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7a2 2 0 0 1 2-2h4.2l2 2H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="var(--accent)" fillOpacity="0.18" stroke="var(--accent)" strokeWidth="1.6"/>
+        <path d="M8.5 12.2l2.3 2.3 4.7-4.9" stroke="var(--accent)" strokeWidth="1.9"/>
+      </svg>
+    ),
+  },
+];
+
+// ─── Login Screen — Cổng vào (tài khoản) → chọn dòng xe → trạng thái dự án ────
 function LoginScreen({onLogin}){
-  const [view, setView]   = useState("select"); // "select" | "login"
+  // "gate" (đăng nhập tài khoản) → "select" (chọn dòng xe) → "project" (chọn trạng thái dự án)
+  const [step, setStep]   = useState("gate");
   const [activeLine, setActiveLine] = useState(null);
   const [uid2, setUid2]   = useState("");
   const [pw, setPw]       = useState("");
   const [err, setErr]     = useState("");
   const [userList,setUserList]=useState(USERS_DEF);
+  const [authedUser,setAuthedUser]=useState(null);
   const {lang} = useLang();
   const t = LOGIN_I18N[lang];
 
-  // Nạp font chữ cho giao diện chọn dòng xe (chỉ 1 lần)
+  // Nạp font chữ cho giao diện đăng nhập (chỉ 1 lần)
   useEffect(()=>{
     if(!document.getElementById("kl-fonts-link")){
       const pre=document.createElement("link");
@@ -697,42 +917,136 @@ function LoginScreen({onLogin}){
     });
   },[]);
 
-  const reloadUsers=()=>{
-    supabase.from("users").select("*").then(({data})=>{
-      if(data?.length) setUserList(data);
-    });
-  };
-
-  const openLogin=(lineId)=>{
-    setActiveLine(lineId);
-    setErr(""); setUid2(""); setPw("");
-    setView("login");
-    reloadUsers();
-  };
-  const goBack=()=>{ setView("select"); setErr(""); };
-
-  const line = KL_LINES.find(l=>l.id===activeLine) || KL_LINES[0];
-
-  const handleSubmit=(e)=>{
+  // ── Bước 1: Đăng nhập tài khoản (cổng vào chung) ──
+  const handleGateLogin=(e)=>{
     e.preventDefault();
-    // ⚠️ Chỉ dòng "Mini Bus" mới thực sự đăng nhập vào hệ thống.
-    // "12M" và "City Bus" hiện chỉ hiển thị giao diện, chưa kết nối đăng nhập thật.
-    if(activeLine!=="minibus"){
-      setErr(`Dòng "${line.title}" chưa được kích hoạt đăng nhập. Vui lòng chọn "Mini Bus" để vào hệ thống.`);
-      return;
-    }
     if(!uid2){setErr(t.errNoAcc);return;}
     const u=userList.find(u=>u.id===uid2&&u.pw===pw);
     if(!u){setErr(t.errBadPw);return;}
-    setErr("");onLogin(u,userList);
+    setErr("");
+    setAuthedUser(u);
+    setStep("select");
   };
 
+  // ── Bước 2: Chọn dòng xe ──
+  // ⚠️ Chỉ dòng "Mini Bus" mới thực sự dẫn tiếp vào bước chọn trạng thái dự án.
+  // "12M" và "City Bus" hiện chỉ hiển thị giao diện, chưa kích hoạt.
+  const chooseLine=(l)=>{
+    if(l.id!=="minibus"){
+      setErr(`Dòng "${l.title}" chưa được kích hoạt. Vui lòng chọn "Mini Bus" để tiếp tục.`);
+      return;
+    }
+    setErr("");
+    setActiveLine(l.id);
+    setStep("project");
+  };
+
+  // ── Bước 3: Chọn trạng thái dự án ──
+  // ⚠️ Chỉ trạng thái "Đang thực hiện" mới dẫn thẳng vào web quản lý vật tư minibus.
+  // 2 trạng thái còn lại chỉ hiển thị giao diện, chưa kích hoạt.
+  const chooseStatus=(s)=>{
+    if(!s.active){
+      setErr(`Trạng thái "${s.title}" chưa được kích hoạt. Vui lòng chọn "Đang thực hiện" để vào hệ thống quản lý vật tư.`);
+      return;
+    }
+    setErr("");
+    onLogin(authedUser, userList);
+  };
+
+  const backToSelect=()=>{ setErr(""); setStep("select"); };
+
+  const line = KL_LINES.find(l=>l.id===activeLine) || KL_LINES[2];
+
+  // ════════════════ BƯỚC 1: CỔNG ĐĂNG NHẬP ════════════════
+  if(step==="gate"){
+    return(
+      <div className="kl-select-login kl-gate">
+        <style>{KL_LOGIN_CSS}</style>
+        <div className="gate-grid">
+          <div className="gate-visual">
+            <div className="gate-visual-inner">
+              <svg className="kl-blueprint" viewBox="0 0 400 400" fill="none">
+                <defs>
+                  <pattern id="klGateGridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" strokeWidth="1"/>
+                  </pattern>
+                </defs>
+                <rect width="400" height="400" fill="url(#klGateGridPattern)" className="kl-grid-pattern"/>
+                <path d="M40 260 V150 a24 24 0 0 1 24-24 h192 l64 52 v82a10 10 0 0 1-10 10H50a10 10 0 0 1-10-10Z" strokeWidth="1.6"/>
+                <circle cx="95" cy="270" r="22" strokeWidth="1.6"/>
+                <circle cx="255" cy="270" r="22" strokeWidth="1.6"/>
+                <line x1="64" y1="126" x2="64" y2="248" strokeWidth="1.2"/>
+                <line x1="140" y1="126" x2="140" y2="248" strokeWidth="1.2"/>
+                <line x1="216" y1="126" x2="216" y2="248" strokeWidth="1.2"/>
+              </svg>
+              <div className="scan-line"></div>
+              <div className="gate-visual-content">
+                <div className="corner tl"></div>
+                <div className="corner tr"></div>
+                <div className="gate-visual-eyebrow">Kim Long Motor · Huế</div>
+                <h2 className="gate-visual-title">Hệ thống<br/>Quản lý Vật tư</h2>
+                <p className="gate-visual-sub">Theo dõi BOM, định mức, phiếu giao nhận và tiến độ sản xuất theo thời gian thực trên toàn bộ dây chuyền.</p>
+                <div className="module-chips">
+                  <div className="chip"><span className="dot"></span>12M</div>
+                  <div className="chip"><span className="dot"></span>City Bus</div>
+                  <div className="chip"><span className="dot"></span>Mini Bus</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="gate-form-panel">
+            <div className="gate-box">
+              <div className="gate-eyebrow">Truy cập hệ thống</div>
+              <h1 className="gate-title">Đăng nhập</h1>
+              <p className="gate-sub">Nhập thông tin tài khoản nội bộ để tiếp tục.</p>
+
+              <form onSubmit={handleGateLogin}>
+                <div className="field field-icon">
+                  <label>Tài khoản</label>
+                  <div className="input-wrap">
+                    <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <input type="text" list="tk-list" value={uid2}
+                      onChange={e=>{setUid2(e.target.value);setErr("");}}
+                      placeholder="Nhập mã nhân viên" autoComplete="off" required/>
+                  </div>
+                  <datalist id="tk-list">
+                    {userList.filter(u=>!u.an).map(u=>(
+                      <option key={u.id} value={u.id}>{`${u.avatar} ${u.ten} (${u.don_vi})`}</option>
+                    ))}
+                  </datalist>
+                </div>
+                <div className="field field-icon">
+                  <label>Mật khẩu</label>
+                  <div className="input-wrap">
+                    <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                    <input type="password" value={pw}
+                      onChange={e=>{setPw(e.target.value);setErr("");}}
+                      placeholder="••••••••" required/>
+                  </div>
+                </div>
+                <div className="gate-row">
+                  <label className="remember"><input type="checkbox"/>Ghi nhớ đăng nhập</label>
+                </div>
+                {err&&<div className="gate-err">⚠️ {err}</div>}
+                <button type="submit" className="gate-submit">Đăng nhập →</button>
+              </form>
+
+              <div className="gate-foot">KIM LONG MOTOR HUẾ &nbsp;·&nbsp; HỆ THỐNG NỘI BỘ &nbsp;·&nbsp; V1.0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════════ BƯỚC 2 & 3: CHỌN DÒNG XE / TRẠNG THÁI DỰ ÁN ════════════════
   return(
     <div className="kl-select-login">
       <style>{KL_LOGIN_CSS}</style>
 
       <header>
-        <div className="brand" onClick={goBack} title="Về trang chọn dòng xe">
+        <div className="brand" onClick={backToSelect} title="Về trang chọn dòng xe">
           <img className="brand-mark" src={KL_LOGO_B64} alt="Kim Long Motor"/>
           <div className="brand-text">
             <div className="eyebrow">Production System</div>
@@ -742,82 +1056,75 @@ function LoginScreen({onLogin}){
         <div className="status"><span>● ONLINE</span></div>
       </header>
 
-      {view==="select" && (
+      {step==="select" && (
         <div id="select-view">
           <div className="hero">
             <div className="eyebrow">Hệ thống quản lý vật tư</div>
             <h2>Bạn muốn chọn dòng xe nào?</h2>
-            <p>Chọn dòng sản phẩm để tiếp tục đăng nhập vào hệ thống quản lý sản xuất tương ứng.</p>
+            <p>Chọn dòng sản phẩm để tiếp tục vào hệ thống quản lý sản xuất tương ứng.</p>
           </div>
           <main>
             <div className="lines">
               {KL_LINES.map(l=>(
                 <div key={l.id} className="card" tabIndex={0} style={{"--accent":l.accent}}
-                  onClick={()=>openLogin(l.id)}
-                  onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openLogin(l.id);}}}>
+                  onClick={()=>chooseLine(l)}
+                  onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseLine(l);}}}>
                   <div className="icon-wrap">{l.icon}</div>
                   <div>
                     <div className="tag">{l.tagText}</div>
                     <h3>{l.title}</h3>
                   </div>
                   <div className="desc">{l.desc}</div>
-                  <div className="enter">Đăng nhập →</div>
+                  <div className="enter">Truy cập →</div>
                 </div>
               ))}
             </div>
           </main>
+          {err&&(
+            <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5"}}>
+              ⚠️ {err}
+            </div>
+          )}
           <footer>KIM LONG MOTOR HUẾ &nbsp;·&nbsp; HỆ THỐNG NỘI BỘ &nbsp;·&nbsp; V1.0</footer>
         </div>
       )}
 
-      {view==="login" && (
-        <div id="login-view" style={{display:"flex"}}>
-          <div className="login-box" style={{"--accent":line.accent}}>
-            <button type="button" className="back-btn" onClick={goBack}>← Quay lại chọn dòng xe</button>
+      {step==="project" && (
+        <div id="project-view">
+          <div className="hero">
+            <button type="button" className="back-btn" onClick={backToSelect}>← Quay lại chọn dòng xe</button>
             <div className="login-head">
-              <div className="icon-wrap">{line.icon}</div>
+              <div className="icon-wrap" style={{"--accent":line.accent}}>{line.icon}</div>
               <div>
                 <span className="tag">{line.tagText}</span>
-                <h2>{line.title}</h2>
+                <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:22,textTransform:"uppercase"}}>{line.title}</h2>
               </div>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="field">
-                <label>Tài khoản</label>
-                <input
-                  type="text"
-                  list="tk-list"
-                  value={uid2}
-                  onChange={e=>{setUid2(e.target.value);setErr("");}}
-                  placeholder="Nhập mã nhân viên"
-                  autoComplete="off"
-                  required
-                />
-                <datalist id="tk-list">
-                  {userList.filter(u=>!u.an).map(u=>(
-                    <option key={u.id} value={u.id}>{`${u.avatar} ${u.ten} (${u.don_vi})`}</option>
-                  ))}
-                </datalist>
-              </div>
-              <div className="field">
-                <label>Mật khẩu</label>
-                <input
-                  type="password"
-                  value={pw}
-                  onChange={e=>{setPw(e.target.value);setErr("");}}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              {err&&(
-                <div style={{background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5",marginBottom:14}}>
-                  ⚠️ {err}
-                </div>
-              )}
-              <button type="submit" className="submit-btn">Đăng nhập</button>
-            </form>
-            <div className="login-foot">{line.desc}</div>
+            <p>Chọn khu vực quản lý dự án cho dòng xe này.</p>
           </div>
+          <main>
+            <div className="lines">
+              {KL_PROJECT_STATUSES.map(s=>(
+                <div key={s.id} className="card folder-card" tabIndex={0} style={{"--accent":s.accent}}
+                  onClick={()=>chooseStatus(s)}
+                  onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseStatus(s);}}}>
+                  <div className="icon-wrap">{s.icon}</div>
+                  <div>
+                    <div className="tag">{s.tagText}</div>
+                    <h3>{s.title}</h3>
+                  </div>
+                  <div className="desc">{s.desc}</div>
+                  <div className="enter">Truy cập →</div>
+                </div>
+              ))}
+            </div>
+          </main>
+          {err&&(
+            <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5"}}>
+              ⚠️ {err}
+            </div>
+          )}
+          <footer>KIM LONG MOTOR HUẾ &nbsp;·&nbsp; HỆ THỐNG NỘI BỘ &nbsp;·&nbsp; V1.0</footer>
         </div>
       )}
     </div>
