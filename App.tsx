@@ -140,7 +140,7 @@ const TABS_ALL = [
 ];
 const TABS_THCK     = TABS_ALL.filter(([k])=>!["users","duyet","bom_mau"].includes(k));
 const TABS_XUONGHAN = TABS_ALL.filter(([k])=>!["users"].includes(k));
-const TABS_KHO      = TABS_ALL.filter(([k])=>!["duyet","bom_mau"].includes(k));
+const TABS_KHO      = TABS_ALL.filter(([k])=>!["duyet","bom_mau","users"].includes(k));
 // KHTH: chỉ xem — bỏ hẳn các tab thao tác (Soạn Hàng, Duyệt Đơn, BOM Mẫu, Người dùng)
 const TABS_KHTH     = TABS_ALL.filter(([k])=>!["soan","duyet","bom_mau","users"].includes(k));
 
@@ -468,6 +468,12 @@ const KL_LOGIN_CSS = `
   background:var(--accent);
   opacity:.7;
 }
+.kl-select-login .card.card-locked{
+  opacity:.5;
+  filter:grayscale(.55);
+}
+.kl-select-login .card.card-locked:hover{ transform:none; }
+.kl-select-login .card.card-locked .enter{ color:#9ca3af; }
 .kl-select-login .card:hover, .kl-select-login .card:focus-visible{
   transform:translateY(-6px);
   border-color:var(--accent);
@@ -854,6 +860,25 @@ const KL_LINES = [
   },
 ];
 
+// ─── Phân quyền dòng xe theo Đơn vị (Bước 2 màn đăng nhập) ───
+// Mỗi đơn vị (Nhà máy THCK / XƯỞNG HÀN / KHO VẬT TƯ / Phòng KH-TH / các phòng ban tự thêm)
+// được cấp quyền truy cập MỘT hoặc NHIỀU dòng xe. Quản trị viên (tài khoản có id "admin")
+// LUÔN có toàn quyền truy cập cả 3 dòng xe, không phụ thuộc bảng phân quyền này.
+// Mặc định (khi Supabase chưa có dữ liệu) giữ nguyên hành vi cũ: chỉ "Mini Bus" được cấp
+// cho mọi đơn vị — Admin vào "👥 Người dùng" → "🚌 Phân quyền dòng xe" để cấp thêm.
+// ⚠️ SQL cần chạy 1 lần trên Supabase (SQL Editor) để lưu phân quyền lâu dài:
+//   create table if not exists quyen_dong_xe (
+//     don_vi text primary key,
+//     dong_xe jsonb not null default '["minibus"]'::jsonb
+//   );
+const LINE_IDS = KL_LINES.map(l=>l.id); // ["12m","citybus","minibus"]
+const LINE_QUYEN_DEFAULT = {
+  "Nhà máy THCK": ["minibus"],
+  "XƯỞNG HÀN":    ["minibus"],
+  "KHO VẬT TƯ":   ["minibus"],
+  "Phòng KH-TH":  ["minibus"],
+};
+
 // ─── Trạng thái dự án — 3 thẻ thư mục sau khi chọn dòng xe ───
 // ⚠️ "inprogress" (Đang thực hiện) dẫn thẳng vào hệ thống quản lý vật tư (web chính).
 // "new" (Khởi tạo Dự án) cũng dẫn vào hệ thống nhưng tự động mở sẵn modal "🆕 Thêm dự án mới"
@@ -906,6 +931,7 @@ function LoginScreen({onLogin}){
   const [err, setErr]     = useState("");
   const [userList,setUserList]=useState(USERS_DEF);
   const [authedUser,setAuthedUser]=useState(null);
+  const [lineQuyen,setLineQuyen]=useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const {lang} = useLang();
   const t = LOGIN_I18N[lang];
 
@@ -926,7 +952,25 @@ function LoginScreen({onLogin}){
     supabase.from("users").select("*").then(({data})=>{
       if(data?.length) setUserList(data);
     });
+    // Tải phân quyền dòng xe theo đơn vị — nếu bảng chưa được tạo trên Supabase, giữ
+    // nguyên mặc định LINE_QUYEN_DEFAULT (chỉ Mini Bus) và không báo lỗi cho người dùng.
+    supabase.from("quyen_dong_xe").select("*").then(({data,error})=>{
+      if(error){ console.warn("Chưa đọc được bảng quyen_dong_xe (có thể chưa tạo bảng):",error.message); return; }
+      if(data?.length){
+        const m={};
+        data.forEach(r=>{ if(r.don_vi) m[r.don_vi]=Array.isArray(r.dong_xe)?r.dong_xe:[]; });
+        setLineQuyen(q=>({...q,...m}));
+      }
+    });
   },[]);
+
+  // ✅ Danh sách dòng xe mà 1 tài khoản được phép truy cập.
+  // Tài khoản "admin" luôn có toàn quyền, không phụ thuộc bảng phân quyền.
+  const getAllowedLines=(u)=>{
+    if(!u) return [];
+    if(u.id==="admin") return LINE_IDS;
+    return lineQuyen[u.don_vi] || [];
+  };
 
   // ── Bước 1: Đăng nhập tài khoản (cổng vào chung) ──
   const handleGateLogin=(e)=>{
@@ -940,11 +984,12 @@ function LoginScreen({onLogin}){
   };
 
   // ── Bước 2: Chọn dòng xe ──
-  // ⚠️ Chỉ dòng "Mini Bus" mới thực sự dẫn tiếp vào bước chọn trạng thái dự án.
-  // "12M" và "City Bus" hiện chỉ hiển thị giao diện, chưa kích hoạt.
+  // ✅ Quyền truy cập từng dòng xe được cấp theo Đơn vị (xem lineQuyen/getAllowedLines).
+  // Tài khoản "admin" luôn được vào cả 3 dòng.
   const chooseLine=(l)=>{
-    if(l.id!=="minibus"){
-      setErr(`Dòng "${l.title}" chưa được kích hoạt. Vui lòng chọn "Mini Bus" để tiếp tục.`);
+    const allowed=getAllowedLines(authedUser);
+    if(!allowed.includes(l.id)){
+      setErr(`Tài khoản "${authedUser?.ten||uid2}" (${authedUser?.don_vi||"—"}) chưa được cấp quyền truy cập dòng "${l.title}". Vui lòng liên hệ Quản trị viên để được cấp quyền.`);
       return;
     }
     setErr("");
@@ -1077,19 +1122,22 @@ function LoginScreen({onLogin}){
           </div>
           <main>
             <div className="lines">
-              {KL_LINES.map(l=>(
-                <div key={l.id} className="card" tabIndex={0} style={{"--accent":l.accent}}
-                  onClick={()=>chooseLine(l)}
-                  onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseLine(l);}}}>
-                  <div className="icon-wrap">{l.icon}</div>
-                  <div>
-                    <div className="tag">{l.tagText}</div>
-                    <h3>{l.title}</h3>
+              {KL_LINES.map(l=>{
+                const allowed=getAllowedLines(authedUser).includes(l.id);
+                return (
+                  <div key={l.id} className={`card${allowed?"":" card-locked"}`} tabIndex={0} style={{"--accent":l.accent}}
+                    onClick={()=>chooseLine(l)}
+                    onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseLine(l);}}}>
+                    <div className="icon-wrap">{l.icon}</div>
+                    <div>
+                      <div className="tag">{l.tagText}</div>
+                      <h3>{l.title}</h3>
+                    </div>
+                    <div className="desc">{l.desc}</div>
+                    <div className="enter">{allowed?"Truy cập →":"🔒 Chưa có quyền"}</div>
                   </div>
-                  <div className="desc">{l.desc}</div>
-                  <div className="enter">Truy cập →</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </main>
           {err&&(
@@ -1221,7 +1269,7 @@ function SignaturePad({initial, onSave, onClose}){
   );
 }
 
-function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH}){
+function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe}){
   const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
   const [editing,setEdit] = useState(null);
@@ -1292,8 +1340,47 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     return (nowTick-new Date(u.last_active).getTime())<ONLINE_MS;
   };
 
+  // ── Phân quyền dòng xe theo đơn vị (áp dụng cho cả đơn vị, không phải từng tài khoản) ──
+  const ALL_LINES_META=[{id:"12m",label:"Xe 12M"},{id:"citybus",label:"City Bus"},{id:"minibus",label:"Mini Bus"}];
+  const BASE_DON_VI=["Nhà máy THCK","XƯỞNG HÀN","KHO VẬT TƯ","Phòng KH-TH"];
+  const allDonViGroups=[...BASE_DON_VI, ...customDepts.filter(d=>!BASE_DON_VI.includes(d))];
+  const toggleLineQuyen=(donVi,lineId)=>{
+    const cur=lineQuyen[donVi]||[];
+    const next=cur.includes(lineId)?cur.filter(x=>x!==lineId):[...cur,lineId];
+    setLineQuyen(q=>({...q,[donVi]:next}));
+    dbUpsertQuyenDongXe&&dbUpsertQuyenDongXe(donVi,next);
+  };
+
   return(
     <div>
+      <div style={{background:"#fff",borderRadius:10,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:"#1f2937"}}>🚌 Phân quyền dòng xe theo đơn vị</div>
+        <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Tick chọn (các) dòng xe mà mỗi đơn vị được phép truy cập ở màn hình đăng nhập. Áp dụng chung cho cả đơn vị. Tài khoản <b>admin</b> luôn có toàn quyền cả 3 dòng, không phụ thuộc bảng này.</div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
+              <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>Đơn vị</th>
+              {ALL_LINES_META.map(l=><th key={l.id} style={{padding:"8px 12px",textAlign:"center",fontWeight:700,color:"#6b7280",fontSize:11}}>{l.label}</th>)}
+            </tr></thead>
+            <tbody>
+              {allDonViGroups.map((dv,i)=>(
+                <tr key={dv} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
+                  <td style={{padding:"8px 12px",fontWeight:600}}>{dv}</td>
+                  {ALL_LINES_META.map(l=>{
+                    const checked=(lineQuyen[dv]||[]).includes(l.id);
+                    return (
+                      <td key={l.id} style={{padding:"8px 12px",textAlign:"center"}}>
+                        <input type="checkbox" checked={checked} onChange={()=>toggleLineQuyen(dv,l.id)} style={{width:16,height:16,cursor:"pointer"}}/>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div style={{background:"#fff",borderRadius:10,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
         <div style={{fontWeight:700,fontSize:13,marginBottom:14,color:"#1f2937"}}>{editing?"✏️ Cập nhật tài khoản":"➕ Thêm tài khoản mới"}</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:12}}>
@@ -1711,6 +1798,7 @@ export default function App(){
   const t = k => (APP_I18N[k]&&APP_I18N[k][lang]) || APP_I18N[k]?.vi || k;
   const [user,     setUser]     = useState(()=>{try{const s=localStorage.getItem("loggedInUser");return s?JSON.parse(s):null;}catch{return null;}});   // logged-in user
   const [users,    setUsers]    = useState(USERS_DEF);
+  const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [dbErr,    setDbErr]    = useState("");
   const [projs,    setProjs]    = useState(PROJS_DEF);
   const [projPickerOpen, setProjPickerOpen] = useState(false);
@@ -1830,7 +1918,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r9]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r9,r10]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -1846,6 +1934,7 @@ export default function App(){
           supabase.from("bom_mau_loai").select("*").order("thu_tu").range(0, 9999),
           supabase.from("bom_mau").select("*").order("stt").range(0, 9999),
           supabase.from("bom_log").select("*").order("ts",{ascending:false}).limit(500),
+          supabase.from("quyen_dong_xe").select("*").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -1913,6 +2002,14 @@ export default function App(){
         }
         if(r9.error) console.warn("Chưa đọc được bảng bom_log (có thể chưa tạo bảng — xem hướng dẫn tạo bảng ở comment gần dbAddBomLog):",r9.error.message);
         else if(r9.data) setBomLogDB(r9.data);
+        // Phân quyền dòng xe theo đơn vị — nếu bảng chưa tạo, giữ nguyên LINE_QUYEN_DEFAULT.
+        if(r10.error){
+          console.warn("Chưa đọc được bảng quyen_dong_xe (có thể chưa tạo bảng):",r10.error.message);
+        } else if(r10.data?.length){
+          const m={};
+          r10.data.forEach(row=>{ if(row.don_vi) m[row.don_vi]=Array.isArray(row.dong_xe)?row.dong_xe:[]; });
+          setLineQuyen(q=>({...q,...m}));
+        }
       }catch(e){
         console.error("Supabase load error:",e);
         // ✅ FIX QUAN TRỌNG: trước đây lỗi ở đây chỉ log console, KHÔNG setDbErr — nếu
@@ -2374,6 +2471,23 @@ export default function App(){
       return false;
     }
     return true;
+  };
+  // ✅ Lưu phân quyền dòng xe của 1 đơn vị (bảng quyen_dong_xe). Nếu bảng chưa được
+  // tạo trên Supabase, báo lỗi nhẹ ở console — không chặn UI, thay đổi vẫn giữ ở state
+  // cục bộ cho phiên làm việc hiện tại.
+  const dbUpsertQuyenDongXe=async(don_vi,dong_xe)=>{
+    try{
+      const {error}=await supabase.from("quyen_dong_xe").upsert({don_vi,dong_xe},{onConflict:"don_vi"});
+      if(error){
+        console.error("dbUpsertQuyenDongXe:",error);
+        alert("⚠️ Chưa lưu được phân quyền xuống máy chủ: "+error.message+"\n(Có thể bảng quyen_dong_xe chưa được tạo trên Supabase — xem hướng dẫn SQL ở comment gần LINE_QUYEN_DEFAULT trong code.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbUpsertQuyenDongXe:",e);
+      return false;
+    }
   };
 
   // ── Derived ──
@@ -5327,7 +5441,7 @@ Bạn có chắc chắn không?`;
         })()}
 
         {tab==="users"&&user.id==="xh04"&&(
-          <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH}/>
+          <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH} lineQuyen={lineQuyen} setLineQuyen={setLineQuyen} dbUpsertQuyenDongXe={dbUpsertQuyenDongXe}/>
         )}
 
       </div>
