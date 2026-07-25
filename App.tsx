@@ -128,6 +128,7 @@ const USERS_DEF = [
 // XH    → Xem phiếu, xác nhận, duyệt, quản lý BOM, người dùng
 // KHTH  → Vai trò MỚI, chỉ xem — không soạn hàng, không duyệt, không quản lý BOM/người dùng
 const TABS_ALL = [
+  ["tongquan","📊 Tổng quan"],
   ["ds",      "📦 Vật tư"],
   ["soan",    "📋 Soạn Hàng"],
   ["duyet",   "✅ Nhận Hàng"],
@@ -1007,7 +1008,7 @@ function LoginScreen({onLogin}){
       return;
     }
     setErr("");
-    onLogin(authedUser, userList, {openNewProject:s.id==="new"});
+    onLogin(authedUser, userList, {openNewProject:s.id==="new", line:activeLine});
   };
 
   const backToSelect=()=>{ setErr(""); setStep("select"); };
@@ -1797,6 +1798,16 @@ export default function App(){
   const setLangSaved = l=>{setLang(l);localStorage.setItem("appLang",l);};
   const t = k => (APP_I18N[k]&&APP_I18N[k][lang]) || APP_I18N[k]?.vi || k;
   const [user,     setUser]     = useState(()=>{try{const s=localStorage.getItem("loggedInUser");return s?JSON.parse(s):null;}catch{return null;}});   // logged-in user
+  // ─── Dòng xe đang hoạt động (12m / citybus / minibus) ───────────────────────
+  // ⚠️ Toàn bộ dữ liệu "vật tư" (dự án, BOM, phiếu giao nhận, lịch sử, BOM mẫu...)
+  // được TÁCH RIÊNG theo dòng xe bằng cách đổi tên bảng Supabase qua hàm T() bên dưới.
+  // "minibus" giữ NGUYÊN tên bảng gốc (không hậu tố) để không ảnh hưởng dữ liệu cũ đã có.
+  // Các dòng khác (vd. "citybus") dùng bảng riêng "<tên_bảng>_<dòng_xe>" — hoạt động
+  // HOÀN TOÀN ĐỘC LẬP, không đọc/ghi chung với dữ liệu Mini Bus.
+  // Tài khoản (users) và phân quyền dòng xe (quyen_dong_xe) vẫn dùng CHUNG 1 bảng vì đây
+  // là dữ liệu định danh/quyền hạn toàn công ty, không thuộc riêng dòng xe nào.
+  const [activeLine, setActiveLine] = useState(()=>{try{return localStorage.getItem("activeLine")||"minibus";}catch{return "minibus";}});
+  const T = useCallback((base)=> (activeLine && activeLine!=="minibus") ? `${base}_${activeLine}` : base, [activeLine]);
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [dbErr,    setDbErr]    = useState("");
@@ -1926,14 +1937,14 @@ export default function App(){
           // bảng "phieu_ct" hoàn toàn có thể vượt 1000 dòng → Báo Cáo bị thiếu số liệu mà
           // không có cảnh báo gì. Đây chính là nguyên nhân "không load được hết dữ liệu".
           supabase.from("users").select("*").range(0, 9999),
-          supabase.from("projects").select("*").range(0, 9999),
-          supabase.from("bom_items").select("*").range(0, 9999),
-          supabase.from("phieu").select("*").order("ts",{ascending:false}).range(0, 9999),
-          supabase.from("phieu_ct").select("*").range(0, 9999),
-          supabase.from("lich_su").select("*").order("ts",{ascending:false}).limit(500),
-          supabase.from("bom_mau_loai").select("*").order("thu_tu").range(0, 9999),
-          supabase.from("bom_mau").select("*").order("stt").range(0, 9999),
-          supabase.from("bom_log").select("*").order("ts",{ascending:false}).limit(500),
+          supabase.from(T("projects")).select("*").range(0, 9999),
+          supabase.from(T("bom_items")).select("*").range(0, 9999),
+          supabase.from(T("phieu")).select("*").order("ts",{ascending:false}).range(0, 9999),
+          supabase.from(T("phieu_ct")).select("*").range(0, 9999),
+          supabase.from(T("lich_su")).select("*").order("ts",{ascending:false}).limit(500),
+          supabase.from(T("bom_mau_loai")).select("*").order("thu_tu").range(0, 9999),
+          supabase.from(T("bom_mau")).select("*").order("stt").range(0, 9999),
+          supabase.from(T("bom_log")).select("*").order("ts",{ascending:false}).limit(500),
           supabase.from("quyen_dong_xe").select("*").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
@@ -2033,14 +2044,14 @@ export default function App(){
     if(!user) return;
     const pollTimer=setInterval(load,10000);
     return ()=>clearInterval(pollTimer);
-  },[user]);
+  },[user,activeLine]);
 
   // ── Realtime: lắng nghe bảng bom_log để nhật ký thay đổi BOM cập nhật tức thời,
   // kể cả khi thay đổi được thực hiện bởi người dùng khác trên thiết bị khác ──
   useEffect(()=>{
     const channel=supabase
       .channel("bom_log_realtime")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"bom_log"},payload=>{
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:T("bom_log")},payload=>{
         setBomLogDB(list=>{
           if(list.some(r=>r.id===payload.new.id)) return list; // tránh trùng nếu đã thêm optimistic
           return [payload.new,...list].slice(0,500);
@@ -2048,7 +2059,7 @@ export default function App(){
       })
       .subscribe();
     return ()=>{ supabase.removeChannel(channel); };
-  },[]);
+  },[activeLine]);
 
   // ── Realtime: đồng bộ bảng bom_items giữa các thiết bị/người dùng gần như tức thời.
   // Đây là LỚP BẢO VỆ BỔ SUNG chống mất dữ liệu nhiều trạm: lớp chính là đã đổi mọi thao
@@ -2082,12 +2093,12 @@ export default function App(){
     };
     const channel=supabase
       .channel("bom_items_realtime")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"bom_items"},payload=>upsertLocal(payload.new))
-      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"bom_items"},payload=>upsertLocal(payload.new))
-      .on("postgres_changes",{event:"DELETE",schema:"public",table:"bom_items"},payload=>removeLocal(payload.old?.id))
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:T("bom_items")},payload=>upsertLocal(payload.new))
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:T("bom_items")},payload=>upsertLocal(payload.new))
+      .on("postgres_changes",{event:"DELETE",schema:"public",table:T("bom_items")},payload=>removeLocal(payload.old?.id))
       .subscribe();
     return ()=>{ supabase.removeChannel(channel); };
-  },[]);
+  },[activeLine]);
 
   // ── Tick mỗi phút để nhật ký BOM hiển thị thời gian tương đối cập nhật liên tục ──
   useEffect(()=>{
@@ -2170,7 +2181,7 @@ export default function App(){
     // id nên không có rủi ro URL quá dài), rồi gọi ĐÚNG dbUpsertBomRows để ghi mã mới vào
     // — y hệt cách "Thêm vào" và "Tạo dự án mới" đang làm, đã được chứng minh chạy ổn định.
     try{
-      const {error:delErr}=await supabase.from("bom_items").delete().eq("pid",pid);
+      const {error:delErr}=await supabase.from(T("bom_items")).delete().eq("pid",pid);
       if(delErr){
         console.error("dbUpsertBom (xóa toàn bộ theo pid) lỗi:",delErr.message,delErr);
         throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
@@ -2216,7 +2227,7 @@ export default function App(){
     const batch=100;
     for(let i=0;i<cleanRows.length;i+=batch){
       const chunk=cleanRows.slice(i,i+batch);
-      const {data:insData,error:insErr}=await supabase.from("bom_items").upsert(chunk,{onConflict:"id"}).select("id");
+      const {data:insData,error:insErr}=await supabase.from(T("bom_items")).upsert(chunk,{onConflict:"id"}).select("id");
       if(insErr){
         console.error("dbUpsertBomRows upsert error:",insErr.message,insErr,"sample:",chunk[0]);
         throw new Error(`Lỗi lưu mã VT (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
@@ -2235,7 +2246,7 @@ export default function App(){
   const dbDeleteBomItems=async(ids)=>{
     const clean=[...new Set((ids||[]).filter(Boolean))];
     if(!clean.length) return {ok:true,count:0};
-    const {error}=await supabase.from("bom_items").delete().in("id",clean).select("id");
+    const {error}=await supabase.from(T("bom_items")).delete().in("id",clean).select("id");
     if(error){
       console.error("dbDeleteBomItems error:",error.message,error);
       throw new Error("Lỗi xóa mã VT: "+error.message);
@@ -2247,7 +2258,7 @@ export default function App(){
   // cụ thể), hàm này xóa thẳng theo pid — 1 lệnh DELETE DUY NHẤT, không phụ thuộc mảng
   // local có đầy đủ hay không.
   const dbDeleteBomByPid=async(pidToDelete)=>{
-    const {error}=await supabase.from("bom_items").delete().eq("pid",pidToDelete);
+    const {error}=await supabase.from(T("bom_items")).delete().eq("pid",pidToDelete);
     if(error){
       console.error("dbDeleteBomByPid error:",error.message,error);
       throw new Error("Lỗi xóa toàn bộ vật tư: "+error.message);
@@ -2273,7 +2284,7 @@ export default function App(){
       gc:r.gc?String(r.gc).trim().slice(0,1000):null,
     })).filter(r=>r.id&&r.ten);
 
-    const {data:oldData,error:selErr}=await supabase.from("bom_mau").select("id").eq("loai",loai);
+    const {data:oldData,error:selErr}=await supabase.from(T("bom_mau")).select("id").eq("loai",loai);
     if(selErr){console.error(`dbSyncBomMau(${loai}) select old error:`,selErr.message,selErr);throw new Error("Lỗi đọc dữ liệu cũ: "+selErr.message);}
     const oldIds=(oldData||[]).map(r=>r.id);
 
@@ -2283,7 +2294,7 @@ export default function App(){
         for(let i=0;i<cleanRows.length;i+=batch){
           const chunk=cleanRows.slice(i,i+batch);
           // ✅ Khóa duy nhất là cặp (loai,id) — xem SQL tạo bảng "bom_mau" ở đầu file.
-          const {data:insData,error:insErr}=await supabase.from("bom_mau").upsert(chunk,{onConflict:"loai,id"}).select("id");
+          const {data:insData,error:insErr}=await supabase.from(T("bom_mau")).upsert(chunk,{onConflict:"loai,id"}).select("id");
           if(insErr){
             console.error(`dbSyncBomMau(${loai}) upsert error:`,insErr.message,insErr,"sample:",chunk[0]);
             throw new Error(`Lỗi lưu BOM Mẫu (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
@@ -2301,7 +2312,7 @@ export default function App(){
         const delBatch=200;
         for(let i=0;i<idsToDelete.length;i+=delBatch){
           const idsChunk=idsToDelete.slice(i,i+delBatch);
-          const {error:delErr}=await supabase.from("bom_mau").delete().eq("loai",loai).in("id",idsChunk).select("id");
+          const {error:delErr}=await supabase.from(T("bom_mau")).delete().eq("loai",loai).in("id",idsChunk).select("id");
           if(delErr){
             console.error(`dbSyncBomMau(${loai}) delete old error:`,delErr.message,delErr);
             throw new Error("Lỗi xóa dữ liệu cũ: "+delErr.message);
@@ -2335,7 +2346,7 @@ export default function App(){
     const batch=100;
     for(let i=0;i<cleanRows.length;i+=batch){
       const chunk=cleanRows.slice(i,i+batch);
-      const {data:insData,error:insErr}=await supabase.from("bom_mau").upsert(chunk,{onConflict:"loai,id"}).select("id");
+      const {data:insData,error:insErr}=await supabase.from(T("bom_mau")).upsert(chunk,{onConflict:"loai,id"}).select("id");
       if(insErr){
         console.error(`dbUpsertBomMauRows(${loai}) upsert error:`,insErr.message,insErr,"sample:",chunk[0]);
         throw new Error(`Lỗi lưu BOM Mẫu (dòng ${i+1}-${i+chunk.length}/${cleanRows.length}): ${insErr.message}`);
@@ -2351,7 +2362,7 @@ export default function App(){
   const dbDeleteBomMauRows=async(loai, ids)=>{
     const clean=[...new Set((ids||[]).filter(Boolean))];
     if(!clean.length) return {ok:true,count:0};
-    const {error}=await supabase.from("bom_mau").delete().eq("loai",loai).in("id",clean).select("id");
+    const {error}=await supabase.from(T("bom_mau")).delete().eq("loai",loai).in("id",clean).select("id");
     if(error){
       console.error(`dbDeleteBomMauRows(${loai}) error:`,error.message,error);
       throw new Error("Lỗi xóa BOM Mẫu: "+error.message);
@@ -2360,7 +2371,7 @@ export default function App(){
   };
   // Thêm/sửa 1 LOẠI BOM mẫu (tên/icon/màu) lên bảng "bom_mau_loai".
   const dbUpsertBomMauLoai=async(l)=>{
-    const {data,error}=await supabase.from("bom_mau_loai").upsert(l,{onConflict:"id"}).select("id");
+    const {data,error}=await supabase.from(T("bom_mau_loai")).upsert(l,{onConflict:"id"}).select("id");
     if(error){
       console.error("dbUpsertBomMauLoai error:",error.message,error);
       throw new Error("Lỗi lưu loại BOM mẫu: "+error.message);
@@ -2373,7 +2384,7 @@ export default function App(){
   // Xóa 1 loại BOM mẫu — nhờ khóa ngoại "on delete cascade" trên bảng "bom_mau",
   // toàn bộ mã vật tư thuộc loại đó cũng tự xóa theo.
   const dbDeleteBomMauLoai=async(id)=>{
-    const {error}=await supabase.from("bom_mau_loai").delete().eq("id",id);
+    const {error}=await supabase.from(T("bom_mau_loai")).delete().eq("id",id);
     if(error){
       console.error("dbDeleteBomMauLoai error:",error.message,error);
       throw new Error("Lỗi xóa loại BOM mẫu: "+error.message);
@@ -2390,7 +2401,7 @@ export default function App(){
     // (vd. policy chỉ cho phép SELECT với anon key), Postgrest KHÔNG trả lỗi (error vẫn
     // null) — nó chỉ âm thầm ghi được 0 dòng. Đây là nguyên nhân rất phổ biến của triệu
     // chứng "lưu xong, không báo lỗi, nhưng reload là mất dữ liệu" với Supabase.
-    const {data,error}=await supabase.from("projects").upsert(p).select("id");
+    const {data,error}=await supabase.from(T("projects")).upsert(p).select("id");
     if(error){
       console.error("dbUpsertProj error:",error.message,error);
       throw new Error("Lỗi lưu dự án: "+error.message);
@@ -2401,17 +2412,17 @@ export default function App(){
     }
   };
   const dbDeleteProj=async(id)=>{
-    try{await supabase.from("projects").delete().eq("id",id);}catch(e){console.error("dbDeleteProj:",e);}
+    try{await supabase.from(T("projects")).delete().eq("id",id);}catch(e){console.error("dbDeleteProj:",e);}
   };
   const dbSavePhieu=async(ph)=>{
     try{
       const {ct,...phData}=ph;
-      await supabase.from("phieu").upsert(phData);
-      if(ct?.length) await supabase.from("phieu_ct").upsert(ct);
+      await supabase.from(T("phieu")).upsert(phData);
+      if(ct?.length) await supabase.from(T("phieu_ct")).upsert(ct);
     }catch(e){console.error("dbSavePhieu:",e);}
   };
   const dbAddLS=async(row)=>{
-    try{await supabase.from("lich_su").insert(row);}catch(e){console.error("dbAddLS:",e);}
+    try{await supabase.from(T("lich_su")).insert(row);}catch(e){console.error("dbAddLS:",e);}
   };
   // ── Nhật ký thay đổi BOM (👤 ai / hành động / mã VT / thời gian) ──
   // Cần bảng Supabase "bom_log" với các cột: id (text,pk), ts (timestamptz),
@@ -2420,7 +2431,7 @@ export default function App(){
   // Nếu bảng chưa tồn tại, hàm này chỉ log lỗi ra console chứ không làm hỏng ứng dụng.
   const dbAddBomLog=async(row)=>{
     try{
-      const {error}=await supabase.from("bom_log").insert(row);
+      const {error}=await supabase.from(T("bom_log")).insert(row);
       if(error) console.error("dbAddBomLog:",error.message,error);
     }catch(e){console.error("dbAddBomLog:",e);}
   };
@@ -2442,16 +2453,16 @@ export default function App(){
       if(nguoi_duyet!==undefined)upd.nguoi_duyet=nguoi_duyet;
       if(sl_thuc_nhan!==undefined)upd.sl_thuc_nhan=sl_thuc_nhan;
       if(sl_thieu!==undefined)upd.sl_thieu=sl_thieu;
-      await supabase.from("phieu_ct").update(upd).eq("id",ctid);
+      await supabase.from(T("phieu_ct")).update(upd).eq("id",ctid);
     }catch(e){console.error("dbUpdatePhieuCt:",e);}
   };
   const dbUpdatePhieuTt=async(phid,tt)=>{
-    try{await supabase.from("phieu").update({tt}).eq("id",phid);}catch(e){console.error("dbUpdatePhieuTt:",e);}
+    try{await supabase.from(T("phieu")).update({tt}).eq("id",phid);}catch(e){console.error("dbUpdatePhieuTt:",e);}
   };
   const dbDeletePhieu=async(phid)=>{
     try{
-      await supabase.from("phieu_ct").delete().eq("phid",phid);
-      await supabase.from("phieu").delete().eq("id",phid);
+      await supabase.from(T("phieu_ct")).delete().eq("phid",phid);
+      await supabase.from(T("phieu")).delete().eq("id",phid);
     }catch(e){console.error("dbDeletePhieu:",e);}
   };
   const dbUpsertUser=async(u)=>{
@@ -2711,6 +2722,23 @@ export default function App(){
         if(updated)dbUpsertProj(updated).catch(e=>{
           console.error("editSoXe: lỗi lưu:",e);
           flash(`⚠️ Lỗi lưu số xe: ${e.message}`);
+        });
+        return next;
+      });
+    }
+  };
+  // ✅ "SL xe đã giao" — nhập tay thủ công (giống editSoXe), dùng cho khối "Tiến Trình Giao Xe"
+  // ở tab Tổng quan. Giá trị được kẹp trong khoảng [0, so_xe] để không bao giờ vượt tổng số xe.
+  const editSoXeGiao=(projId)=>{
+    const p2=projs.find(p=>p.id===projId); if(!p2) return;
+    const v=prompt("SL xe đã giao:",p2.da_giao||0);
+    if(v!==null&&!isNaN(v)&&Number(v)>=0){
+      setProjs(ps=>{
+        const next=ps.map(p=>p.id===projId?{...p,da_giao:Math.min(Math.round(Number(v)),p.so_xe||1)}:p);
+        const updated=next.find(p=>p.id===projId);
+        if(updated)dbUpsertProj(updated).catch(e=>{
+          console.error("editSoXeGiao: lỗi lưu:",e);
+          flash(`⚠️ Lỗi lưu SL xe đã giao: ${e.message}`);
         });
         return next;
       });
@@ -3206,7 +3234,7 @@ export default function App(){
     dbSavePhieu(ph);
     const lsRows=ct.map(c=>({id:uid(),pid,ma:c.ma,ten:c.ten,loai:"Xuất kho",sl:-c.sl,gc:`Đơn ${sp}`,ts:new Date().toISOString(),nguoi_duyet:user.ten,don_vi_duyet:user.don_vi}));
     lsRows.forEach(r=>addLS(pid,r));
-    supabase.from("lich_su").insert(lsRows).then(()=>{});
+    supabase.from(T("lich_su")).insert(lsRows).then(()=>{});
     // ✅ FIX: Không xoá trắng toàn bộ Soạn Hàng nữa. Mã nào gửi đi mà SL giao < SL cần nhận
     // thì vẫn giữ lại trong Soạn Hàng với SL = SL cần - SL đã giao (để soạn tiếp phần còn thiếu).
     // Mã đã giao đủ thì xoá khỏi checklist soạn (đã gửi xong). Mã không nằm trong đợt gửi
@@ -3327,7 +3355,7 @@ Bạn có chắc chắn không?`;
     lsRows.forEach(r=>addLS(pid,r));
     
     // Lưu tất cả vào Supabase
-    supabase.from("lich_su").insert([lsPhieuSoan,...lsRows]).then(()=>{});
+    supabase.from(T("lich_su")).insert([lsPhieuSoan,...lsRows]).then(()=>{});
     
     setShowPh(false);
     flash(`✓ Tạo phiếu ${phF.sp} cho dự án "${projHienTai.ten}" thành công`);
@@ -3381,15 +3409,15 @@ Bạn có chắc chắn không?`;
     // đang làm ở trên. Nếu có lỗi ở bất kỳ bước nào, dừng lại và báo cho người dùng biết
     // ngay, không âm thầm coi như đã lưu xong.
     try{
-      const {error:phErr}=await supabase.from("phieu").update({sp:editPh.sp,ngay:editPh.ngay,gc:editPh.gc,tong:editPh.ct.length}).eq("id",editPh.id);
+      const {error:phErr}=await supabase.from(T("phieu")).update({sp:editPh.sp,ngay:editPh.ngay,gc:editPh.gc,tong:editPh.ct.length}).eq("id",editPh.id);
       if(phErr) throw new Error("Lỗi cập nhật phiếu: "+phErr.message);
 
-      const {data:oldData,error:selErr}=await supabase.from("phieu_ct").select("id").eq("phid",editPh.id);
+      const {data:oldData,error:selErr}=await supabase.from(T("phieu_ct")).select("id").eq("phid",editPh.id);
       if(selErr) throw new Error("Lỗi đọc dữ liệu chi tiết cũ: "+selErr.message);
       const oldIds=(oldData||[]).map(r=>r.id);
 
       if(editPh.ct.length){
-        const {data:insData,error:insErr}=await supabase.from("phieu_ct").upsert(editPh.ct,{onConflict:"id"}).select("id");
+        const {data:insData,error:insErr}=await supabase.from(T("phieu_ct")).upsert(editPh.ct,{onConflict:"id"}).select("id");
         if(insErr) throw new Error("Lỗi lưu chi tiết phiếu: "+insErr.message);
         if((insData?.length||0)<editPh.ct.length){
           throw new Error(`Supabase chỉ lưu được ${insData?.length||0}/${editPh.ct.length} dòng chi tiết (có thể do Row Level Security chặn quyền ghi) — kiểm tra lại RLS policy trên bảng phieu_ct`);
@@ -3399,7 +3427,7 @@ Bạn có chắc chắn không?`;
       const newIdSet=new Set(editPh.ct.map(c=>c.id));
       const idsToDelete=oldIds.filter(oid=>!newIdSet.has(oid));
       if(idsToDelete.length){
-        const {error:delErr}=await supabase.from("phieu_ct").delete().in("id",idsToDelete);
+        const {error:delErr}=await supabase.from(T("phieu_ct")).delete().in("id",idsToDelete);
         if(delErr) throw new Error("Lỗi xóa dòng chi tiết cũ: "+delErr.message);
       }
       flash("✓ Đã cập nhật phiếu");
@@ -3642,7 +3670,7 @@ Bạn có chắc chắn không?`;
       const batch=100;
       for(let i=0;i<updateChunks.length;i+=batch){
         const chunk=updateChunks.slice(i,i+batch);
-        const {error}=await supabase.from("bom_items").upsert(chunk,{onConflict:"id"}).select("id");
+        const {error}=await supabase.from(T("bom_items")).upsert(chunk,{onConflict:"id"}).select("id");
         if(error){
           throw new Error(`Lỗi lưu Supabase (dòng ${i+1}-${i+chunk.length}): ${error.message}`);
         }
@@ -3782,8 +3810,22 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <LoginScreen onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
         try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
-        // Set default tab per role
-        setTab(u.role==="thck"||u.role==="kho"?"soan":u.role==="khth"?"ds":"duyet");
+        // ✅ Ghi nhận dòng xe vừa chọn (12m / citybus / minibus) — quyết định app sẽ đọc/ghi
+        // vào bộ bảng Supabase nào (xem hàm T() ở đầu component).
+        const line = opts?.line || "minibus";
+        setActiveLine(line);
+        try{localStorage.setItem("activeLine",line);}catch{}
+        if(line!=="minibus"){
+          // Dòng xe khác Mini Bus (vd. City Bus) hoạt động HOÀN TOÀN ĐỘC LẬP — không dùng
+          // dữ liệu mẫu "Kim Mai 9 / Minibus X9", bắt đầu TRỐNG để người dùng tự tạo dự án
+          // (giống hệt luồng "Khởi tạo Dự án"), tránh lẫn với dữ liệu Mini Bus.
+          setProjs([]); setBomDB({}); setPid("");
+          setBomMauLoaiList([]); setBomMauByLoai({}); setBmTab("");
+        }
+        // ✅ Vào hệ thống luôn hạ cánh ở tab "Tổng quan" (số liệu tổng hợp: Tiến Trình Giao Xe
+        // + Xem Vật tư) — mọi vai trò đều thấy tab này, từ đó có thể chuyển sang các tab
+        // thao tác khác (Soạn Hàng, Nhận Hàng, Phiếu GN...) như bình thường.
+        setTab("tongquan");
         // Nếu vào từ thẻ "Khởi tạo Dự án" ở màn hình đăng nhập → tự mở sẵn modal
         // "🆕 Thêm dự án mới" (đúng y hệt nút "＋ Thêm" trên thanh dự án).
         if(opts?.openNewProject) setNewP(true);
@@ -3859,6 +3901,11 @@ Bạn có chắc chắn không?`;
 
         {/* Project bar */}
         <div style={{padding:"8px 16px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          {/* Dòng xe đang hoạt động — giúp phân biệt rõ đang ở City Bus hay Mini Bus (dữ liệu độc lập) */}
+          <div title="Dòng xe đang hoạt động" style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 8px",flex:"0 0 auto"}}>
+            <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
+            <span style={{fontSize:12,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+          </div>
           {/* Project select */}
           <div style={{position:"relative",flex:"0 0 auto"}}>
             <div onClick={()=>setProjPickerOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,background:"#7c3aed",borderRadius:8,padding:"4px 10px",cursor:"pointer"}}>
@@ -3941,6 +3988,101 @@ Bạn có chắc chắn không?`;
       <div style={{padding:"12px 10px",boxSizing:"border-box",width:"100%"}}>
 
         {/* ── DANH SÁCH BOM ── */}
+        {/* ── TỔNG QUAN (trang mặc định khi vào "Đang thực hiện") ── */}
+        {/* Chỉ xem số liệu tổng hợp — KHÔNG có thao tác soạn/nhận hàng. Hoạt động độc lập theo
+            từng dòng xe (12m / City Bus / Mini Bus) vì proj/bom/th đều lấy theo activeLine. */}
+        {tab==="tongquan"&&(()=>{
+          const daGiao=Math.min(proj.da_giao||0,soXe);
+          const conLai=Math.max(0,soXe-daGiao);
+          const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
+          return(
+          <div>
+            <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"18px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
+              <div style={{fontSize:11,opacity:.7,letterSpacing:.5,marginBottom:2}}>DỰ ÁN ĐANG THỰC HIỆN</div>
+              <div style={{fontSize:17,fontWeight:700}}>{proj.icon} {proj.ten}</div>
+            </div>
+            {/* Danh sách dự án — bấm để đổi dự án xem tổng quan */}
+            {projs.length>0&&(
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+                {projs.map(p=>(
+                  <div key={p.id} onClick={()=>{setPid(p.id);localStorage.setItem("lastPid",p.id);}}
+                    style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
+                      background:p.id===pid?(p.mau||"#2563eb"):"#f1f5f9",color:p.id===pid?"#fff":"#374151",border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`}}>
+                    <span>{p.icon}</span><span>{p.ten}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {projs.length===0?(
+              <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+                — Chưa có dự án nào. Bấm "＋ Thêm" ở thanh trên để tạo dự án mới —
+              </div>
+            ):(
+            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+              {/* ── Khối 1: Tiến Trình Giao Xe ── */}
+              <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a"}}>
+                <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:18}}>🚌</span>
+                  <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>Tiến Trình Giao Xe</span>
+                </div>
+                <div style={{padding:16}}>
+                  <div style={{display:"flex",gap:8,marginBottom:12}}>
+                    <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#f0fdf4",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #bbf7d0"}}>
+                      <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
+                      <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe đã giao</div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Bấm để sửa</div>
+                    </div>
+                    <div style={{flex:1,textAlign:"center",background:"#fef2f2",borderRadius:8,padding:"10px 6px",border:"1px solid #fecaca"}}>
+                      <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
+                      <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe còn lại</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
+                    <span>Tổng {fmt(soXe)} xe</span><span style={{fontWeight:700}}>{pctGiao}%</span>
+                  </div>
+                  <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
+                </div>
+              </div>
+              {/* ── Khối 2: Xem Vật tư (THCK / CKD) ── */}
+              <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd"}}>
+                <div style={{padding:"14px 16px",background:"#eff6ff",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:18}}>📦</span>
+                  <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>Xem Vật tư</span>
+                </div>
+                <div style={{padding:16,display:"flex",gap:12,flexWrap:"wrap"}}>
+                  {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                    const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
+                    const tongMa=itemsNg.length;
+                    const maDaNhanNg=itemsNg.filter(v=>v.done).length;
+                    const maConThieuNg=tongMa-maDaNhanNg;
+                    return(
+                      <div key={nguon} style={{flex:"1 1 160px",minWidth:150,borderRadius:10,overflow:"hidden",border:`1.5px solid ${bd}`}}>
+                        <div style={{padding:"8px 10px",background:bgLight,display:"flex",alignItems:"center",gap:6}}>
+                          <span style={{fontSize:14}}>{icon}</span>
+                          <span style={{fontWeight:800,fontSize:12,color:mau}}>{nguon}</span>
+                        </div>
+                        <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:6}}>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                            <span style={{color:"#6b7280"}}>Tổng mã</span><b style={{color:"#374151"}}>{fmt(tongMa)}</b>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                            <span style={{color:"#6b7280"}}>SL đã nhận</span><b style={{color:"#16a34a"}}>{fmt(maDaNhanNg)}</b>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                            <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{fmt(maConThieuNg)}</b>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            )}
+          </div>
+          );
+        })()}
+
         {tab==="ds"&&(
           <div>
             <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
