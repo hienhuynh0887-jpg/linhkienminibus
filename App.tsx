@@ -550,14 +550,15 @@ const KL_LOGIN_CSS = `
   background:var(--accent, var(--steel));
 }
 .kl-select-login .back-btn{
-  background:none; border:none; color:var(--steel);
+  background:rgba(249,115,22,0.08); border:1.5px solid #f97316; border-radius:999px; color:#f97316;
   font-family:'JetBrains Mono', monospace;
   font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-  display:flex; align-items:center; gap:6px;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 16px;
   cursor:pointer; margin-bottom:22px;
-  transition:color .2s ease, opacity .2s ease;
+  transition:color .2s ease, opacity .2s ease, background .2s ease;
 }
-.kl-select-login .back-btn:hover{color:var(--steel); opacity:.75;}
+.kl-select-login .back-btn:hover{background:rgba(249,115,22,0.18); opacity:.9;}
 .kl-select-login .login-head{display:flex; align-items:center; gap:14px; margin-bottom:26px;}
 .kl-select-login .login-head .icon-wrap{width:52px; height:52px;}
 .kl-select-login .login-head .icon-wrap svg{width:28px; height:28px;}
@@ -1287,7 +1288,24 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
   // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "Phòng KH-TH" — chỉ xem, không thao tác)
+  // Dùng chung cho MỌI dòng xe/thiết bị — đồng bộ qua Supabase bảng "custom_depts" (không qua T(),
+  // vì đơn vị/phòng ban là cơ cấu tổ chức chung, không tách theo dòng xe). localStorage chỉ còn
+  // vai trò cache tạm để hiển thị ngay khi vừa mở app (trước khi Supabase load xong).
+  // ⚠️ SQL cần chạy 1 lần trên Supabase (SQL Editor):
+  //   create table if not exists custom_depts (
+  //     ten text primary key
+  //   );
   const [customDepts, setCustomDepts] = useState(()=>{try{const s=localStorage.getItem("customDepts");return s?JSON.parse(s):[];}catch{return [];}});
+  useEffect(()=>{
+    supabase.from("custom_depts").select("ten").then(({data,error})=>{
+      if(error){ console.warn("Chưa đọc được bảng custom_depts (có thể chưa tạo bảng):",error.message); return; }
+      if(data){
+        const tenList=data.map(r=>r.ten).filter(Boolean);
+        setCustomDepts(tenList);
+        try{localStorage.setItem("customDepts",JSON.stringify(tenList));}catch{}
+      }
+    });
+  },[]);
   const addCustomDept=()=>{
     const name=window.prompt("Nhập tên phòng/ban muốn thêm (VD: Ban CN, Phòng KT):");
     if(!name||!name.trim())return;
@@ -1297,6 +1315,9 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       const updated=[...l,label];
       try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
       return updated;
+    });
+    supabase.from("custom_depts").upsert({ten:label},{onConflict:"ten"}).then(({error})=>{
+      if(error)console.error("Lưu phòng/ban lên Supabase thất bại:",error.message);
     });
     setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));
   };
@@ -1833,13 +1854,13 @@ export default function App(){
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [dbErr,    setDbErr]    = useState("");
-  const [projs,    setProjs]    = useState(PROJS_DEF);
+  const [projs,    setProjs]    = useState([]);
   const [projPickerOpen, setProjPickerOpen] = useState(false);
   const [bomDB,    setBomDB]    = useState(initBom);
   const [lsDB,     setLsDB]     = useState({});
   const [phDB,     setPhDB]     = useState({});
   const [soanDB,   setSoanDB]   = useState(()=>{try{const s=localStorage.getItem("soanDB");return s?JSON.parse(s):{};}catch{return{};}});
-  const [pid,      setPid]      = useState("proj_xh");
+  const [pid,      setPid]      = useState("");
   // ✅ Nhớ tab đang xem qua localStorage — sau khi tạo dự án xong (hoặc bất kỳ lúc nào)
   // reload/refresh trang, người dùng ở lại ĐÚNG tab đang xem, không bị nhảy về tab mặc định.
   const [tab,      setTab]      = useState(()=>{try{return localStorage.getItem("lastTab")||"ds";}catch{return "ds";}});
@@ -1974,12 +1995,16 @@ export default function App(){
         if(usersData?.length){
           setUsers(usersData);
         }
-        if(projsData?.length){
-          setProjs(projsData);
+        if(!r2.error){
+          setProjs(projsData||[]);
           // ✅ Nhớ dự án đang xem qua localStorage — không luôn nhảy về dự án đầu tiên khi reload
-          const savedPid=localStorage.getItem("lastPid");
-          const validPid=savedPid&&projsData.find(p=>p.id===savedPid)?savedPid:projsData[0].id;
-          setPid(validPid);
+          if(projsData?.length){
+            const savedPid=localStorage.getItem("lastPid");
+            const validPid=savedPid&&projsData.find(p=>p.id===savedPid)?savedPid:projsData[0].id;
+            setPid(validPid);
+          } else {
+            setPid("");
+          }
         }
         // ✅ Chỉ giữ nguyên state cũ khi có LỖI thật (mất mạng, bảng chưa tạo...). Nếu Supabase
         // trả về thành công nhưng bảng rỗng (đã xoá hết dữ liệu), phải set về rỗng — không được
@@ -3820,7 +3845,7 @@ Bạn có chắc chắn không?`;
           <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
               <button onClick={()=>setBackToGate(true)}
-                style={{...btn,background:"rgba(255,255,255,0.14)",color:"#fff",padding:"7px 14px",fontSize:12,fontWeight:700,border:"2px solid #f59e0b"}}>
+                style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
                 ← Trở về
               </button>
               <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #f59e0b"}}>
@@ -3850,52 +3875,40 @@ Bạn có chắc chắn không?`;
           ):(
           <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
             {/* ── Khối 1: Tiến Trình Giao Xe ── */}
-            <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a"}}>
+            <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>🚌</span>
                 <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ GIAO XE</span>
               </div>
-              <div style={{padding:16}}>
+              <div style={{padding:16,display:"flex",flexDirection:"column",flex:1}}>
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#f0fdf4",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #bbf7d0"}}>
+                  <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #fde68a"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
                     <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Bấm để sửa</div>
                   </div>
-                  <div style={{flex:1,textAlign:"center",background:"#fef2f2",borderRadius:8,padding:"10px 6px",border:"1px solid #fecaca"}}>
+                  <div style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",border:"1px solid #fde68a"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe còn lại</div>
                   </div>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
-                  <span>Tổng {fmt(soXe)} xe</span><span style={{fontWeight:700}}>{pctGiao}%</span>
+                <div style={{marginTop:"auto"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
+                    <span>Tổng {fmt(soXe)} xe</span><span style={{fontWeight:700}}>{pctGiao}%</span>
+                  </div>
+                  <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
                 </div>
-                <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
               </div>
             </div>
             {/* ── Khối 2: Tiến độ nhận vật tư (THCK / CKD) ── */}
-            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd"}}>
+            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#eff6ff",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>📦</span>
                 <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
               </div>
-              {(()=>{
-                const nguonList=["THCK","CKD"];
-                const itemsAll=th.filter(v=>nguonList.includes((v.ng||"").trim().toUpperCase()));
-                const tongMaAll=itemsAll.length;
-                const daNhanAll=itemsAll.filter(v=>v.done).length;
-                const pctVT=tongMaAll>0?Math.round(daNhanAll/tongMaAll*100):0;
-                return(
-                <div style={{padding:"12px 16px 4px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
-                    <span>Đã nhận {fmt(daNhanAll)}/{fmt(tongMaAll)} mã</span><span style={{fontWeight:700}}>{pctVT}%</span>
-                  </div>
-                  <Prog p={pctVT} done={pctVT>=100&&tongMaAll>0}/>
-                </div>
-                );
-              })()}
-              <div style={{padding:16,display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
+              <div style={{padding:"16px 16px 4px",display:"flex",flexDirection:"column",flex:1}}>
+              <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                {[["THCK","🏭","#b45309","#eff6ff","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
@@ -3922,6 +3935,22 @@ Bạn có chắc chắn không?`;
                     </div>
                   );
                 })}
+              </div>
+              {(()=>{
+                const nguonList=["THCK","CKD"];
+                const itemsAll=th.filter(v=>nguonList.includes((v.ng||"").trim().toUpperCase()));
+                const tongMaAll=itemsAll.length;
+                const daNhanAll=itemsAll.filter(v=>v.done).length;
+                const pctVT=tongMaAll>0?Math.round(daNhanAll/tongMaAll*100):0;
+                return(
+                <div style={{marginTop:"auto",paddingTop:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
+                    <span>Đã nhận {fmt(daNhanAll)}/{fmt(tongMaAll)} mã</span><span style={{fontWeight:700}}>{pctVT}%</span>
+                  </div>
+                  <Prog p={pctVT} done={pctVT>=100&&tongMaAll>0}/>
+                </div>
+                );
+              })()}
               </div>
               {tqVtOpen.nguon&&(()=>{
                 const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===tqVtOpen.nguon);
