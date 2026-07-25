@@ -1843,11 +1843,14 @@ export default function App(){
   const T = useCallback((base)=> (activeLine && activeLine!=="minibus") ? `${base}_${activeLine}` : base, [activeLine]);
   // ✅ "Tổng quan" giờ là MÀN HÌNH ĐỘC LẬP (không nằm trong thanh tab) — hiển thị ngay sau khi
   // chọn "Đang thực hiện" ở màn đăng nhập. showTongQuan=true → chỉ render riêng màn hình này.
-  const [showTongQuan, setShowTongQuan] = useState(false);
+  // ✅ FIX: Lưu màn hình hiện tại (screenMode) vào localStorage — khi refresh (F5), app phải ở
+  // ĐÚNG màn hình đang xem (Khởi tạo Dự án / Tổng quan / hệ thống chính), không tự thoát ra
+  // màn khác.
+  const [showTongQuan, setShowTongQuan] = useState(()=>{try{return localStorage.getItem("screenMode")==="tongQuan";}catch{return false;}});
   // ✅ "Khởi tạo Dự án" (Giai đoạn 01) — MÀN HÌNH ĐỘC LẬP riêng, gắn thẳng form "Thêm dự án"
   // ngay tại đây (không cần vào hệ thống chính rồi mở modal như trước). Sau khi tạo dự án
   // xong (mkProj chạy xong) sẽ tự động chuyển sang màn "Đang thực hiện" (showTongQuan=true).
-  const [showKhoiTao, setShowKhoiTao] = useState(false);
+  const [showKhoiTao, setShowKhoiTao] = useState(()=>{try{return localStorage.getItem("screenMode")==="khoiTao";}catch{return false;}});
   // Bấm "← Trở về" trên Tổng quan → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập,
   // KHÔNG bắt đăng nhập lại (xem prop "resume" của LoginScreen).
   const [backToGate, setBackToGate] = useState(false);
@@ -1880,7 +1883,8 @@ export default function App(){
   const [slXT,     setSlXT]     = useState(1);
   const [gcXT,     setGcXT]     = useState("");
   const [newP,     setNewP]     = useState(false);
-  const [nPF,      setNPF]      = useState({ten:"",moTa:"",mau:"#7c3aed",icon:"🚐",so_xe:1,bom:"import_file"});
+  const [nPF,      setNPF]      = useState({ten:"",moTa:"",mau:"#7c3aed",icon:"🚐",so_xe:1,bom:"import_file",
+    loSx:"",lenhSx:"",ngayKhoiTao:new Date().toISOString().slice(0,10),ngayHoanThanh:"",sopTu:"",sopDen:""});
   const newProjFileRef = useRef();
   const [msg,      setMsg]      = useState("");
   const [showPh,   setShowPh]   = useState(false);
@@ -1927,17 +1931,22 @@ export default function App(){
   // ── BOM Mẫu state (động — nhiều loại, không giới hạn) ──
   // bomMauLoaiList: danh sách các LOẠI BOM mẫu (tên/icon/màu) — quản lý được trong app,
   // thêm mới bằng nút "➕ Thêm loại BOM mẫu mới", lưu ở bảng Supabase "bom_mau_loai".
-  const [bomMauLoaiList, setBomMauLoaiList] = useState(()=>BOM_MAU_LOAI_DEFAULT.map(x=>({...x})));
+  // ✅ FIX: BOM_MAU_LOAI_DEFAULT chỉ là dữ liệu mẫu của MINI BUS — nếu dòng xe đã lưu (localStorage)
+  // KHÁC Mini Bus (City Bus/12M) thì phải khởi động RỖNG, không được hiện tạm BOM mẫu của Mini Bus
+  // trong lúc chờ Supabase tải xong (hoặc nếu bảng riêng của dòng xe đó chưa có/lỗi).
+  const isMinibusLine = ()=>{try{return (localStorage.getItem("activeLine")||"minibus")==="minibus";}catch{return true;}};
+  const [bomMauLoaiList, setBomMauLoaiList] = useState(()=>isMinibusLine()?BOM_MAU_LOAI_DEFAULT.map(x=>({...x})):[]);
   // bomMauByLoai: { [loaiId]: rows[] } — toàn bộ mã vật tư của từng loại, lưu chung 1 bảng
   // Supabase "bom_mau" (phân biệt bằng cột "loai").
   const [bomMauByLoai, setBomMauByLoai] = useState(()=>{
+    if(!isMinibusLine())return {};
     const m={};
     BOM_MAU_LOAI_DEFAULT.forEach(l=>{
       m[l.id]=[]; // Không seed — chờ dữ liệu thật từ Supabase (bảng "bom_mau")
     });
     return m;
   });
-  const [bmTab,     setBmTab]     = useState(()=>BOM_MAU_LOAI_DEFAULT[0]?.id||"xh"); // id loại đang xem
+  const [bmTab,     setBmTab]     = useState(()=>isMinibusLine()?(BOM_MAU_LOAI_DEFAULT[0]?.id||"xh"):""); // id loại đang xem
   const [bmSearch,  setBmSearch]  = useState("");
   const [bmModal,   setBmModal]   = useState(null);       // null | "add" | "edit"
   const [bmCur,     setBmCur]     = useState({id:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:""});
@@ -1962,6 +1971,18 @@ export default function App(){
       return {...m, [loaiId]: next};
     });
   };
+
+  // ✅ FIX: Bảo hiểm thêm — mỗi khi ĐANG Ở dòng xe khác Mini Bus, đảm bảo không còn sót lại
+  // BOM mẫu của Mini Bus (vd. do lỗi tải bảng riêng của dòng xe đó, hoặc chuyển dòng xe giữa
+  // phiên làm việc mà không qua lại màn đăng nhập). Dòng xe nào chỉ được thấy BOM mẫu của
+  // chính dòng xe đó — không bao giờ hiện chung với Mini Bus.
+  useEffect(()=>{
+    if(activeLine!=="minibus"){
+      setBomMauLoaiList(l=>l.length?[]:l);
+      setBomMauByLoai(m=>Object.keys(m).length?{}:m);
+      setBmTab(t=>t?"":t);
+    }
+  },[activeLine]);
 
   // ── Load dữ liệu từ Supabase khi khởi động ──
   useEffect(()=>{
@@ -2413,6 +2434,18 @@ export default function App(){
       throw new Error("Lỗi xóa loại BOM mẫu: "+error.message);
     }
   };
+  // ✅ FIX (Lô SX/Lệnh SX/Ngày/SOP): "Thêm dự án mới" giờ gửi thêm các cột mới (lo_sx, lenh_sx,
+  // ngay_khoi_tao, ngay_hoan_thanh, sop_tu, sop_den) lên bảng "projects". PHẢI chạy SQL dưới đây
+  // trên Supabase (SQL Editor) 1 LẦN cho MỖI bảng projects đang dùng (bảng gốc "projects" của
+  // Mini Bus, và "projects_citybus"/"projects_12m"... của các dòng xe khác nếu có) — nếu không,
+  // upsert sẽ báo lỗi "column ... does not exist":
+  //
+  //   alter table projects add column if not exists lo_sx text default '';
+  //   alter table projects add column if not exists lenh_sx text default '';
+  //   alter table projects add column if not exists ngay_khoi_tao text default '';
+  //   alter table projects add column if not exists ngay_hoan_thanh text default '';
+  //   alter table projects add column if not exists sop_tu text default '';
+  //   alter table projects add column if not exists sop_den text default '';
   const dbUpsertProj=async(p)=>{
     // ✅ FIX: supabase.from(...).upsert() KHÔNG tự throw khi lưu thất bại — nó trả về
     // {data, error}. Code cũ chỉ try/catch lỗi network/exception, không kiểm tra field
@@ -2526,6 +2559,17 @@ export default function App(){
   // ── Lưu tab đang xem vào localStorage mỗi khi thay đổi (giữ đúng trang qua các lần reload) ──
   useEffect(()=>{try{if(tab)localStorage.setItem("lastTab",tab);}catch{};},[tab]);
 
+  // ✅ FIX: Lưu MÀN HÌNH đang xem (Khởi tạo Dự án / Tổng quan / hệ thống chính) vào localStorage.
+  // Nhờ vậy khi người dùng refresh (F5) ở bất kỳ trang nào, app sẽ mở lại ĐÚNG trang đó — không
+  // tự thoát về trang khác (trang chính/gate...).
+  useEffect(()=>{
+    try{
+      if(showKhoiTao) localStorage.setItem("screenMode","khoiTao");
+      else if(showTongQuan) localStorage.setItem("screenMode","tongQuan");
+      else localStorage.setItem("screenMode","main");
+    }catch{}
+  },[showKhoiTao,showTongQuan]);
+
   // ── Đồng bộ phiên đăng nhập vào localStorage (giữ đăng nhập qua các lần auto-reload) ──
   useEffect(()=>{
     try{
@@ -2626,7 +2670,9 @@ export default function App(){
   const mkProj=async()=>{
     if(!nPF.ten.trim())return;
     const id="proj_"+Date.now();
-    const p={id,ten:nPF.ten,mo_ta:nPF.moTa||nPF.ten,mau:nPF.mau,icon:nPF.icon,so_xe:parseInt(nPF.so_xe)||1};
+    const p={id,ten:nPF.ten,mo_ta:nPF.moTa||nPF.ten,mau:nPF.mau,icon:nPF.icon,so_xe:parseInt(nPF.so_xe)||1,
+      lo_sx:nPF.loSx||"",lenh_sx:nPF.lenhSx||"",ngay_khoi_tao:nPF.ngayKhoiTao||"",ngay_hoan_thanh:nPF.ngayHoanThanh||"",
+      sop_tu:nPF.sopTu||"",sop_den:nPF.sopDen||""};
     const seed=nPF.bom==="import_file"?[]:getBomMauRows(nPF.bom);
     // Nếu chọn "Import BOM (Excel, CSV)" VÀ đã đọc được file → dùng dữ liệu file đó làm BOM ban đầu
     // (dùng CHUNG cách map dữ liệu với doXlsImport: id,pid + các field đã chuẩn hoá từ parseXlsFile)
@@ -2652,7 +2698,8 @@ export default function App(){
     setProjs(ps=>[...ps,p]);
     setBomDB(s=>({...s,[id]:bomRows}));
     setNewP(false);
-    setNPF({ten:"",moTa:"",mau:"#7c3aed",icon:"🚐",so_xe:1,bom:"import_file"});
+    setNPF({ten:"",moTa:"",mau:"#7c3aed",icon:"🚐",so_xe:1,bom:"import_file",
+      loSx:"",lenhSx:"",ngayKhoiTao:new Date().toISOString().slice(0,10),ngayHoanThanh:"",sopTu:"",sopDen:""});
     setNewProjXlsPreview([]);
     setNewProjXlsErr("");
 
@@ -3823,14 +3870,35 @@ Bạn có chắc chắn không?`;
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <div>
-          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Icon</label>
-          <input value={nPF.icon} onChange={e=>setNPF(f=>({...f,icon:e.target.value}))} style={inp} placeholder="🚐"/>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Lô SX</label>
+          <input value={nPF.loSx} onChange={e=>setNPF(f=>({...f,loSx:e.target.value}))} style={inp} placeholder="Lô SX..."/>
         </div>
         <div>
-          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#065f46",marginBottom:3}}>🚌 Số xe *</label>
-          <input type="number" min={1} value={nPF.so_xe} onChange={e=>setNPF(f=>({...f,so_xe:parseInt(e.target.value)||1}))}
-            style={{...inp,fontWeight:700,color:"#065f46",border:"1.5px solid #6ee7b7",background:"#f0fdf4"}}/>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Lệnh SX</label>
+          <input value={nPF.lenhSx} onChange={e=>setNPF(f=>({...f,lenhSx:e.target.value}))} style={inp} placeholder="Lệnh SX..."/>
         </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Ngày khởi tạo</label>
+          <input type="date" value={nPF.ngayKhoiTao} onChange={e=>setNPF(f=>({...f,ngayKhoiTao:e.target.value}))} style={inp}/>
+        </div>
+        <div>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Ngày hoàn thành</label>
+          <input type="date" value={nPF.ngayHoanThanh} onChange={e=>setNPF(f=>({...f,ngayHoanThanh:e.target.value}))} style={inp}/>
+        </div>
+      </div>
+      <div>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Sop (từ số ... đến số ...)</label>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <input value={nPF.sopTu} onChange={e=>setNPF(f=>({...f,sopTu:e.target.value}))} style={inp} placeholder="Từ Sop..."/>
+          <input value={nPF.sopDen} onChange={e=>setNPF(f=>({...f,sopDen:e.target.value}))} style={inp} placeholder="Đến Sop..."/>
+        </div>
+      </div>
+      <div>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#065f46",marginBottom:3}}>🚌 SL XE *</label>
+        <input type="number" min={1} value={nPF.so_xe} onChange={e=>setNPF(f=>({...f,so_xe:parseInt(e.target.value)||1}))}
+          style={{...inp,fontWeight:700,color:"#065f46",border:"1.5px solid #6ee7b7",background:"#f0fdf4"}}/>
       </div>
       <div>
         <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>📋 BOM mẫu</label>
@@ -3970,7 +4038,7 @@ Bạn có chắc chắn không?`;
         <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
           <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-              <button onClick={()=>setBackToGate(true)}
+              <button onClick={()=>{setBackToGate(true);setShowTongQuan(false);}}
                 style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
                 ← Trở về
               </button>
@@ -4088,7 +4156,7 @@ Bạn có chắc chắn không?`;
                     <div style={{padding:"8px 10px",background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
                       <b style={{fontSize:12,color:"#374151"}}>{tieuDe}</b>
                     </div>
-                    <div style={{maxHeight:320,overflowY:"auto",padding:10,display:"flex",flexDirection:"column",gap:8}}>
+                    <div style={{maxHeight:tqDangChiaSe?"none":320,overflowY:tqDangChiaSe?"visible":"auto",padding:10,display:"flex",flexDirection:"column",gap:8}}>
                       {rows.length===0?(
                         <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
                       ):rows.map(v=>(
@@ -4108,6 +4176,10 @@ Bạn có chắc chắn không?`;
                   </div>
                   <button disabled={tqDangChiaSe} onClick={async()=>{
                       setTqDangChiaSe(true);
+                      // ✅ FIX: đợi React render lại với danh sách MỞ HẾT (bỏ maxHeight/overflow) trước khi
+                      // chụp ảnh — nếu không, html2canvas sẽ cắt theo khung cuộn 320px như cũ, chỉ chụp
+                      // được phần đang hiển thị chứ không phải TOÀN BỘ vật tư (giống lỗi trong ảnh chụp màn hình).
+                      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
                       try{ await chiaSePhieuAnh(tqVtRef.current, {sp:`VatTu_${tqVtOpen.nguon}_${tqVtOpen.field}`}); }
                       finally{ setTqDangChiaSe(false); }
                     }}
@@ -4185,7 +4257,7 @@ Bạn có chắc chắn không?`;
               <div style={{width:36,height:36,borderRadius:"50%",background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>✍️</div>
               <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</div>
             </div>
-            <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");}catch{}setUser(null);}}}
+            <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);}}}
               title="Đăng xuất" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:44,flexShrink:0}}>
               <div style={{width:36,height:36,borderRadius:"50%",background:"#ec4899",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>{user.avatar}</div>
               <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,maxWidth:44,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.ten}</div>
