@@ -1306,8 +1306,8 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       }
     });
   },[]);
-  const addCustomDept=()=>{
-    const name=window.prompt("Nhập tên phòng/ban muốn thêm (VD: Ban CN, Phòng KT):");
+  const addCustomDept=(updateForm=true)=>{
+    const name=window.prompt("Nhập tên đơn vị/phòng ban muốn thêm (VD: Kho 1, Ban CN, Phòng KT):");
     if(!name||!name.trim())return;
     const label=name.trim();
     setCustomDepts(l=>{
@@ -1319,7 +1319,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     supabase.from("custom_depts").upsert({ten:label},{onConflict:"ten"}).then(({error})=>{
       if(error)console.error("Lưu phòng/ban lên Supabase thất bại:",error.message);
     });
-    setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));
+    if(updateForm) setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));
   };
   const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
@@ -1412,6 +1412,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             </tbody>
           </table>
         </div>
+        <button onClick={()=>addCustomDept(false)} style={{...btn,background:"#eef2ff",color:"#4338ca",fontWeight:700,padding:"7px 14px",marginTop:12}}>➕ Thêm đơn vị</button>
       </div>
 
       <div style={{background:"#fff",borderRadius:10,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
@@ -3962,13 +3963,13 @@ Bạn có chắc chắn không?`;
                     <div style={{padding:"8px 10px",background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
                       <b style={{fontSize:12,color:"#374151"}}>{tieuDe}</b>
                     </div>
-                    <div style={{maxHeight:220,overflowY:"auto"}}>
+                    <div style={{maxHeight:320,overflowY:"auto",padding:10,display:"flex",flexDirection:"column",gap:8}}>
                       {rows.length===0?(
                         <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
                       ):rows.map(v=>(
-                        <div key={v.ma} style={{display:"flex",justifyContent:"space-between",gap:8,padding:"6px 10px",borderTop:"1px solid #f1f5f9",fontSize:11}}>
-                          <span style={{color:"#6b7280",flex:"0 0 auto"}}>{v.ma}</span>
-                          <span style={{color:"#374151",textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.ten}</span>
+                        <div key={v.id||v.ma} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:"9px 11px",display:"flex",flexDirection:"column",gap:3}}>
+                          <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3}}>{v.ma}</span>
+                          <span style={{fontSize:12.5,color:"#1f2937",fontWeight:600,lineHeight:1.4,wordBreak:"break-word"}}>{v.ten}</span>
                         </div>
                       ))}
                     </div>
