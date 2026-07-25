@@ -1844,6 +1844,10 @@ export default function App(){
   // ✅ "Tổng quan" giờ là MÀN HÌNH ĐỘC LẬP (không nằm trong thanh tab) — hiển thị ngay sau khi
   // chọn "Đang thực hiện" ở màn đăng nhập. showTongQuan=true → chỉ render riêng màn hình này.
   const [showTongQuan, setShowTongQuan] = useState(false);
+  // ✅ "Khởi tạo Dự án" (Giai đoạn 01) — MÀN HÌNH ĐỘC LẬP riêng, gắn thẳng form "Thêm dự án"
+  // ngay tại đây (không cần vào hệ thống chính rồi mở modal như trước). Sau khi tạo dự án
+  // xong (mkProj chạy xong) sẽ tự động chuyển sang màn "Đang thực hiện" (showTongQuan=true).
+  const [showKhoiTao, setShowKhoiTao] = useState(false);
   // Bấm "← Trở về" trên Tổng quan → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập,
   // KHÔNG bắt đăng nhập lại (xem prop "resume" của LoginScreen).
   const [backToGate, setBackToGate] = useState(false);
@@ -2662,6 +2666,10 @@ export default function App(){
           setBomDB(s=>({...s,[id]:bomRows.filter(r=>String(r.ma||"").trim()&&String(r.ten||"").trim())}));
         }
         sw(id);
+        // ✅ Nếu đang ở màn "Khởi tạo Dự án" độc lập, tự động chuyển sang "Đang thực hiện"
+        // ngay sau khi tạo dự án xong — dự án đã lưu lên Supabase (giao/nhận vật tư dùng
+        // được bình thường như mọi dự án khác).
+        if(showKhoiTao){setShowKhoiTao(false);setShowTongQuan(true);}
         if(res?.skipped>0){
           flash(`⚠️ Tạo dự án thành công nhưng ${res.skipped} dòng bị bỏ qua (thiếu Mã số/Tên vật tư) — đã lưu ${res.count}/${bomRows.length} mã`);
         } else {
@@ -2672,11 +2680,13 @@ export default function App(){
         // Project đã chắc chắn tồn tại trên DB (bước trên đã chờ xong), nhưng BOM cần
         // import lại qua tab Vật tư.
         sw(id);
+        if(showKhoiTao){setShowKhoiTao(false);setShowTongQuan(true);}
         flash(`⚠️ Tạo dự án xong nhưng LƯU BOM THẤT BẠI: ${e.message}. Vào tab Vật tư → Import Excel để thử lại`);
         console.error("mkProj: lỗi lưu BOM:",e);
       }
     } else {
       sw(id);
+      if(showKhoiTao){setShowKhoiTao(false);setShowTongQuan(true);}
       if(willImport){
         flash("✓ Tạo dự án xong! Chưa có file BOM — vào tab Vật tư → bấm Import Excel để tải BOM");
       } else {
@@ -3798,6 +3808,84 @@ Bạn có chắc chắn không?`;
 
   const Tag=({bg="#eff6ff",c="#1d4ed8",ch})=><span style={{background:bg,color:c,padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:700}}>{ch}</span>;
 
+  // ✅ Nội dung FORM "Thêm dự án" — dùng CHUNG cho cả modal cũ (bên trong hệ thống chính,
+  // nút "＋ Thêm") VÀ màn hình độc lập "Khởi tạo Dự án" (Giai đoạn 01) mới, để đảm bảo
+  // logic tạo dự án/import BOM chỉ có 1 nguồn duy nhất, không lệch nhau.
+  const newProjFormFields=(
+    <div style={{display:"grid",gap:11}}>
+      <div>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Tên dự án *</label>
+        <input value={nPF.ten} onChange={e=>setNPF(f=>({...f,ten:e.target.value}))} style={inp} placeholder="Tên dự án..."/>
+      </div>
+      <div>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Mô tả</label>
+        <input value={nPF.moTa} onChange={e=>setNPF(f=>({...f,moTa:e.target.value}))} style={inp} placeholder="Mô tả..."/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Icon</label>
+          <input value={nPF.icon} onChange={e=>setNPF(f=>({...f,icon:e.target.value}))} style={inp} placeholder="🚐"/>
+        </div>
+        <div>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#065f46",marginBottom:3}}>🚌 Số xe *</label>
+          <input type="number" min={1} value={nPF.so_xe} onChange={e=>setNPF(f=>({...f,so_xe:parseInt(e.target.value)||1}))}
+            style={{...inp,fontWeight:700,color:"#065f46",border:"1.5px solid #6ee7b7",background:"#f0fdf4"}}/>
+        </div>
+      </div>
+      <div>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>📋 BOM mẫu</label>
+        {[{v:"import_file",l:"📂 Import BOM (Excel, CSV UTF-8)",d:"Tải file .xlsx hoặc CSV UTF-8 để lấy dữ liệu",c:"#7c3aed"},
+          ...bomMauLoaiList.map(l=>({v:l.id,l:`${l.icon} BOM ${l.ten}`,d:`${getBomMauRows(l.id).length} mã`,c:l.mau}))
+        ].map(o=>o.v==="import_file"?(
+          <div key={o.v} style={{borderRadius:8,border:`2px solid ${nPF.bom===o.v?o.c:"#e5e7eb"}`,background:nPF.bom===o.v?"#faf5ff":"#fff",marginBottom:6,overflow:"hidden"}}>
+            <div onClick={()=>setNPF(f=>({...f,bom:o.v}))} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",cursor:"pointer"}}>
+              <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${o.c}`,background:nPF.bom===o.v?o.c:"transparent",flexShrink:0}}/>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:nPF.bom===o.v?o.c:"#374151"}}>{o.l}</div>
+                <div style={{fontSize:11,color:"#9ca3af"}}>{o.d}</div>
+              </div>
+            </div>
+            {nPF.bom==="import_file"&&(
+              <div style={{padding:"0 12px 12px"}}>
+                <input ref={newProjFileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleNewProjXlsFile}/>
+                <button onClick={()=>newProjFileRef.current.click()} style={{...btn,background:"#7c3aed",color:"#fff",padding:"7px 14px",fontSize:12,width:"100%"}}>
+                  📂 Chọn file Excel / CSV
+                </button>
+                {newProjXlsErr&&<div style={{marginTop:8,background:"#fee2e2",borderRadius:6,padding:"7px 10px",fontSize:11,color:"#991b1b"}}>⚠️ {newProjXlsErr}</div>}
+                {newProjXlsPreview.length>0&&(
+                  <div style={{marginTop:8,fontSize:12,color:"#065f46",fontWeight:700}}>
+                    ✓ Đọc được {newProjXlsPreview.length} mã vật tư — sẽ lưu lên Supabase khi tạo dự án
+                  </div>
+                )}
+                {!newProjXlsPreview.length&&!newProjXlsErr&&(
+                  <div style={{marginTop:6,fontSize:11,color:"#9ca3af"}}>Chưa chọn file. Có thể bỏ qua và Import Excel sau ở tab Vật tư.</div>
+                )}
+              </div>
+            )}
+          </div>
+        ):(
+          <div key={o.v} onClick={()=>setNPF(f=>({...f,bom:o.v}))}
+            style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,border:`2px solid ${nPF.bom===o.v?o.c:"#e5e7eb"}`,background:nPF.bom===o.v?"#f8fafc":"#fff",cursor:"pointer",marginBottom:6}}>
+            <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${o.c}`,background:nPF.bom===o.v?o.c:"transparent",flexShrink:0}}/>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:nPF.bom===o.v?o.c:"#374151"}}>{o.l}</div>
+              <div style={{fontSize:11,color:"#9ca3af"}}>{o.d}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Màu sắc</label>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {["#1d4ed8","#16a34a","#dc2626","#b45309","#7c3aed","#0891b2","#1f2937"].map(c=>(
+            <div key={c} onClick={()=>setNPF(f=>({...f,mau:c}))}
+              style={{width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",border:nPF.mau===c?"3px solid #000":"3px solid transparent"}}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
 
   // ── RENDER ──
   if(!user || backToGate) return (
@@ -3824,13 +3912,50 @@ Bạn có chắc chắn không?`;
         if(opts?.statusId==="inprogress"){
           // "Đang thực hiện" → màn hình "Tổng quan" ĐỘC LẬP (chỉ xem số liệu), có nút "← Trở về".
           setShowTongQuan(true);
-        }else{
-          // "Khởi tạo Dự án" → vào thẳng hệ thống như cũ, tự mở sẵn modal "🆕 Thêm dự án mới".
+          setShowKhoiTao(false);
+        }else if(opts?.statusId==="new"){
+          // ✅ "Khởi tạo Dự án" → màn hình ĐỘC LẬP riêng, gắn thẳng form "Thêm dự án" tại đây,
+          // KHÔNG vào hệ thống chính (topbar/tabs) như trước.
           setShowTongQuan(false);
+          setShowKhoiTao(true);
+        }else{
+          setShowTongQuan(false);
+          setShowKhoiTao(false);
           setTab(u.role==="thck"||u.role==="kho"?"soan":u.role==="khth"?"ds":"duyet");
-          if(opts?.openNewProject) setNewP(true);
         }
       }}/>
+    </LangCtx.Provider>
+  );
+
+  // ── MÀN HÌNH "KHỞI TẠO DỰ ÁN" (Giai đoạn 01) ĐỘC LẬP — gắn thẳng form "Thêm dự án" ──
+  // Sau khi tạo dự án thành công (mkProj), tự động chuyển sang "Đang thực hiện" (showTongQuan).
+  if(showKhoiTao) return (
+    <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
+      <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
+        <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
+            <button onClick={()=>{setBackToGate(true);setShowKhoiTao(false);}}
+              style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
+              ← Trở về
+            </button>
+            <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #3b82f6"}}>
+              <VehicleIconCircle lineId={activeLine} size={20}/>
+              <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
+              <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+            </div>
+          </div>
+          <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>🆕 GIAI ĐOẠN · 01 — KHỞI TẠO DỰ ÁN</div>
+          <div style={{fontSize:11,opacity:.75,marginTop:4}}>Tạo mới dự án, thiết lập BOM và định mức ban đầu.</div>
+        </div>
+        <div style={{background:"#fff",borderRadius:12,padding:18,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",maxWidth:560,margin:"0 auto"}}>
+          {newProjFormFields}
+          <div style={{display:"flex",gap:8,marginTop:18,justifyContent:"flex-end"}}>
+            <button onClick={()=>{setBackToGate(true);setShowKhoiTao(false);setNewProjXlsPreview([]);setNewProjXlsErr("");}}
+              style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 16px"}}>Hủy</button>
+            <button onClick={mkProj} style={{...btn,background:nPF.mau,color:"#fff",padding:"7px 16px",fontWeight:800}}>✅ Tạo dự án</button>
+          </div>
+        </div>
+      </div>
     </LangCtx.Provider>
   );
 
@@ -3968,7 +4093,14 @@ Bạn có chắc chắn không?`;
                         <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
                       ):rows.map(v=>(
                         <div key={v.id||v.ma} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:"9px 11px",display:"flex",flexDirection:"column",gap:3}}>
-                          <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3}}>{v.ma}</span>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                            <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3}}>{v.ma}</span>
+                            {tqVtOpen.field==="thieu"?(
+                              <span style={{fontSize:10,fontWeight:800,color:"#dc2626",background:"#fee2e2",borderRadius:8,padding:"1px 7px",whiteSpace:"nowrap"}}>Thiếu {fmt(v.ct)}</span>
+                            ):(
+                              <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"1px 7px",whiteSpace:"nowrap"}}>Đã nhận {fmt(v.dn)}</span>
+                            )}
+                          </div>
                           <span style={{fontSize:12.5,color:"#1f2937",fontWeight:600,lineHeight:1.4,wordBreak:"break-word"}}>{v.ten}</span>
                         </div>
                       ))}
@@ -5532,68 +5664,7 @@ Bạn có chắc chắn không?`;
             {newP&&(
               <div>
                 <h3 style={{margin:"0 0 16px",fontSize:15}}>{t("modalNewProj")}</h3>
-                <div style={{display:"grid",gap:11}}>
-                  <div>
-                    <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Tên dự án *</label>
-                    <input value={nPF.ten} onChange={e=>setNPF(f=>({...f,ten:e.target.value}))} style={inp} placeholder="Tên dự án..."/>
-                  </div>
-                  <div>
-                    <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Mô tả</label>
-                    <input value={nPF.moTa} onChange={e=>setNPF(f=>({...f,moTa:e.target.value}))} style={inp} placeholder="Mô tả..."/>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    <div>
-                      <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Icon</label>
-                      <input value={nPF.icon} onChange={e=>setNPF(f=>({...f,icon:e.target.value}))} style={inp} placeholder="🚐"/>
-                    </div>
-                    <div>
-                      <label style={{display:"block",fontSize:11,fontWeight:700,color:"#065f46",marginBottom:3}}>🚌 Số xe *</label>
-                      <input type="number" min={1} value={nPF.so_xe} onChange={e=>setNPF(f=>({...f,so_xe:parseInt(e.target.value)||1}))}
-                        style={{...inp,fontWeight:700,color:"#065f46",border:"1.5px solid #6ee7b7",background:"#f0fdf4"}}/>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>📋 BOM mẫu</label>
-                    {[{v:"import_file",l:"📂 Import BOM (Excel, CSV UTF-8)",d:"Tải file .xlsx hoặc CSV UTF-8 để lấy dữ liệu",c:"#7c3aed"},
-                      ...bomMauLoaiList.map(l=>({v:l.id,l:`${l.icon} BOM ${l.ten}`,d:`${getBomMauRows(l.id).length} mã`,c:l.mau}))
-                    ].map(o=>(
-                      <div key={o.v} onClick={()=>setNPF(f=>({...f,bom:o.v}))}
-                        style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,border:`2px solid ${nPF.bom===o.v?o.c:"#e5e7eb"}`,background:nPF.bom===o.v?"#f8fafc":"#fff",cursor:"pointer",marginBottom:6}}>
-                        <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${o.c}`,background:nPF.bom===o.v?o.c:"transparent",flexShrink:0}}/>
-                        <div>
-                          <div style={{fontWeight:700,fontSize:13,color:nPF.bom===o.v?o.c:"#374151"}}>{o.l}</div>
-                          <div style={{fontSize:11,color:"#9ca3af"}}>{o.d}</div>
-                        </div>
-                      </div>
-                    ))}
-                    {nPF.bom==="import_file"&&(
-                      <div style={{marginTop:4,padding:"10px 12px",borderRadius:8,background:"#faf5ff",border:"1px solid #e9d5ff"}}>
-                        <input ref={newProjFileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleNewProjXlsFile}/>
-                        <button onClick={()=>newProjFileRef.current.click()} style={{...btn,background:"#7c3aed",color:"#fff",padding:"7px 14px",fontSize:12,width:"100%"}}>
-                          📂 Chọn file Excel / CSV
-                        </button>
-                        {newProjXlsErr&&<div style={{marginTop:8,background:"#fee2e2",borderRadius:6,padding:"7px 10px",fontSize:11,color:"#991b1b"}}>⚠️ {newProjXlsErr}</div>}
-                        {newProjXlsPreview.length>0&&(
-                          <div style={{marginTop:8,fontSize:12,color:"#065f46",fontWeight:700}}>
-                            ✓ Đọc được {newProjXlsPreview.length} mã vật tư — sẽ lưu lên Supabase khi tạo dự án
-                          </div>
-                        )}
-                        {!newProjXlsPreview.length&&!newProjXlsErr&&(
-                          <div style={{marginTop:6,fontSize:11,color:"#9ca3af"}}>Chưa chọn file. Có thể bỏ qua và Import Excel sau ở tab Vật tư.</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Màu sắc</label>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      {["#1d4ed8","#16a34a","#dc2626","#b45309","#7c3aed","#0891b2","#1f2937"].map(c=>(
-                        <div key={c} onClick={()=>setNPF(f=>({...f,mau:c}))}
-                          style={{width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",border:nPF.mau===c?"3px solid #000":"3px solid transparent"}}/>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                {newProjFormFields}
                 <div style={{display:"flex",gap:8,marginTop:18,justifyContent:"flex-end"}}>
                   <button onClick={()=>{setNewP(false);setNewProjXlsPreview([]);setNewProjXlsErr("");}} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 16px"}}>Hủy</button>
                   <button onClick={mkProj} style={{...btn,background:nPF.mau,color:"#fff",padding:"7px 16px"}}>Tạo dự án</button>
