@@ -128,14 +128,11 @@ const USERS_DEF = [
 // XH    → Xem phiếu, xác nhận, duyệt, quản lý BOM, người dùng
 // KHTH  → Vai trò MỚI, chỉ xem — không soạn hàng, không duyệt, không quản lý BOM/người dùng
 const TABS_ALL = [
-  ["tongquan","📊 Tổng quan"],
   ["ds",      "📦 Vật tư"],
   ["soan",    "📋 Soạn Hàng"],
   ["duyet",   "✅ Nhận Hàng"],
   ["pgn",     "📄 Phiếu GN"],
   ["bc",      "📈 Báo Cáo"],
-  ["ls",      "🕓 Lịch sử"],
-  ["tk",      "📊 Thống kê"],
   ["bom_mau", "🗂️ BOM Mẫu"],
   ["users",   "👥 Người dùng"],
 ];
@@ -153,8 +150,6 @@ const APP_I18N = {
   tab_duyet:   {vi:"✅ Nhận Hàng",     zh:"✅ 收货"},
   tab_pgn:     {vi:"📄 Phiếu GN",      zh:"📄 收发单"},
   tab_bc:      {vi:"📈 Báo Cáo",       zh:"📈 报表"},
-  tab_ls:      {vi:"🕓 Lịch sử",       zh:"🕓 历史"},
-  tab_tk:      {vi:"📊 Thống kê",      zh:"📊 统计"},
   tab_bom_mau: {vi:"🗂️ BOM Mẫu",      zh:"🗂️ BOM模板"},
   tab_users:   {vi:"👥 Người dùng",    zh:"👥 用户"},
   // Header brand / role
@@ -232,8 +227,6 @@ const APP_I18N = {
   titlePgnSent: {vi:"📄 Phiếu đã gửi",              zh:"📄 已发送单据"},
   titleBc:      {vi:"📈 Báo Cáo Tổng Hợp Nhận Vật Tư", zh:"📈 收料综合报表"},
   titleBcDone:  {vi:"✅ Đã nhận đủ vật tư toàn bộ!", zh:"✅ 已全部收齐物料！"},
-  titleLs:      {vi:"🕓 Lịch sử",                  zh:"🕓 历史记录"},
-  titleTk:      {vi:"📊 Thống kê",                  zh:"📊 统计"},
   titleBomMau:  {vi:"🗂️ BOM Mẫu",                 zh:"🗂️ BOM 模板"},
   titleUsers:   {vi:"👥 Người dùng",                zh:"👥 用户管理"},
   // Tiêu đề báo cáo khi Xuất PDF (khác chút so với tiêu đề tab để giữ đúng ngữ cảnh in ấn)
@@ -923,15 +916,17 @@ const KL_PROJECT_STATUSES = [
 ];
 
 // ─── Login Screen — Cổng vào (tài khoản) → chọn dòng xe → trạng thái dự án ────
-function LoginScreen({onLogin}){
+// resume: khi quay lại từ màn "Tổng quan" (nút "← Trở về"), truyền {authedUser,userList,activeLine}
+// để mở thẳng BƯỚC 3 (chọn trạng thái dự án) — không bắt đăng nhập lại từ đầu.
+function LoginScreen({onLogin, resume}){
   // "gate" (đăng nhập tài khoản) → "select" (chọn dòng xe) → "project" (chọn trạng thái dự án)
-  const [step, setStep]   = useState("gate");
-  const [activeLine, setActiveLine] = useState(null);
+  const [step, setStep]   = useState(resume ? "project" : "gate");
+  const [activeLine, setActiveLine] = useState(resume?.activeLine || null);
   const [uid2, setUid2]   = useState("");
   const [pw, setPw]       = useState("");
   const [err, setErr]     = useState("");
-  const [userList,setUserList]=useState(USERS_DEF);
-  const [authedUser,setAuthedUser]=useState(null);
+  const [userList,setUserList]=useState(resume?.userList || USERS_DEF);
+  const [authedUser,setAuthedUser]=useState(resume?.authedUser || null);
   const [lineQuyen,setLineQuyen]=useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const {lang} = useLang();
   const t = LOGIN_I18N[lang];
@@ -1008,7 +1003,7 @@ function LoginScreen({onLogin}){
       return;
     }
     setErr("");
-    onLogin(authedUser, userList, {openNewProject:s.id==="new", line:activeLine});
+    onLogin(authedUser, userList, {openNewProject:s.id==="new", line:activeLine, statusId:s.id});
   };
 
   const backToSelect=()=>{ setErr(""); setStep("select"); };
@@ -1808,6 +1803,12 @@ export default function App(){
   // là dữ liệu định danh/quyền hạn toàn công ty, không thuộc riêng dòng xe nào.
   const [activeLine, setActiveLine] = useState(()=>{try{return localStorage.getItem("activeLine")||"minibus";}catch{return "minibus";}});
   const T = useCallback((base)=> (activeLine && activeLine!=="minibus") ? `${base}_${activeLine}` : base, [activeLine]);
+  // ✅ "Tổng quan" giờ là MÀN HÌNH ĐỘC LẬP (không nằm trong thanh tab) — hiển thị ngay sau khi
+  // chọn "Đang thực hiện" ở màn đăng nhập. showTongQuan=true → chỉ render riêng màn hình này.
+  const [showTongQuan, setShowTongQuan] = useState(false);
+  // Bấm "← Trở về" trên Tổng quan → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập,
+  // KHÔNG bắt đăng nhập lại (xem prop "resume" của LoginScreen).
+  const [backToGate, setBackToGate] = useState(false);
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [dbErr,    setDbErr]    = useState("");
@@ -1815,11 +1816,6 @@ export default function App(){
   const [projPickerOpen, setProjPickerOpen] = useState(false);
   const [bomDB,    setBomDB]    = useState(initBom);
   const [lsDB,     setLsDB]     = useState({});
-  const [bomLogDB, setBomLogDB] = useState([]);   // 🕓 Nhật ký thay đổi BOM (thêm/sửa/xóa) — realtime, dùng thay cho tab Thống kê
-  const [nowTick,  setNowTick]  = useState(()=>Date.now()); // tick để nhật ký hiển thị "x phút trước" theo thời gian thực
-  const [bomLogFlt, setBomLogFlt] = useState("all"); // lọc nhật ký: "all" | "them" | "sua" | "xoa"
-  const [bomLogProj, setBomLogProj] = useState("all"); // lọc theo dự án trong nhật ký
-  const [bomLogSearch, setBomLogSearch] = useState("");
   const [phDB,     setPhDB]     = useState({});
   const [soanDB,   setSoanDB]   = useState(()=>{try{const s=localStorage.getItem("soanDB");return s?JSON.parse(s):{};}catch{return{};}});
   const [pid,      setPid]      = useState("proj_xh");
@@ -1929,7 +1925,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r9,r10]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -1944,7 +1940,6 @@ export default function App(){
           supabase.from(T("lich_su")).select("*").order("ts",{ascending:false}).limit(500),
           supabase.from(T("bom_mau_loai")).select("*").order("thu_tu").range(0, 9999),
           supabase.from(T("bom_mau")).select("*").order("stt").range(0, 9999),
-          supabase.from(T("bom_log")).select("*").order("ts",{ascending:false}).limit(500),
           supabase.from("quyen_dong_xe").select("*").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
@@ -2011,8 +2006,6 @@ export default function App(){
           (r8.data||[]).forEach(row=>{if(!grouped[row.loai])grouped[row.loai]=[];grouped[row.loai].push(row);});
           setBomMauByLoai(grouped);
         }
-        if(r9.error) console.warn("Chưa đọc được bảng bom_log (có thể chưa tạo bảng — xem hướng dẫn tạo bảng ở comment gần dbAddBomLog):",r9.error.message);
-        else if(r9.data) setBomLogDB(r9.data);
         // Phân quyền dòng xe theo đơn vị — nếu bảng chưa tạo, giữ nguyên LINE_QUYEN_DEFAULT.
         if(r10.error){
           console.warn("Chưa đọc được bảng quyen_dong_xe (có thể chưa tạo bảng):",r10.error.message);
@@ -2045,21 +2038,6 @@ export default function App(){
     const pollTimer=setInterval(load,10000);
     return ()=>clearInterval(pollTimer);
   },[user,activeLine]);
-
-  // ── Realtime: lắng nghe bảng bom_log để nhật ký thay đổi BOM cập nhật tức thời,
-  // kể cả khi thay đổi được thực hiện bởi người dùng khác trên thiết bị khác ──
-  useEffect(()=>{
-    const channel=supabase
-      .channel("bom_log_realtime")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:T("bom_log")},payload=>{
-        setBomLogDB(list=>{
-          if(list.some(r=>r.id===payload.new.id)) return list; // tránh trùng nếu đã thêm optimistic
-          return [payload.new,...list].slice(0,500);
-        });
-      })
-      .subscribe();
-    return ()=>{ supabase.removeChannel(channel); };
-  },[activeLine]);
 
   // ── Realtime: đồng bộ bảng bom_items giữa các thiết bị/người dùng gần như tức thời.
   // Đây là LỚP BẢO VỆ BỔ SUNG chống mất dữ liệu nhiều trạm: lớp chính là đã đổi mọi thao
@@ -2099,12 +2077,6 @@ export default function App(){
       .subscribe();
     return ()=>{ supabase.removeChannel(channel); };
   },[activeLine]);
-
-  // ── Tick mỗi phút để nhật ký BOM hiển thị thời gian tương đối cập nhật liên tục ──
-  useEffect(()=>{
-    const iv=setInterval(()=>setNowTick(Date.now()),30000);
-    return ()=>clearInterval(iv);
-  },[]);
 
   // ── Theo dõi trạng thái Online ──
   // Heartbeat: mỗi 20s, cập nhật last_active của user đang đăng nhập lên Supabase
@@ -2421,32 +2393,11 @@ export default function App(){
       if(ct?.length) await supabase.from(T("phieu_ct")).upsert(ct);
     }catch(e){console.error("dbSavePhieu:",e);}
   };
-  const dbAddLS=async(row)=>{
-    try{await supabase.from(T("lich_su")).insert(row);}catch(e){console.error("dbAddLS:",e);}
-  };
-  // ── Nhật ký thay đổi BOM (👤 ai / hành động / mã VT / thời gian) ──
-  // Cần bảng Supabase "bom_log" với các cột: id (text,pk), ts (timestamptz),
-  // pid (text), hanh_dong (text: "them"|"sua"|"xoa"), ma (text), ten (text),
-  // chi_tiet (text, tùy chọn), user_id (text), user_ten (text).
-  // Nếu bảng chưa tồn tại, hàm này chỉ log lỗi ra console chứ không làm hỏng ứng dụng.
-  const dbAddBomLog=async(row)=>{
-    try{
-      const {error}=await supabase.from(T("bom_log")).insert(row);
-      if(error) console.error("dbAddBomLog:",error.message,error);
-    }catch(e){console.error("dbAddBomLog:",e);}
-  };
-  // addBomLog: ghi nhật ký NGAY trên UI (optimistic) rồi đồng bộ lên Supabase.
-  // hanh_dong: "them" | "sua" | "xoa"
-  // pidOverride: dùng khi ghi log cho 1 dự án KHÁC dự án đang xem (vd import Excel qua importPidRef)
-  const addBomLog=(hanh_dong,v,chi_tiet="",pidOverride)=>{
-    const row={
-      id:uid(), ts:new Date().toISOString(), pid:pidOverride||pid,
-      hanh_dong, ma:v.ma||"", ten:v.ten||"",
-      chi_tiet, user_id:user?.id||"", user_ten:user?.ten||"Không rõ",
-    };
-    setBomLogDB(list=>[row,...list].slice(0,500));
-    dbAddBomLog(row);
-  };
+  // ⚠️ Đã bỏ ghi lịch sử giao dịch lên Supabase (bảng "lich_su") để không phát sinh
+  // thêm dữ liệu — lsDB vẫn được cập nhật cục bộ (addLS) trong phiên làm việc hiện tại.
+  const dbAddLS=async(row)=>{};
+  // ⚠️ Đã bỏ hẳn "Nhật ký thay đổi BOM" (bảng Supabase "bom_log") cùng với tab Thống kê.
+  const addBomLog=()=>{};
   const dbUpdatePhieuCt=async(ctid,ok,nguoi_duyet?,sl_thuc_nhan?,sl_thieu?)=>{
     try{
       const upd:any={ok};
@@ -3234,7 +3185,6 @@ export default function App(){
     dbSavePhieu(ph);
     const lsRows=ct.map(c=>({id:uid(),pid,ma:c.ma,ten:c.ten,loai:"Xuất kho",sl:-c.sl,gc:`Đơn ${sp}`,ts:new Date().toISOString(),nguoi_duyet:user.ten,don_vi_duyet:user.don_vi}));
     lsRows.forEach(r=>addLS(pid,r));
-    supabase.from(T("lich_su")).insert(lsRows).then(()=>{});
     // ✅ FIX: Không xoá trắng toàn bộ Soạn Hàng nữa. Mã nào gửi đi mà SL giao < SL cần nhận
     // thì vẫn giữ lại trong Soạn Hàng với SL = SL cần - SL đã giao (để soạn tiếp phần còn thiếu).
     // Mã đã giao đủ thì xoá khỏi checklist soạn (đã gửi xong). Mã không nằm trong đợt gửi
@@ -3353,9 +3303,6 @@ Bạn có chắc chắn không?`;
     // Ghi lịch sử chi tiết cho mỗi mã (Xuất kho)
     const lsRows=phIt.map(it=>({id:uid(),pid,ma:it.ma,ten:it.ten,loai:"Xuất kho",sl:-it.sl,gc:`Phiếu ${phF.sp}`,ts:new Date().toISOString(),nguoi_duyet:user.ten,don_vi_duyet:user.don_vi}));
     lsRows.forEach(r=>addLS(pid,r));
-    
-    // Lưu tất cả vào Supabase
-    supabase.from(T("lich_su")).insert([lsPhieuSoan,...lsRows]).then(()=>{});
     
     setShowPh(false);
     flash(`✓ Tạo phiếu ${phF.sp} cho dự án "${projHienTai.ten}" thành công`);
@@ -3806,32 +3753,147 @@ Bạn có chắc chắn không?`;
 
 
   // ── RENDER ──
-  if(!user) return (
+  if(!user || backToGate) return (
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
-      <LoginScreen onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
+      <LoginScreen
+        resume={backToGate && user ? {authedUser:user, userList:users, activeLine} : null}
+        onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
         try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
         // ✅ Ghi nhận dòng xe vừa chọn (12m / citybus / minibus) — quyết định app sẽ đọc/ghi
         // vào bộ bảng Supabase nào (xem hàm T() ở đầu component).
         const line = opts?.line || "minibus";
         setActiveLine(line);
         try{localStorage.setItem("activeLine",line);}catch{}
-        if(line!=="minibus"){
+        if(line!=="minibus" && (!user || line!==activeLine)){
           // Dòng xe khác Mini Bus (vd. City Bus) hoạt động HOÀN TOÀN ĐỘC LẬP — không dùng
           // dữ liệu mẫu "Kim Mai 9 / Minibus X9", bắt đầu TRỐNG để người dùng tự tạo dự án
           // (giống hệt luồng "Khởi tạo Dự án"), tránh lẫn với dữ liệu Mini Bus.
+          // ⚠️ Chỉ reset khi ĐĂNG NHẬP MỚI hoặc ĐỔI DÒNG XE — nếu chỉ quay lại (backToGate) rồi
+          // chọn lại đúng dòng xe cũ, KHÔNG reset để tránh xoá mất dữ liệu đã tải từ Supabase.
           setProjs([]); setBomDB({}); setPid("");
           setBomMauLoaiList([]); setBomMauByLoai({}); setBmTab("");
         }
-        // ✅ Vào hệ thống luôn hạ cánh ở tab "Tổng quan" (số liệu tổng hợp: Tiến Trình Giao Xe
-        // + Xem Vật tư) — mọi vai trò đều thấy tab này, từ đó có thể chuyển sang các tab
-        // thao tác khác (Soạn Hàng, Nhận Hàng, Phiếu GN...) như bình thường.
-        setTab("tongquan");
-        // Nếu vào từ thẻ "Khởi tạo Dự án" ở màn hình đăng nhập → tự mở sẵn modal
-        // "🆕 Thêm dự án mới" (đúng y hệt nút "＋ Thêm" trên thanh dự án).
-        if(opts?.openNewProject) setNewP(true);
+        setBackToGate(false);
+        if(opts?.statusId==="inprogress"){
+          // "Đang thực hiện" → màn hình "Tổng quan" ĐỘC LẬP (chỉ xem số liệu), có nút "← Trở về".
+          setShowTongQuan(true);
+        }else{
+          // "Khởi tạo Dự án" → vào thẳng hệ thống như cũ, tự mở sẵn modal "🆕 Thêm dự án mới".
+          setShowTongQuan(false);
+          setTab(u.role==="thck"||u.role==="kho"?"soan":u.role==="khth"?"ds":"duyet");
+          if(opts?.openNewProject) setNewP(true);
+        }
       }}/>
     </LangCtx.Provider>
   );
+
+  // ── MÀN HÌNH "TỔNG QUAN" ĐỘC LẬP — thay thế hoàn toàn topbar/tab của hệ thống chính ──
+  if(showTongQuan) return (
+    <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
+      {(()=>{
+        const daGiao=Math.min(proj.da_giao||0,soXe);
+        const conLai=Math.max(0,soXe-daGiao);
+        const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
+        return(
+        <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
+          <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
+              <button onClick={()=>setBackToGate(true)}
+                style={{...btn,background:"rgba(255,255,255,0.14)",color:"#fff",padding:"7px 14px",fontSize:12,fontWeight:700,border:"1px solid rgba(255,255,255,0.25)"}}>
+                ← Trở về
+              </button>
+              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px"}}>
+                <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
+                <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+              </div>
+            </div>
+            <div style={{fontSize:11,opacity:.7,letterSpacing:.5,marginBottom:2}}>DỰ ÁN ĐANG THỰC HIỆN</div>
+            <div style={{fontSize:17,fontWeight:700}}>{proj.icon} {proj.ten}</div>
+          </div>
+          {/* Danh sách dự án — bấm để đổi dự án xem tổng quan */}
+          {projs.length>0&&(
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+              {projs.map(p=>(
+                <div key={p.id} onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
+                  style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
+                    background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`}}>
+                  <span>{p.icon}</span><span>{p.ten}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {projs.length===0?(
+            <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+              — Chưa có dự án nào cho dòng xe này —
+            </div>
+          ):(
+          <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+            {/* ── Khối 1: Tiến Trình Giao Xe ── */}
+            <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a"}}>
+              <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:18}}>🚌</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>Tiến Trình Giao Xe</span>
+              </div>
+              <div style={{padding:16}}>
+                <div style={{display:"flex",gap:8,marginBottom:12}}>
+                  <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#f0fdf4",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #bbf7d0"}}>
+                    <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
+                    <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe đã giao</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Bấm để sửa</div>
+                  </div>
+                  <div style={{flex:1,textAlign:"center",background:"#fef2f2",borderRadius:8,padding:"10px 6px",border:"1px solid #fecaca"}}>
+                    <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
+                    <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe còn lại</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
+                  <span>Tổng {fmt(soXe)} xe</span><span style={{fontWeight:700}}>{pctGiao}%</span>
+                </div>
+                <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
+              </div>
+            </div>
+            {/* ── Khối 2: Xem Vật tư (THCK / CKD) ── */}
+            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd"}}>
+              <div style={{padding:"14px 16px",background:"#eff6ff",display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:18}}>📦</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>Xem Vật tư</span>
+              </div>
+              <div style={{padding:16,display:"flex",gap:12,flexWrap:"wrap"}}>
+                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                  const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
+                  const tongMa=itemsNg.length;
+                  const maDaNhanNg=itemsNg.filter(v=>v.done).length;
+                  const maConThieuNg=tongMa-maDaNhanNg;
+                  return(
+                    <div key={nguon} style={{flex:"1 1 160px",minWidth:150,borderRadius:10,overflow:"hidden",border:`1.5px solid ${bd}`}}>
+                      <div style={{padding:"8px 10px",background:bgLight,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:14}}>{icon}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:mau}}>{nguon}</span>
+                      </div>
+                      <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:6}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                          <span style={{color:"#6b7280"}}>Tổng mã</span><b style={{color:"#374151"}}>{fmt(tongMa)}</b>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                          <span style={{color:"#6b7280"}}>SL đã nhận</span><b style={{color:"#16a34a"}}>{fmt(maDaNhanNg)}</b>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{fmt(maConThieuNg)}</b>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          )}
+        </div>
+        );
+      })()}
+    </LangCtx.Provider>
+  );
+
 
   const role      = user.role;           // "thck" | "xuonghan" | "kho" | "khth"
   const isTHCK    = role==="thck";
@@ -3988,101 +4050,6 @@ Bạn có chắc chắn không?`;
       <div style={{padding:"12px 10px",boxSizing:"border-box",width:"100%"}}>
 
         {/* ── DANH SÁCH BOM ── */}
-        {/* ── TỔNG QUAN (trang mặc định khi vào "Đang thực hiện") ── */}
-        {/* Chỉ xem số liệu tổng hợp — KHÔNG có thao tác soạn/nhận hàng. Hoạt động độc lập theo
-            từng dòng xe (12m / City Bus / Mini Bus) vì proj/bom/th đều lấy theo activeLine. */}
-        {tab==="tongquan"&&(()=>{
-          const daGiao=Math.min(proj.da_giao||0,soXe);
-          const conLai=Math.max(0,soXe-daGiao);
-          const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
-          return(
-          <div>
-            <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"18px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-              <div style={{fontSize:11,opacity:.7,letterSpacing:.5,marginBottom:2}}>DỰ ÁN ĐANG THỰC HIỆN</div>
-              <div style={{fontSize:17,fontWeight:700}}>{proj.icon} {proj.ten}</div>
-            </div>
-            {/* Danh sách dự án — bấm để đổi dự án xem tổng quan */}
-            {projs.length>0&&(
-              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-                {projs.map(p=>(
-                  <div key={p.id} onClick={()=>{setPid(p.id);localStorage.setItem("lastPid",p.id);}}
-                    style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
-                      background:p.id===pid?(p.mau||"#2563eb"):"#f1f5f9",color:p.id===pid?"#fff":"#374151",border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`}}>
-                    <span>{p.icon}</span><span>{p.ten}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {projs.length===0?(
-              <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-                — Chưa có dự án nào. Bấm "＋ Thêm" ở thanh trên để tạo dự án mới —
-              </div>
-            ):(
-            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-              {/* ── Khối 1: Tiến Trình Giao Xe ── */}
-              <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a"}}>
-                <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:18}}>🚌</span>
-                  <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>Tiến Trình Giao Xe</span>
-                </div>
-                <div style={{padding:16}}>
-                  <div style={{display:"flex",gap:8,marginBottom:12}}>
-                    <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#f0fdf4",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #bbf7d0"}}>
-                      <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
-                      <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe đã giao</div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Bấm để sửa</div>
-                    </div>
-                    <div style={{flex:1,textAlign:"center",background:"#fef2f2",borderRadius:8,padding:"10px 6px",border:"1px solid #fecaca"}}>
-                      <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
-                      <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe còn lại</div>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
-                    <span>Tổng {fmt(soXe)} xe</span><span style={{fontWeight:700}}>{pctGiao}%</span>
-                  </div>
-                  <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
-                </div>
-              </div>
-              {/* ── Khối 2: Xem Vật tư (THCK / CKD) ── */}
-              <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd"}}>
-                <div style={{padding:"14px 16px",background:"#eff6ff",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:18}}>📦</span>
-                  <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>Xem Vật tư</span>
-                </div>
-                <div style={{padding:16,display:"flex",gap:12,flexWrap:"wrap"}}>
-                  {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
-                    const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
-                    const tongMa=itemsNg.length;
-                    const maDaNhanNg=itemsNg.filter(v=>v.done).length;
-                    const maConThieuNg=tongMa-maDaNhanNg;
-                    return(
-                      <div key={nguon} style={{flex:"1 1 160px",minWidth:150,borderRadius:10,overflow:"hidden",border:`1.5px solid ${bd}`}}>
-                        <div style={{padding:"8px 10px",background:bgLight,display:"flex",alignItems:"center",gap:6}}>
-                          <span style={{fontSize:14}}>{icon}</span>
-                          <span style={{fontWeight:800,fontSize:12,color:mau}}>{nguon}</span>
-                        </div>
-                        <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:6}}>
-                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                            <span style={{color:"#6b7280"}}>Tổng mã</span><b style={{color:"#374151"}}>{fmt(tongMa)}</b>
-                          </div>
-                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                            <span style={{color:"#6b7280"}}>SL đã nhận</span><b style={{color:"#16a34a"}}>{fmt(maDaNhanNg)}</b>
-                          </div>
-                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                            <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{fmt(maConThieuNg)}</b>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            )}
-          </div>
-          );
-        })()}
-
         {tab==="ds"&&(
           <div>
             <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
@@ -5077,203 +5044,6 @@ Bạn có chắc chắn không?`;
           );
         })()}
 
-        {/* ── LỊCH SỬ ── */}
-        {/* ── LỊCH SỬ ── */}
-        {tab==="ls"&&(()=>{
-          // KHO & THCK xem tất cả dự án, XH chỉ xem dự án hiện tại
-          const lsAll = (isKHO||isTHCK)
-            ? Object.entries(lsDB).flatMap(([p2,rows])=>rows.map(r=>({...r,_projId:p2})))
-                .sort((a,b)=>new Date(b.ts).getTime()-new Date(a.ts).getTime())
-            : ls.map(r=>({...r,_projId:pid}));
-          const showProj = isKHO||isTHCK;
-          const getProjInfo=p2=>projs.find(p=>p.id===p2)||{icon:"🚐",ten:p2,mau:"#6b7280"};
-          return(
-          <div style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-            {lsAll.length===0?(
-              <div style={{textAlign:"center",padding:60,color:"#9ca3af"}}><div style={{fontSize:40,marginBottom:10}}>📋</div><div>Chưa có giao dịch</div></div>
-            ):(
-              <div>
-                <div style={{padding:"10px 14px",borderBottom:"1px solid #e5e7eb",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                  <span>🕓 {showProj?"Tất cả dự án":proj.icon+" "+proj.ten} — Lịch sử ({lsAll.length})</span>
-                  <ExportBar
-                    shareTitle={`🕓 Lịch Sử Giao Dịch — ${showProj?"Tất cả":proj.ten}`}
-                    shareText={`Có ${lsAll.length} giao dịch vật tư`}
-                    onExcel={()=>xuatExcel(
-                      lsAll.map(r=>{
-                        const pj=getProjInfo(r._projId);
-                        return{
-                          "Thời gian":new Date(r.ts).toLocaleString("vi-VN"),
-                          "Dự án":pj.icon+" "+pj.ten,
-                          "Mã VT":r.ma,"Tên VT":r.ten,
-                          "Loại":r.loai,"Số lượng":r.sl,
-                          "Người duyệt":r.nguoi_duyet||"",
-                          "Đơn vị":r.don_vi_duyet||"",
-                          "Ghi chú":r.gc||""
-                        };
-                      }),
-                      `LichSu_TatCa`,
-                      `Lịch sử giao dịch — Tất cả dự án`
-                    )}
-                    onPDF={()=>{
-                      const rows=lsAll.map(r=>{
-                        const pj=getProjInfo(r._projId);
-                        return`<tr>
-                          <td style="font-size:9px;white-space:nowrap">${new Date(r.ts).toLocaleString("vi-VN")}</td>
-                          ${showProj?`<td style="font-size:9px;color:${pj.mau};font-weight:700">${pj.icon} ${pj.ten}</td>`:""}
-                          <td><b>${r.ma}</b></td><td>${r.ten}</td>
-                          <td>${r.loai}</td>
-                          <td style="text-align:right;font-weight:700;color:${r.sl<0?"#dc2626":"#16a34a"}">${r.sl>0?"+":""}${fmt(r.sl)}</td>
-                          <td style="color:#7c3aed;font-weight:700">${r.nguoi_duyet||"—"}</td>
-                          <td>${r.gc||""}</td>
-                        </tr>`;
-                      }).join("");
-                      xuatPDF(`<h2>${t("rpLs")}</h2>
-                        <p class="sub">${lsAll.length} giao dịch</p>
-                        <table><thead><tr><th>${t("thThoiGian")}</th>${showProj?`<th>${t("thDuAn")}</th>`:""}<th>${t("thMaVT")}</th><th>${t("thTenVT")}</th><th>${t("thLoai")}</th><th>${t("thSL")}</th><th>${t("thNguoiDuyet")}</th><th>${t("thGhiChu")}</th></tr></thead><tbody>${rows}</tbody></table>`,
-                        `LichSu_TatCa`);
-                    }}
-                  />
-                </div>
-                <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
-                  {lsAll.map((r,i)=>{
-                    const pj=getProjInfo(r._projId);
-                    const badgeBg=r.loai==="Xuất kho"?"#fee2e2":r.loai==="Tạo mới"?"#f3e8ff":(r.loai==="Duyệt phiếu"||r.loai==="Duyệt tất cả"||r.loai==="Duyệt mã VT")?"#ede9fe":"#d1fae5";
-                    const badgeC=r.loai==="Xuất kho"?"#991b1b":r.loai==="Tạo mới"?"#7c3aed":(r.loai==="Duyệt phiếu"||r.loai==="Duyệt tất cả"||r.loai==="Duyệt mã VT")?"#6d28d9":"#065f46";
-                    return(
-                      <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px 12px",
-                        boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:"1px solid #f1f5f9",
-                        display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                        <div style={{flex:"1 1 220px",minWidth:0}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:2}}>
-                            <span style={{fontWeight:700,fontSize:13,color:pj.mau,fontFamily:"monospace"}}>{r.ma}</span>
-                            {showProj&&<span style={{fontSize:10,fontWeight:700,color:pj.mau,background:"#f8fafc",borderRadius:4,padding:"1px 6px"}}>{pj.icon} {pj.ten}</span>}
-                          </div>
-                          <div style={{fontSize:12,color:"#374151",marginBottom:4,
-                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={r.ten}>{r.ten}</div>
-                          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                            <span style={{background:badgeBg,color:badgeC,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{r.loai}</span>
-                            <span style={{background:r.sl<0?"#fee2e2":"#dcfce7",color:r.sl<0?"#dc2626":"#16a34a",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{r.sl>0?"+":""}{fmt(r.sl)}</span>
-                            <span style={{fontSize:10,color:"#9ca3af"}}>{new Date(r.ts).toLocaleString("vi-VN")}</span>
-                            {r.gc&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{r.gc}</span>}
-                          </div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          {r.nguoi_duyet
-                            ?<div>
-                                <div style={{fontWeight:700,fontSize:11,color:"#7c3aed"}}>👤 {r.nguoi_duyet}</div>
-                                {r.don_vi_duyet&&<div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{r.don_vi_duyet}</div>}
-                              </div>
-                            :<span style={{color:"#d1d5db",fontSize:11}}>—</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-          );
-        })()}
-
-        {/* ── NHẬT KÝ THAY ĐỔI BOM (thay cho THỐNG KÊ) ── */}
-        {/* ── NHẬT KÝ THAY ĐỔI BOM (thay cho THỐNG KÊ) ── */}
-        {tab==="tk"&&(()=>{
-          const ACTIONS={
-            them:{label:"Thêm mới / Thêm mã VT",icon:"➕",bg:"#d1fae5",c:"#065f46"},
-            sua: {label:"Sửa BOM",              icon:"✏️",bg:"#dbeafe",c:"#1e40af"},
-            xoa: {label:"Xóa BOM",              icon:"🗑️",bg:"#fee2e2",c:"#991b1b"},
-          };
-          const getProjInfo=p2=>projs.find(p=>p.id===p2)||{icon:"🚐",ten:p2,mau:"#6b7280"};
-          const kw=bomLogSearch.trim().toLowerCase();
-          const rows=bomLogDB
-            .filter(r=>bomLogProj==="all"||r.pid===bomLogProj)
-            .filter(r=>bomLogFlt==="all"||r.hanh_dong===bomLogFlt)
-            .filter(r=>!kw||[r.ma,r.ten,r.user_ten,r.chi_tiet].some(x=>(x||"").toLowerCase().includes(kw)));
-          return(
-          <div>
-            <div style={{background:"#fff",borderRadius:10,padding:"12px 14px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10,marginBottom:12}}>
-                <div style={{fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:8}}>
-                  🕓 Nhật ký thay đổi BOM
-                  <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:700,color:"#16a34a",background:"#dcfce7",borderRadius:20,padding:"3px 9px"}}>
-                    <span style={{width:7,height:7,borderRadius:"50%",background:"#16a34a",display:"inline-block",boxShadow:"0 0 0 3px #dcfce780"}}/>
-                    Trực tiếp
-                  </span>
-                </div>
-                <input value={bomLogSearch} onChange={e=>setBomLogSearch(e.target.value)}
-                  placeholder="🔍 Tìm theo mã VT, tên, tài khoản..."
-                  style={{...inp,width:220,fontSize:12.5}}/>
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <select value={bomLogProj} onChange={e=>setBomLogProj(e.target.value)} style={{...inp,width:"auto",fontSize:12.5}}>
-                  <option value="all">📁 Tất cả dự án</option>
-                  {projs.map(p=><option key={p.id} value={p.id}>{p.icon} {p.ten}</option>)}
-                </select>
-                {[["all","Tất cả"],["them","➕ Thêm"],["sua","✏️ Sửa"],["xoa","🗑️ Xóa"]].map(([k,l])=>(
-                  <button key={k} onClick={()=>setBomLogFlt(k)}
-                    style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"7px 14px",
-                      background:bomLogFlt===k?mauP:"#f3f4f6",color:bomLogFlt===k?"#fff":"#374151"}}>{l}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:14}}>
-              {[
-                ["📝","Tổng thay đổi",fmt(rows.length),mauP],
-                ["➕","Thêm / Thêm mã VT",fmt(rows.filter(r=>r.hanh_dong==="them").length),"#16a34a"],
-                ["✏️","Sửa BOM",fmt(rows.filter(r=>r.hanh_dong==="sua").length),"#1d4ed8"],
-                ["🗑️","Xóa BOM",fmt(rows.filter(r=>r.hanh_dong==="xoa").length),"#dc2626"],
-              ].map(([ic,l,v,c])=>(
-                <div key={l} style={{background:"#fff",borderRadius:10,padding:"12px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",borderLeft:`4px solid ${c}`}}>
-                  <div style={{fontSize:20,marginBottom:5}}>{ic}</div>
-                  <div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div>
-                  <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{l}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-              {rows.length===0?(
-                <div style={{textAlign:"center",padding:60,color:"#9ca3af"}}>
-                  <div style={{fontSize:40,marginBottom:10}}>🕓</div>
-                  <div>Chưa có thay đổi nào được ghi nhận</div>
-                </div>
-              ):(
-                <div style={{padding:10,display:"flex",flexDirection:"column",gap:6}}>
-                  {rows.map((r,i)=>{
-                    const a=ACTIONS[r.hanh_dong]||{label:r.hanh_dong,icon:"•",bg:"#f3f4f6",c:"#374151"};
-                    const pj=getProjInfo(r.pid);
-                    return(
-                      <div key={r.id||i} style={{background:"#fff",borderRadius:10,padding:"10px 12px",
-                        boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:"1px solid #f1f5f9",
-                        display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                        <div style={{flex:"1 1 220px",minWidth:0}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:4}}>
-                            <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:a.bg,color:a.c,whiteSpace:"nowrap"}}>
-                              {a.icon} {a.label}
-                            </span>
-                            <span style={{fontSize:10,fontWeight:700,color:pj.mau,background:"#f8fafc",borderRadius:4,padding:"1px 6px"}}>{pj.icon} {pj.ten}</span>
-                          </div>
-                          <div style={{fontWeight:700,fontSize:13,color:pj.mau,fontFamily:"monospace"}}>{r.ma||"—"}</div>
-                          <div style={{fontSize:12,color:"#374151",marginTop:1,
-                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.ten||"—"}</div>
-                          <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
-                            <span style={{fontSize:10,color:"#9ca3af"}}>{new Date(r.ts).toLocaleString("vi-VN")}</span>
-                            {r.chi_tiet&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{r.chi_tiet}</span>}
-                          </div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <span style={{fontWeight:700,fontSize:11,color:"#7c3aed"}}>👤 {r.user_ten||"Không rõ"}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-          );
-        })()}
         {/* ── NGƯỜI DÙNG — chỉ Xưởng Hàn ── */}
         {tab==="bom_mau"&&isXH&&(()=>{
           const activeLoai = bomMauLoaiList.find(l=>l.id===bmTab) || bomMauLoaiList[0] || {id:bmTab,ten:bmTab,icon:"🗂️",mau:"#4338ca"};
