@@ -866,6 +866,22 @@ const KL_LINES = [
 //     dong_xe jsonb not null default '["minibus"]'::jsonb
 //   );
 const LINE_IDS = KL_LINES.map(l=>l.id); // ["12m","citybus","minibus"]
+
+// ── Màu đặc trưng của từng dòng xe (dùng cho vòng tròn icon) ──
+const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#ff9a1f"};
+// ✅ Hàm dùng chung: vẽ 1 vòng tròn tô màu bao quanh icon chiếc xe — áp dụng cho MỌI
+// dòng xe (12M / City Bus / Mini Bus...) và có thể tái sử dụng ở bất kỳ đâu cần hiển thị
+// icon dòng xe (badge "Dòng xe:", thẻ dự án, danh sách chọn dòng xe...). Màu vòng tròn
+// tự động lấy theo lineId; nếu không tìm thấy dùng màu mặc định (cam).
+function VehicleIconCircle({lineId, size=22, icon="🚌", color}){
+  const mau = color || LINE_ICON_COLOR[lineId] || "#ff9a1f";
+  return (
+    <span style={{width:size,height:size,minWidth:size,borderRadius:"50%",background:mau,
+      display:"inline-flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",flexShrink:0}}>
+      <span style={{fontSize:Math.round(size*0.6),lineHeight:1}}>{icon}</span>
+    </span>
+  );
+}
 const LINE_QUYEN_DEFAULT = {
   "Nhà máy THCK": ["minibus"],
   "XƯỞNG HÀN":    ["minibus"],
@@ -1809,6 +1825,11 @@ export default function App(){
   // Bấm "← Trở về" trên Tổng quan → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập,
   // KHÔNG bắt đăng nhập lại (xem prop "resume" của LoginScreen).
   const [backToGate, setBackToGate] = useState(false);
+  // ✅ Màn "Tổng quan": mở/đóng bảng chi tiết vật tư khi bấm "SL đã nhận" / "SL thiếu"
+  // trong khối THCK/CKD. nguon: "THCK"|"CKD"|"" (đóng). field: "done"|"thieu".
+  const [tqVtOpen, setTqVtOpen] = useState({nguon:"", field:""});
+  const tqVtRef = useRef(null); // vùng chi tiết vật tư đang mở, dùng để chụp ảnh "Xuất & chia sẻ"
+  const [tqDangChiaSe, setTqDangChiaSe] = useState(false);
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [dbErr,    setDbErr]    = useState("");
@@ -3799,16 +3820,16 @@ Bạn có chắc chắn không?`;
           <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
               <button onClick={()=>setBackToGate(true)}
-                style={{...btn,background:"rgba(255,255,255,0.14)",color:"#fff",padding:"7px 14px",fontSize:12,fontWeight:700,border:"1px solid rgba(255,255,255,0.25)"}}>
+                style={{...btn,background:"rgba(255,255,255,0.14)",color:"#fff",padding:"7px 14px",fontSize:12,fontWeight:700,border:"2px solid #f59e0b"}}>
                 ← Trở về
               </button>
-              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #f59e0b"}}>
+                <VehicleIconCircle lineId={activeLine} size={20}/>
                 <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
                 <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
               </div>
             </div>
-            <div style={{fontSize:11,opacity:.7,letterSpacing:.5,marginBottom:2}}>DỰ ÁN ĐANG THỰC HIỆN</div>
-            <div style={{fontSize:17,fontWeight:700}}>{proj.icon} {proj.ten}</div>
+            <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>DANH MỤC CÁC DỰ ÁN ĐANG THỰC HIỆN</div>
           </div>
           {/* Danh sách dự án — bấm để đổi dự án xem tổng quan */}
           {projs.length>0&&(
@@ -3817,7 +3838,7 @@ Bạn có chắc chắn không?`;
                 <div key={p.id} onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
                   style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
                     background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`}}>
-                  <span>{p.icon}</span><span>{p.ten}</span>
+                  <VehicleIconCircle icon={p.icon} color={p.id===pid?"rgba(255,255,255,0.28)":(p.mau||"#2563eb")} size={18}/><span>{p.ten}</span>
                 </div>
               ))}
             </div>
@@ -3832,18 +3853,18 @@ Bạn có chắc chắn không?`;
             <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>🚌</span>
-                <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>Tiến Trình Giao Xe</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ GIAO XE</span>
               </div>
               <div style={{padding:16}}>
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
                   <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#f0fdf4",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #bbf7d0"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
-                    <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe đã giao</div>
+                    <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
                     <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Bấm để sửa</div>
                   </div>
                   <div style={{flex:1,textAlign:"center",background:"#fef2f2",borderRadius:8,padding:"10px 6px",border:"1px solid #fecaca"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
-                    <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>SL xe còn lại</div>
+                    <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe còn lại</div>
                   </div>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
@@ -3852,12 +3873,27 @@ Bạn có chắc chắn không?`;
                 <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
               </div>
             </div>
-            {/* ── Khối 2: Xem Vật tư (THCK / CKD) ── */}
+            {/* ── Khối 2: Tiến độ nhận vật tư (THCK / CKD) ── */}
             <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd"}}>
               <div style={{padding:"14px 16px",background:"#eff6ff",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>📦</span>
-                <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>Xem Vật tư</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
               </div>
+              {(()=>{
+                const nguonList=["THCK","CKD"];
+                const itemsAll=th.filter(v=>nguonList.includes((v.ng||"").trim().toUpperCase()));
+                const tongMaAll=itemsAll.length;
+                const daNhanAll=itemsAll.filter(v=>v.done).length;
+                const pctVT=tongMaAll>0?Math.round(daNhanAll/tongMaAll*100):0;
+                return(
+                <div style={{padding:"12px 16px 4px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b7280",marginBottom:4}}>
+                    <span>Đã nhận {fmt(daNhanAll)}/{fmt(tongMaAll)} mã</span><span style={{fontWeight:700}}>{pctVT}%</span>
+                  </div>
+                  <Prog p={pctVT} done={pctVT>=100&&tongMaAll>0}/>
+                </div>
+                );
+              })()}
               <div style={{padding:16,display:"flex",gap:12,flexWrap:"wrap"}}>
                 {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
@@ -3874,17 +3910,51 @@ Bạn có chắc chắn không?`;
                         <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
                           <span style={{color:"#6b7280"}}>Tổng mã</span><b style={{color:"#374151"}}>{fmt(tongMa)}</b>
                         </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                          <span style={{color:"#6b7280"}}>SL đã nhận</span><b style={{color:"#16a34a"}}>{fmt(maDaNhanNg)}</b>
+                        <div onClick={()=>setTqVtOpen(s=>s.nguon===nguon&&s.field==="done"?{nguon:"",field:""}:{nguon,field:"done"})}
+                          style={{display:"flex",justifyContent:"space-between",fontSize:11,cursor:"pointer",padding:"3px 4px",borderRadius:6,background:tqVtOpen.nguon===nguon&&tqVtOpen.field==="done"?"#f0fdf4":"transparent"}}>
+                          <span style={{color:"#6b7280"}}>SL đã nhận</span><b style={{color:"#16a34a",textDecoration:"underline"}}>{fmt(maDaNhanNg)}</b>
                         </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{fmt(maConThieuNg)}</b>
+                        <div onClick={()=>setTqVtOpen(s=>s.nguon===nguon&&s.field==="thieu"?{nguon:"",field:""}:{nguon,field:"thieu"})}
+                          style={{display:"flex",justifyContent:"space-between",fontSize:11,cursor:"pointer",padding:"3px 4px",borderRadius:6,background:tqVtOpen.nguon===nguon&&tqVtOpen.field==="thieu"?"#fef2f2":"transparent"}}>
+                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a",textDecoration:"underline"}}>{fmt(maConThieuNg)}</b>
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+              {tqVtOpen.nguon&&(()=>{
+                const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===tqVtOpen.nguon);
+                const rows=tqVtOpen.field==="done"?itemsNg.filter(v=>v.done):itemsNg.filter(v=>!v.done);
+                const tieuDe=`${tqVtOpen.nguon} · ${tqVtOpen.field==="done"?"Đã nhận":"Còn thiếu"} (${rows.length})`;
+                return(
+                <div style={{margin:"0 16px 16px",border:"1.5px solid #e5e7eb",borderRadius:10,overflow:"hidden"}}>
+                  <div ref={tqVtRef} style={{background:"#fff"}}>
+                    <div style={{padding:"8px 10px",background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                      <b style={{fontSize:12,color:"#374151"}}>{tieuDe}</b>
+                    </div>
+                    <div style={{maxHeight:220,overflowY:"auto"}}>
+                      {rows.length===0?(
+                        <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
+                      ):rows.map(v=>(
+                        <div key={v.ma} style={{display:"flex",justifyContent:"space-between",gap:8,padding:"6px 10px",borderTop:"1px solid #f1f5f9",fontSize:11}}>
+                          <span style={{color:"#6b7280",flex:"0 0 auto"}}>{v.ma}</span>
+                          <span style={{color:"#374151",textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.ten}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <button disabled={tqDangChiaSe} onClick={async()=>{
+                      setTqDangChiaSe(true);
+                      try{ await chiaSePhieuAnh(tqVtRef.current, {sp:`VatTu_${tqVtOpen.nguon}_${tqVtOpen.field}`}); }
+                      finally{ setTqDangChiaSe(false); }
+                    }}
+                    style={{width:"100%",border:"none",borderTop:"1px solid #e5e7eb",background:"#eff6ff",color:"#1d4ed8",fontWeight:700,fontSize:12,padding:"9px 0",cursor:tqDangChiaSe?"not-allowed":"pointer",opacity:tqDangChiaSe?0.6:1}}>
+                    {tqDangChiaSe?"⏳ Đang tạo ảnh...":"📤 Xuất & chia sẻ"}
+                  </button>
+                </div>
+                );
+              })()}
             </div>
           </div>
           )}
