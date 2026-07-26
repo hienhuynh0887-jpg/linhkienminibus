@@ -112,15 +112,28 @@ const USERS_DEF = [
   {id:"admin",  ten:"Quản trị viên", pw:"thck2024", role:"thck",     don_vi:"Nhà máy THCK", avatar:"🏭", mau:"#1d4ed8"},
   {id:"thck01", ten:"Nguyễn Văn An", pw:"thck01",   role:"thck",     don_vi:"Nhà máy THCK", avatar:"👤", mau:"#1d4ed8"},
   {id:"thck02", ten:"Trần Thị Bích", pw:"thck02",   role:"thck",     don_vi:"Nhà máy THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"xh01",   ten:"Lê Văn Cường",  pw:"xh01",     role:"xuonghan", don_vi:"XƯỞNG HÀN",    avatar:"🔧", mau:"#b45309"},
-  {id:"xh02",   ten:"Phạm Thị Dung", pw:"xh02",     role:"xuonghan", don_vi:"XƯỞNG HÀN",    avatar:"🔧", mau:"#b45309"},
-  {id:"xh03",   ten:"Hoàng Văn Em",  pw:"xh03",     role:"xuonghan", don_vi:"XƯỞNG HÀN",    avatar:"🔧", mau:"#b45309"},
+  {id:"xh01",   ten:"Lê Văn Cường",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh02",   ten:"Phạm Thị Dung", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh03",   ten:"Hoàng Văn Em",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
   {id:"kho",    ten:"Quản lý Kho",   pw:"kho2024",  role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"📦", mau:"#0f766e"},
   {id:"kho01",  ten:"Trần Văn Hùng", pw:"kho01",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"kho02",  ten:"Nguyễn Thị Lan",pw:"kho02",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"kho03",  ten:"Lê Văn Minh",   pw:"kho03",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"kho04",  ten:"Phạm Thị Nga",  pw:"kho04",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"khth",   ten:"Phòng KH-TH",  pw:"khth2024", role:"khth",     don_vi:"Phòng KH-TH",  avatar:"📋", mau:"#7c3aed"},
+  // ✅ Các đơn vị "theo dõi tổng thể" — chỉ xem (Vật tư · Phiếu GN · Báo Cáo), không
+  // soạn hàng/nhận hàng/quản lý BOM/người dùng. Vai trò suy ra từ donViBaseRole (mặc định "khth").
+  {id:"phongkt01", ten:"NV Phòng KT",   pw:"phongkt01", role:"khth", don_vi:"Phòng KT",   avatar:"📋", mau:"#7c3aed"},
+  {id:"bancn01",   ten:"NV Ban CN",     pw:"bancn01",   role:"khth", don_vi:"Ban CN",     avatar:"📋", mau:"#7c3aed"},
+  {id:"banldnm01", ten:"NV Ban LĐNM",   pw:"banldnm01", role:"khth", don_vi:"Ban LĐNM",   avatar:"📋", mau:"#7c3aed"},
+  // ✅ Các đơn vị chuyên trách riêng từng dòng xe — mỗi đơn vị chỉ Soạn Hàng/Nhận Hàng
+  // đúng dòng xe được cấp quyền (xem LINE_QUYEN_DEFAULT). Vai trò suy ra từ quy ước tên
+  // (donViBaseRole): "KHO ..." → kho (Soạn Hàng), "XH_..." → xuonghan (Duyệt/Nhận Hàng).
+  {id:"kho_citybus01", ten:"NV Kho CityBus",  pw:"citybus01", role:"kho",      don_vi:"KHO CITYBUS", avatar:"📦", mau:"#0fe0a4"},
+  {id:"kho_12m01",     ten:"NV Kho 12M",      pw:"kho12m01",  role:"kho",      don_vi:"KHO 12M",     avatar:"📦", mau:"#2f8fff"},
+  {id:"xh_minibus01",  ten:"NV Xưởng Minibus",pw:"xhmini01",  role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#ff9a1f"},
+  {id:"xh_citybus01",  ten:"NV Xưởng CityBus",pw:"xhcity01",  role:"xuonghan", don_vi:"XH_CITYBUS",  avatar:"🚌", mau:"#0fe0a4"},
+  {id:"xh_12_01",      ten:"NV Xưởng 12M",    pw:"xh12m01",   role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
 ];
 
 // Cả 2 role đều thấy đủ tabs — chỉ khác quyền hành động
@@ -885,9 +898,19 @@ function VehicleIconCircle({lineId, size=22, icon="🚌", color}){
 }
 const LINE_QUYEN_DEFAULT = {
   "Nhà máy THCK": ["minibus"],
-  "XƯỞNG HÀN":    ["minibus"],
+  "XƯỞNG HÀN":    ["minibus","citybus","12m"],
   "KHO VẬT TƯ":   ["minibus"],
-  "Phòng KH-TH":  ["minibus"],
+  "Phòng KH-TH":  ["minibus","citybus","12m"],
+  // ✅ Các đơn vị chuyên trách riêng từng dòng xe (soạn hàng / nhận hàng tách biệt):
+  "KHO CITYBUS":  ["citybus"],
+  "KHO 12M":      ["12m"],
+  "XH_MINIBUS":   ["minibus"],
+  "XH_CITYBUS":   ["citybus"],
+  "XH_12":        ["12m"],
+  // ✅ Các đơn vị "theo dõi tổng thể" — xem toàn bộ 3 dòng xe (không thao tác soạn/nhận):
+  "Phòng KT":     ["minibus","citybus","12m"],
+  "Ban CN":       ["minibus","citybus","12m"],
+  "Ban LĐNM":     ["minibus","citybus","12m"],
 };
 
 // ─── Trạng thái dự án — 3 thẻ thư mục sau khi chọn dòng xe ───
@@ -1282,6 +1305,12 @@ function SignaturePad({initial, onSave, onClose}){
   );
 }
 
+// ✅ Đơn vị chuyên trách riêng từng dòng xe — seed mặc định lần đầu (khi chưa có gì trên
+// localStorage lẫn Supabase "custom_depts") để "KHO CITYBUS", "KHO 12M", "XH_MINIBUS",
+// "XH_CITYBUS", "XH_12" hiện diện ngay trong Hệ thống chính, không cần bấm "+ Thêm" thủ công.
+// Kèm theo các đơn vị "theo dõi tổng thể" (chỉ xem): "Phòng KT", "Ban CN", "Ban LĐNM".
+const DEFAULT_CUSTOM_DEPTS = ["KHO CITYBUS","KHO 12M","XH_MINIBUS","XH_CITYBUS","XH_12","Phòng KT","Ban CN","Ban LĐNM"];
+
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe}){
   const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
@@ -1295,7 +1324,17 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   //   create table if not exists custom_depts (
   //     ten text primary key
   //   );
-  const [customDepts, setCustomDepts] = useState(()=>{try{const s=localStorage.getItem("customDepts");return s?JSON.parse(s):[];}catch{return [];}});
+  const [customDepts, setCustomDepts] = useState(()=>{
+    try{
+      const s=localStorage.getItem("customDepts");
+      if(s){
+        const saved=JSON.parse(s);
+        // Đảm bảo các đơn vị mặc định mới luôn có mặt, kể cả với máy đã từng lưu customDepts trước đó
+        return Array.from(new Set([...saved,...DEFAULT_CUSTOM_DEPTS]));
+      }
+      return [...DEFAULT_CUSTOM_DEPTS];
+    }catch{return [...DEFAULT_CUSTOM_DEPTS];}
+  });
   useEffect(()=>{
     supabase.from("custom_depts").select("ten").then(({data,error})=>{
       if(error){ console.warn("Chưa đọc được bảng custom_depts (có thể chưa tạo bảng):",error.message); return; }
@@ -1363,6 +1402,29 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     const r=donViBaseRole(dv);
     return r==="kho"?"📦":r==="xuonghan"?"🚗":"📋";
   };
+
+  // ✅ TỰ "CHỮA LÀNH" tài khoản cũ: những tài khoản đã được TẠO TRƯỚC KHI quy ước đặt tên
+  // ở trên được sửa đúng (ví dụ tài khoản dưới "KHO CITYBUS"/"KHO 12M" từng bị lưu nhầm
+  // role "khth" - chỉ xem - vì lúc đó "donViBaseRole" chưa nhận diện được các tên này) sẽ
+  // KHÔNG tự động đổi vai trò dù hàm donViBaseRole đã được sửa, vì role là dữ liệu đã lưu
+  // cứng trong bảng "users". Đoạn dưới đây quét lại TOÀN BỘ tài khoản thuộc mọi đơn vị tùy
+  // chỉnh, tính lại vai trò ĐÚNG theo tên đơn vị hiện tại, và tự cập nhật (cả local +
+  // Supabase) nếu phát hiện lệch — áp dụng chung cho mọi đơn vị (KHO CITYBUS, KHO 12M, và
+  // bất kỳ đơn vị tùy chỉnh nào thêm sau này), không cần sửa tay từng tài khoản.
+  const fixedRolesRef=useRef(new Set());
+  useEffect(()=>{
+    if(!customDepts.length||!users.length) return;
+    users.forEach(u=>{
+      if(!customDepts.includes(u.don_vi)) return;
+      const correctRole=donViBaseRole(u.don_vi);
+      const key=u.id+"::"+correctRole;
+      if(u.role===correctRole||fixedRolesRef.current.has(key)) return;
+      fixedRolesRef.current.add(key);
+      const fixedUser={...u,role:correctRole,avatar:donViAvatar(u.don_vi)};
+      setUsers(l=>l.map(x=>x.id===u.id?fixedUser:x));
+      dbUpsertUser&&dbUpsertUser(fixedUser);
+    });
+  },[customDepts,users]);
 
   // ✅ Đổi tên 1 đơn vị tùy chỉnh — cập nhật đồng bộ: danh sách đơn vị, phân quyền dòng xe,
   // và toàn bộ tài khoản đang thuộc đơn vị đó (đổi sang tên mới), cả trên Supabase.
@@ -1570,45 +1632,67 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
         </div>
       </div>
 
-      {[{role:"thck",label:"🏭 Nhà máy THCK",mau:"#1d4ed8"},{role:"xuonghan",label:"🚗 XƯỞNG HÀN",mau:"#b45309"},{role:"kho",label:"📦 KHO VẬT TƯ",mau:"#0f766e"},{role:"khth",label:"📋 Phòng KH-TH",mau:"#7c3aed"}].map(grp=>{
-        const grpList=users.filter(u=>u.role===grp.role);
-        const grpOnline=grpList.filter(isOnline).length;
-        return(
-          <div key={grp.role} style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",marginBottom:12}}>
-            <div style={{padding:"10px 16px",borderBottom:"1px solid #e5e7eb",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:10,background:"#f8fafc"}}>
-              <span>{grp.label}</span>
-              <span style={{background:grp.mau,color:"#fff",borderRadius:20,padding:"2px 10px",fontSize:11}}>{grpList.length} tài khoản</span>
-              {grpOnline>0&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}><span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>{grpOnline} online</span>}
+      {(()=>{
+        // ✅ TRƯỚC ĐÂY: chỉ gom tài khoản theo 4 VAI TRÒ (thck/xuonghan/kho/khth) — nghĩa là
+        // MỌI đơn vị cùng vai trò "kho" (KHO VẬT TƯ, KHO CITYBUS, KHO 12M...) bị dồn chung
+        // vào MỘT bảng "📦 KHO VẬT TƯ" duy nhất, và mọi đơn vị "khth" (Phòng KH-TH, Phòng KT,
+        // Ban CN, BAN LĐNM...) bị dồn chung vào bảng "📋 Phòng KH-TH" — không tách riêng
+        // được từng đơn vị như mong muốn.
+        // NAY: mỗi ĐƠN VỊ (don_vi) có bảng tài khoản RIÊNG của mình — giống hệt cách 3 đơn vị
+        // gốc (Nhà máy THCK / XƯỞNG HÀN / KHO VẬT TƯ) đang hiển thị — áp dụng chung cho MỌI
+        // đơn vị tùy chỉnh (Phòng KT, Ban CN, KHO CITYBUS, KHO 12M, XH_MINIBUS, XH_CITYBUS,
+        // XH_12M, BAN LĐNM...), kể cả các đơn vị thêm sau này, không cần sửa code thêm nữa.
+        const roleMeta={thck:{icon:"🏭",mau:"#1d4ed8"},xuonghan:{icon:"🚗",mau:"#b45309"},kho:{icon:"📦",mau:"#0f766e"},khth:{icon:"📋",mau:"#7c3aed"}};
+        const baseRoleOf=dv=>dv==="Nhà máy THCK"?"thck":dv==="XƯỞNG HÀN"?"xuonghan":dv==="KHO VẬT TƯ"?"kho":dv==="Phòng KH-TH"?"khth":donViBaseRole(dv);
+        // Đề phòng tài khoản nào đó có don_vi không khớp bất kỳ đơn vị nào đang biết (đơn vị
+        // đã bị xoá/đổi tên...) — vẫn gom vào 1 nhóm riêng theo đúng tên đó để KHÔNG có tài
+        // khoản nào bị "mất tích" khỏi danh sách.
+        const knownDv=new Set(allDonViGroups);
+        const extraDv=Array.from(new Set(users.filter(u=>!knownDv.has(u.don_vi)).map(u=>u.don_vi)));
+        const allGroupDv=[...allDonViGroups,...extraDv];
+        return allGroupDv.map(dv=>{
+          const grpList=users.filter(u=>u.don_vi===dv);
+          const role=grpList[0]?.role||baseRoleOf(dv);
+          const meta=roleMeta[role]||roleMeta.khth;
+          const grpOnline=grpList.filter(isOnline).length;
+          const grpMau=meta.mau, grpLabel=`${meta.icon} ${dv}`;
+          return(
+            <div key={dv} style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",marginBottom:12}}>
+              <div style={{padding:"10px 16px",borderBottom:"1px solid #e5e7eb",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:10,background:"#f8fafc"}}>
+                <span>{grpLabel}</span>
+                <span style={{background:grpMau,color:"#fff",borderRadius:20,padding:"2px 10px",fontSize:11}}>{grpList.length} tài khoản</span>
+                {grpOnline>0&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}><span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>{grpOnline} online</span>}
+              </div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                  <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
+                    {["","ID",t("thHoTen"),t("lbDV"),t("thTrangThai"),t("thMatKhau"),"","",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {grpList.map((u,i)=>(
+                      <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
+                        <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
+                        <td style={{padding:"8px 12px",fontWeight:700,color:grpMau,fontFamily:"monospace"}}>{u.id}</td>
+                        <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}</td>
+                        <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
+                        <td style={{padding:"8px 12px"}}>
+                          {isOnline(u)
+                            ?<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>Online</span>
+                            :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
+                        </td>
+                        <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
+                        <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
+                        <td style={{padding:"8px 12px"}}><button onClick={()=>anTaiKhoan(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":u.an?"#dbeafe":"#fef3c7",color:u.id===currentUser.id?"#9ca3af":u.an?"#1d4ed8":"#92400e",fontWeight:700}}>{u.an?"Hiện tk":"Ẩn tk"}</button></td>
+                        <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-                  {["","ID",t("thHoTen"),t("lbDV"),t("thTrangThai"),t("thMatKhau"),"","",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {grpList.map((u,i)=>(
-                    <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
-                      <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
-                      <td style={{padding:"8px 12px",fontWeight:700,color:grp.mau,fontFamily:"monospace"}}>{u.id}</td>
-                      <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}</td>
-                      <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
-                      <td style={{padding:"8px 12px"}}>
-                        {isOnline(u)
-                          ?<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>Online</span>
-                          :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
-                      </td>
-                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
-                      <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
-                      <td style={{padding:"8px 12px"}}><button onClick={()=>anTaiKhoan(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":u.an?"#dbeafe":"#fef3c7",color:u.id===currentUser.id?"#9ca3af":u.an?"#1d4ed8":"#92400e",fontWeight:700}}>{u.an?"Hiện tk":"Ẩn tk"}</button></td>
-                      <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      })}
+          );
+        });
+      })()}
     </div>
   );
 }
