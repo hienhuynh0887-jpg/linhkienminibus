@@ -4050,18 +4050,32 @@ Bạn có chắc chắn không?`;
             </div>
             <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>DANH MỤC CÁC DỰ ÁN ĐANG THỰC HIỆN</div>
           </div>
-          {/* Danh sách dự án — bấm để đổi dự án xem tổng quan */}
-          {projs.length>0&&(
+          {/* Danh sách dự án — bấm để đổi dự án xem tổng quan.
+              ✅ Sắp xếp MỚI NHẤT lên đầu (id chứa timestamp tăng dần) — dự án vừa khởi tạo
+              luôn hiện ở vị trí đầu tiên (STT 1), áp dụng chung cho MỌI dòng xe/mọi lúc. */}
+          {projs.length>0&&(()=>{
+            const projsSorted=[...projs].sort((a,b)=>String(b.id||"").localeCompare(String(a.id||"")));
+            const sttMau=["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#6366f1","#84cc16"];
+            return(
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-              {projs.map(p=>(
+              {projsSorted.map((p,idx)=>(
                 <div key={p.id} onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
-                  style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
+                  style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px 6px 6px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
                     background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`}}>
-                  <VehicleIconCircle icon={p.icon} color={p.id===pid?"rgba(255,255,255,0.28)":(p.mau||"#2563eb")} size={18}/><span>{p.ten}</span>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,flexShrink:0}}>{idx+1}</div>
+                  <div style={{display:"flex",flexDirection:"column",lineHeight:1.35}}>
+                    <span>{p.ten}</span>
+                    {(p.lenh_sx||p.lo_sx)&&(
+                      <span style={{fontSize:10,fontWeight:600,opacity:.8}}>
+                        {p.lenh_sx&&`Lệnh SX: ${p.lenh_sx}`}{p.lenh_sx&&p.lo_sx&&" · "}{p.lo_sx&&`Lô SX: ${p.lo_sx}`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
           {projs.length===0?(
             <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
               — Chưa có dự án nào cho dòng xe này —
