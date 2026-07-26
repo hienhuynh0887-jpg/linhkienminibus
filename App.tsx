@@ -1344,13 +1344,18 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   };
 
   // ✅ Suy luận VAI TRÒ THẬT (chức năng) của 1 đơn vị tùy chỉnh dựa theo QUY ƯỚC ĐẶT TÊN:
-  //   "KHO VT..."  → vai trò "kho" (có chức năng Soạn Hàng)
-  //   "XH_..."     → vai trò "xuonghan" (có chức năng Duyệt Hàng)
-  //   còn lại      → "khth" (chỉ xem, như Phòng KH-TH)
+  //   "KHO ..."    → vai trò "kho" (có chức năng Soạn Hàng)  — VD: "KHO VT1", "KHO CITYBUS", "KHO 12M"
+  //   "XH_..."     → vai trò "xuonghan" (có chức năng Duyệt/Nhận Hàng) — VD: "XH_MINIBUS", "XH_CITYBUS", "XH_12M"
+  //   còn lại      → "khth" (chỉ xem, như Phòng KH-TH) — VD: "Phòng KT", "Ban CN"
   // Dòng xe cụ thể mà đơn vị đó được thao tác là do Ô TICK ở bảng "Phân quyền dòng xe theo
-  // đơn vị" phía trên quyết định (ví dụ tick riêng "City Bus" cho "KHO VT1") — không hardcode ở đây.
+  // đơn vị" phía trên quyết định (ví dụ tick riêng "City Bus" cho "KHO CITYBUS") — không hardcode ở đây.
+  // ✅ FIX: trước đây chỉ nhận diện đúng "KHO VT..." (bắt buộc có chữ "VT" ngay sau "KHO"),
+  // nên các kho đặt tên theo dòng xe như "KHO CITYBUS"/"KHO 12M" bị rơi vào nhánh mặc định
+  // "khth" (chỉ xem) — KHÔNG có chức năng Soạn Hàng dù ý định rõ ràng là một kho vật tư.
+  // Nay: mọi đơn vị bắt đầu bằng "KHO" (không phân biệt hoa/thường, có hay không có "VT")
+  // đều được coi là vai trò "kho".
   const donViBaseRole=(dv)=>{
-    if(/^KHO\s*VT/i.test(dv)) return "kho";
+    if(/^KHO/i.test(dv)) return "kho";
     if(/^XH[_\s-]/i.test(dv)) return "xuonghan";
     return "khth";
   };
