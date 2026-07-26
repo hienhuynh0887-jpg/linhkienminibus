@@ -894,7 +894,7 @@ const LINE_QUYEN_DEFAULT = {
 // ⚠️ "inprogress" (Đang thực hiện) dẫn thẳng vào hệ thống quản lý vật tư (web chính).
 // "new" (Khởi tạo Dự án) cũng dẫn vào hệ thống nhưng tự động mở sẵn modal "🆕 Thêm dự án mới"
 // (đúng y hệt nút "＋ Thêm" trên thanh dự án của trang chính).
-// "done" (Đã thực hiện) hiện chỉ hiển thị giao diện, chưa kích hoạt.
+// "done" (Đã thực hiện) hiển thị danh sách các dự án đã bấm "Hoàn thành".
 const KL_PROJECT_STATUSES = [
   {
     id:"new", tagText:"Giai đoạn · 01", title:"Khởi tạo Dự án",
@@ -922,7 +922,7 @@ const KL_PROJECT_STATUSES = [
   {
     id:"done", tagText:"Giai đoạn · 03", title:"Đã thực hiện",
     desc:"Lưu trữ hồ sơ, đối chiếu và tổng kết dự án hoàn tất.",
-    accent:"var(--teal)", active:false,
+    accent:"var(--teal)", active:true,
     icon:(
       <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 7a2 2 0 0 1 2-2h4.2l2 2H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="var(--accent)" fillOpacity="0.18" stroke="var(--accent)" strokeWidth="1.6"/>
@@ -1013,7 +1013,7 @@ function LoginScreen({onLogin, resume}){
   // ── Bước 3: Chọn trạng thái dự án ──
   // "Đang thực hiện" → vào thẳng hệ thống quản lý vật tư như bình thường.
   // "Khởi tạo Dự án" → vào hệ thống VÀ tự mở sẵn modal "🆕 Thêm dự án mới".
-  // "Đã thực hiện" → chưa kích hoạt, chỉ hiển thị giao diện.
+  // "Đã thực hiện" → xem danh sách dự án đã hoàn thành (chỉ xem, không sửa vật tư).
   const chooseStatus=(s)=>{
     if(!s.active){
       setErr(`Trạng thái "${s.title}" chưa được kích hoạt. Vui lòng chọn "Khởi tạo Dự án" hoặc "Đang thực hiện" để vào hệ thống.`);
@@ -1851,6 +1851,9 @@ export default function App(){
   // ngay tại đây (không cần vào hệ thống chính rồi mở modal như trước). Sau khi tạo dự án
   // xong (mkProj chạy xong) sẽ tự động chuyển sang màn "Đang thực hiện" (showTongQuan=true).
   const [showKhoiTao, setShowKhoiTao] = useState(()=>{try{return localStorage.getItem("screenMode")==="khoiTao";}catch{return false;}});
+  // ✅ "Đã thực hiện" (Giai đoạn 03) — MÀN HÌNH ĐỘC LẬP hiển thị các dự án đã bấm "Hoàn thành",
+  // dạng thẻ trong bảng, dự án hoàn thành GẦN NHẤT luôn ở STT 1.
+  const [showDaThucHien, setShowDaThucHien] = useState(()=>{try{return localStorage.getItem("screenMode")==="daThucHien";}catch{return false;}});
   // Bấm "← Trở về" trên Tổng quan → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập,
   // KHÔNG bắt đăng nhập lại (xem prop "resume" của LoginScreen).
   const [backToGate, setBackToGate] = useState(false);
@@ -2553,6 +2556,17 @@ export default function App(){
   const addLS=(p2,r)=>setLsDB(s=>({...s,[p2]:[{id:uid(),ts:new Date().toISOString(),...r},...(s[p2]||[])].slice(0,200)}));
   const sw=useCallback(id=>{setPid(id);setSearch("");setFdm("Tất cả");setTab("ds");localStorage.setItem("lastPid",id);},[]);
 
+  // ✅ Đánh dấu 1 dự án là "Hoàn thành" — chuyển sang hiển thị ở màn "Đã thực hiện".
+  // Dự án nào bấm "Hoàn thành" SAU CÙNG luôn hiện STT 1 (sắp theo hoan_thanh_ts giảm dần).
+  const markProjectDone=async(p)=>{
+    if(!window.confirm(`Đánh dấu dự án "${p.ten}" là ĐÃ HOÀN THÀNH?\nDự án sẽ chuyển sang mục "Đã thực hiện".`))return;
+    const now=new Date();
+    const updated={...p,trang_thai:"hoan_thanh",ngay_hoan_thanh:now.toISOString().slice(0,10),hoan_thanh_ts:now.toISOString()};
+    setProjs(ps=>ps.map(x=>x.id===p.id?updated:x));
+    try{ await dbUpsertProj(updated); }
+    catch(e){ flash(`⚠️ Lưu trạng thái hoàn thành thất bại: ${e.message}`); }
+  };
+
   // ── Lưu soanDB vào localStorage mỗi khi thay đổi ──
   useEffect(()=>{try{localStorage.setItem("soanDB",JSON.stringify(soanDB));}catch{};},[soanDB]);
 
@@ -2566,9 +2580,10 @@ export default function App(){
     try{
       if(showKhoiTao) localStorage.setItem("screenMode","khoiTao");
       else if(showTongQuan) localStorage.setItem("screenMode","tongQuan");
+      else if(showDaThucHien) localStorage.setItem("screenMode","daThucHien");
       else localStorage.setItem("screenMode","main");
     }catch{}
-  },[showKhoiTao,showTongQuan]);
+  },[showKhoiTao,showTongQuan,showDaThucHien]);
 
   // ── Đồng bộ phiên đăng nhập vào localStorage (giữ đăng nhập qua các lần auto-reload) ──
   useEffect(()=>{
@@ -2672,7 +2687,7 @@ export default function App(){
     const id="proj_"+Date.now();
     const p={id,ten:nPF.ten,mo_ta:nPF.moTa||nPF.ten,mau:nPF.mau,icon:nPF.icon,so_xe:parseInt(nPF.so_xe)||1,
       lo_sx:nPF.loSx||"",lenh_sx:nPF.lenhSx||"",ngay_khoi_tao:nPF.ngayKhoiTao||"",ngay_hoan_thanh:nPF.ngayHoanThanh||"",
-      sop_tu:nPF.sopTu||"",sop_den:nPF.sopDen||""};
+      sop_tu:nPF.sopTu||"",sop_den:nPF.sopDen||"",trang_thai:"dang_thuc_hien",hoan_thanh_ts:""};
     const seed=nPF.bom==="import_file"?[]:getBomMauRows(nPF.bom);
     // Nếu chọn "Import BOM (Excel, CSV)" VÀ đã đọc được file → dùng dữ liệu file đó làm BOM ban đầu
     // (dùng CHUNG cách map dữ liệu với doXlsImport: id,pid + các field đã chuẩn hoá từ parseXlsFile)
@@ -3981,14 +3996,22 @@ Bạn có chắc chắn không?`;
           // "Đang thực hiện" → màn hình "Tổng quan" ĐỘC LẬP (chỉ xem số liệu), có nút "← Trở về".
           setShowTongQuan(true);
           setShowKhoiTao(false);
+          setShowDaThucHien(false);
         }else if(opts?.statusId==="new"){
           // ✅ "Khởi tạo Dự án" → màn hình ĐỘC LẬP riêng, gắn thẳng form "Thêm dự án" tại đây,
           // KHÔNG vào hệ thống chính (topbar/tabs) như trước.
           setShowTongQuan(false);
           setShowKhoiTao(true);
+          setShowDaThucHien(false);
+        }else if(opts?.statusId==="done"){
+          // ✅ "Đã thực hiện" → màn hình ĐỘC LẬP hiển thị các dự án đã hoàn thành.
+          setShowTongQuan(false);
+          setShowKhoiTao(false);
+          setShowDaThucHien(true);
         }else{
           setShowTongQuan(false);
           setShowKhoiTao(false);
+          setShowDaThucHien(false);
           setTab(u.role==="thck"||u.role==="kho"?"soan":u.role==="khth"?"ds":"duyet");
         }
       }}/>
@@ -4050,27 +4073,38 @@ Bạn có chắc chắn không?`;
             </div>
             <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>DANH MỤC CÁC DỰ ÁN ĐANG THỰC HIỆN</div>
           </div>
-          {/* Danh sách dự án — bấm để đổi dự án xem tổng quan.
+          {/* Danh sách dự án ĐANG THỰC HIỆN — dạng THẺ (mỗi dự án 1 dòng full-width).
               ✅ Sắp xếp MỚI NHẤT lên đầu (id chứa timestamp tăng dần) — dự án vừa khởi tạo
-              luôn hiện ở vị trí đầu tiên (STT 1), áp dụng chung cho MỌI dòng xe/mọi lúc. */}
-          {projs.length>0&&(()=>{
-            const projsSorted=[...projs].sort((a,b)=>String(b.id||"").localeCompare(String(a.id||"")));
+              luôn hiện ở vị trí đầu tiên (STT 1), áp dụng chung cho MỌI dòng xe/mọi lúc.
+              ✅ Chỉ hiển thị dự án CHƯA hoàn thành — dự án đã bấm "Hoàn thành" sẽ ẩn khỏi đây
+              và chuyển sang màn "Đã thực hiện" (Giai đoạn 03). */}
+          {projs.filter(p=>p.trang_thai!=="hoan_thanh").length>0&&(()=>{
+            const projsSorted=[...projs].filter(p=>p.trang_thai!=="hoan_thanh").sort((a,b)=>String(b.id||"").localeCompare(String(a.id||"")));
             const sttMau=["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#6366f1","#84cc16"];
             return(
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
               {projsSorted.map((p,idx)=>(
-                <div key={p.id} onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
-                  style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px 6px 6px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
-                    background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`}}>
-                  <div style={{width:22,height:22,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,flexShrink:0}}>{idx+1}</div>
-                  <div style={{display:"flex",flexDirection:"column",lineHeight:1.35}}>
-                    <span>{p.ten}</span>
-                    {(p.lenh_sx||p.lo_sx)&&(
-                      <span style={{fontSize:10,fontWeight:600,opacity:.8}}>
-                        {p.lenh_sx&&`Lệnh SX: ${p.lenh_sx}`}{p.lenh_sx&&p.lo_sx&&" · "}{p.lo_sx&&`Lô SX: ${p.lo_sx}`}
-                      </span>
-                    )}
+                <div key={p.id}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,fontSize:12,fontWeight:700,
+                    background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",
+                    border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                  <div onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
+                    style={{display:"flex",alignItems:"center",gap:10,flex:1,cursor:"pointer",minWidth:0}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{idx+1}</div>
+                    <div style={{display:"flex",flexDirection:"column",lineHeight:1.35,minWidth:0}}>
+                      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.ten}</span>
+                      {(p.lenh_sx||p.lo_sx)&&(
+                        <span style={{fontSize:10,fontWeight:600,opacity:.8}}>
+                          {p.lenh_sx&&`Lệnh SX: ${p.lenh_sx}`}{p.lenh_sx&&p.lo_sx&&" · "}{p.lo_sx&&`Lô SX: ${p.lo_sx}`}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <button onClick={(e)=>{e.stopPropagation();markProjectDone(p);}}
+                    style={{flexShrink:0,border:"2px solid #16a34a",borderRadius:8,background:"#dc2626",color:"#fff",fontWeight:800,fontSize:11,
+                      padding:"7px 12px",cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,0.18)",whiteSpace:"nowrap"}}>
+                    ✅ Hoàn thành
+                  </button>
                 </div>
               ))}
             </div>
@@ -4079,6 +4113,10 @@ Bạn có chắc chắn không?`;
           {projs.length===0?(
             <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
               — Chưa có dự án nào cho dòng xe này —
+            </div>
+          ):projs.filter(p=>p.trang_thai!=="hoan_thanh").length===0?(
+            <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+              — Tất cả dự án của dòng xe này đã "Hoàn thành". Xem ở mục "Đã thực hiện". —
             </div>
           ):(
           <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
@@ -4212,6 +4250,89 @@ Bạn có chắc chắn không?`;
     </LangCtx.Provider>
   );
 
+  // ── MÀN HÌNH "ĐÃ THỰC HIỆN" (Giai đoạn 03) ĐỘC LẬP — danh sách dự án đã bấm "Hoàn thành" ──
+  // Hiển thị dạng THẺ trong 1 bảng có tiêu đề cột: STT · Tên dự án · Lệnh SX · Lô SX ·
+  // Ngày khởi tạo · Ngày hoàn thành · SL xe. Dự án bấm "Hoàn thành" SAU CÙNG luôn ở STT 1.
+  if(showDaThucHien) return (
+    <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
+      <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
+        <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
+            <button onClick={()=>{setBackToGate(true);setShowDaThucHien(false);}}
+              style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
+              ← Trở về
+            </button>
+            <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #14b8a6"}}>
+              <VehicleIconCircle lineId={activeLine} size={20}/>
+              <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
+              <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+            </div>
+          </div>
+          <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>✅ GIAI ĐOẠN · 03 — ĐÃ THỰC HIỆN</div>
+          <div style={{fontSize:11,opacity:.75,marginTop:4}}>Lưu trữ hồ sơ, đối chiếu và tổng kết dự án hoàn tất.</div>
+        </div>
+
+        {(()=>{
+          // ✅ Dự án bấm "Hoàn thành" GẦN NHẤT luôn ở STT 1 (sắp theo hoan_thanh_ts giảm dần,
+          // dự phòng theo ngay_hoan_thanh rồi id nếu thiếu hoan_thanh_ts — dữ liệu cũ).
+          const doneList=[...projs].filter(p=>p.trang_thai==="hoan_thanh").sort((a,b)=>{
+            const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
+            const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
+            if(ka!==kb) return String(kb).localeCompare(String(ka));
+            return String(b.id||"").localeCompare(String(a.id||""));
+          });
+          const sttMau=["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#6366f1","#84cc16"];
+          if(doneList.length===0) return (
+            <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+              — Chưa có dự án nào hoàn thành cho dòng xe này —
+            </div>
+          );
+          return(
+          <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #99f6e4"}}>
+            {/* Tiêu đề cột — chỉ hiện trên màn rộng, trên mobile mỗi thẻ tự hiện nhãn từng cột */}
+            <div style={{display:"none",gridTemplateColumns:"40px 2fr 1fr 1fr 1fr 1fr 70px",gap:8,padding:"10px 14px",background:"#f0fdfa",fontSize:11,fontWeight:800,color:"#0f766e"}}>
+              <span>STT</span><span>Tên dự án</span><span>Lệnh SX</span><span>Lô SX</span><span>Ngày khởi tạo</span><span>Ngày hoàn thành</span><span>SL xe</span>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10,padding:12}}>
+              {doneList.map((p,idx)=>(
+                <div key={p.id} style={{display:"flex",gap:12,alignItems:"center",padding:"12px 14px",borderRadius:10,background:"#f8fafc",border:"1.5px solid #e5e7eb"}}>
+                  <div style={{width:26,height:26,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{idx+1}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,flex:1,minWidth:0}}>
+                    <div style={{gridColumn:"1/-1"}}>
+                      <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Tên dự án</div>
+                      <div style={{fontSize:13,fontWeight:800,color:"#1f2937"}}>{p.ten}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Lệnh SX</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>{p.lenh_sx||"—"}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Lô SX</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>{p.lo_sx||"—"}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Ngày khởi tạo</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>{p.ngay_khoi_tao||"—"}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Ngày hoàn thành</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>SL xe</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#374151"}}>{p.so_xe||1}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          );
+        })()}
+      </div>
+    </LangCtx.Provider>
+  );
+
 
   const role      = user.role;           // "thck" | "xuonghan" | "kho" | "khth"
   const isTHCK    = role==="thck";
@@ -4271,7 +4392,7 @@ Bạn có chắc chắn không?`;
               <div style={{width:36,height:36,borderRadius:"50%",background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>✍️</div>
               <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</div>
             </div>
-            <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);}}}
+            <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
               title="Đăng xuất" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:44,flexShrink:0}}>
               <div style={{width:36,height:36,borderRadius:"50%",background:"#ec4899",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 2px 6px rgba(0,0,0,0.2)",flexShrink:0}}>{user.avatar}</div>
               <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"center",lineHeight:1.15,maxWidth:44,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.ten}</div>
