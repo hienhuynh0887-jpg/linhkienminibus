@@ -1027,9 +1027,13 @@ function LoginScreen({onLogin, resume}){
     setAuthedUser(u);
     const allowed=getAllowedLines(u);
     if(allowed.length===1){
-      // Đơn vị chuyên trách 1 dòng xe duy nhất → vào thẳng Hệ thống chính (ảnh 1)
+      // ✅ Đơn vị chuyên trách 1 dòng xe duy nhất → vào THẲNG Hệ thống chính (ảnh 1, tab
+      // Soạn Hàng/Nhận Hàng...) — KHÔNG được truyền statusId:"inprogress" vì giá trị đó lại
+      // dẫn vào màn "Tổng Quan" (danh mục dự án, ảnh dashboard riêng) chứ không phải hệ thống
+      // chính. Để vào đúng hệ thống chính (tabs), KHÔNG truyền statusId (rơi vào nhánh else
+      // trong xử lý onLogin của App, tự set tab theo role và tắt hết showTongQuan/KhoiTao/DaThucHien).
       setActiveLine(allowed[0]);
-      onLogin(u, userList, {openNewProject:false, line:allowed[0], statusId:"inprogress"});
+      onLogin(u, userList, {openNewProject:false, line:allowed[0]});
       return;
     }
     setStep("select");
