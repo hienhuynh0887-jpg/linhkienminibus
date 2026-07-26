@@ -1299,11 +1299,26 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   useEffect(()=>{
     supabase.from("custom_depts").select("ten").then(({data,error})=>{
       if(error){ console.warn("Chưa đọc được bảng custom_depts (có thể chưa tạo bảng):",error.message); return; }
-      if(data){
-        const tenList=data.map(r=>r.ten).filter(Boolean);
-        setCustomDepts(tenList);
-        try{localStorage.setItem("customDepts",JSON.stringify(tenList));}catch{}
-      }
+      // ✅ FIX QUAN TRỌNG (đơn vị mới thêm bị "biến mất"): CODE CŨ ghi đè thẳng
+      // customDepts bằng dữ liệu Supabase — kể cả khi mảng rỗng "[]" (mảng rỗng vẫn
+      // là truthy trong JS nên "if(data)" luôn đúng!). Nếu bảng "custom_depts" chưa
+      // được tạo trên Supabase, hoặc lệnh upsert lúc thêm bị lỗi/mất mạng, Supabase trả
+      // về [] → toàn bộ đơn vị vừa thêm (kho VT1, kho VT2, xh_minibus...) bị xoá khỏi
+      // màn hình ngay khi component tải lại, dù đã lưu trong localStorage.
+      // Nay: HỢP NHẤT (merge) danh sách cục bộ với danh sách server thay vì ghi đè,
+      // đồng thời tự động đẩy lại (upsert) lên Supabase các đơn vị có ở máy nhưng
+      // server chưa có — để tự "chữa lành" và đồng bộ lâu dài giữa các thiết bị.
+      const remoteList=(data||[]).map(r=>r.ten).filter(Boolean);
+      setCustomDepts(local=>{
+        const merged=Array.from(new Set([...local,...remoteList]));
+        try{localStorage.setItem("customDepts",JSON.stringify(merged));}catch{}
+        const missingOnServer=local.filter(d=>!remoteList.includes(d));
+        if(missingOnServer.length){
+          supabase.from("custom_depts").upsert(missingOnServer.map(ten=>({ten})),{onConflict:"ten"})
+            .then(({error})=>{ if(error) console.warn("Đồng bộ lại đơn vị lên Supabase thất bại:",error.message); });
+        }
+        return merged;
+      });
     });
   },[]);
   const addCustomDept=(updateForm=true)=>{
@@ -1317,7 +1332,13 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       return updated;
     });
     supabase.from("custom_depts").upsert({ten:label},{onConflict:"ten"}).then(({error})=>{
-      if(error)console.error("Lưu phòng/ban lên Supabase thất bại:",error.message);
+      if(error){
+        console.error("Lưu phòng/ban lên Supabase thất bại:",error.message);
+        // ✅ Trước đây lỗi này chỉ log console, người dùng không biết đơn vị mới
+        // có thể KHÔNG được lưu lâu dài trên máy chủ (chỉ tồn tại tạm trên máy này).
+        // Nguyên nhân thường gặp: chưa chạy SQL tạo bảng "custom_depts" trên Supabase.
+        alert(`⚠️ Đã thêm "${label}" trên máy này, nhưng LƯU LÊN MÁY CHỦ THẤT BẠI (${error.message}).\nĐơn vị có thể biến mất khi tải lại trang hoặc dùng máy khác.\nHãy kiểm tra bảng "custom_depts" đã được tạo trên Supabase chưa.`);
+      }
     });
     if(updateForm){const r=donViBaseRole(label);setForm(f=>({...f,role:r,don_vi:label,avatar:donViAvatar(label)}));}
   };
