@@ -1009,6 +1009,15 @@ function LoginScreen({onLogin, resume}){
   };
 
   // ── Bước 1: Đăng nhập tài khoản (cổng vào chung) ──
+  // ✅ QUY ƯỚC ĐIỀU HƯỚNG THEO ĐƠN VỊ:
+  //   - Đơn vị chỉ được cấp ĐÚNG 1 dòng xe (VD: XH_MINIBUS, KHO CITYBUS, KHO 12M, XH_CITYBUS,
+  //     XH_12, Nhà máy THCK, KHO VẬT TƯ...) → bỏ qua màn "Chọn dòng xe" (ảnh 2), vào THẲNG
+  //     "Hệ thống chính" (ảnh 1) với dòng xe duy nhất đó, y hệt bấm "Đang thực hiện".
+  //   - Đơn vị được cấp NHIỀU dòng xe (VD: Xưởng Hàn, Phòng KH-TH, Phòng KT, Ban CN, Ban LĐNM
+  //     — nhóm "theo dõi tổng thể") hoặc tài khoản admin → dừng ở màn "Chọn dòng xe" (ảnh 2)
+  //     để tự chọn dòng muốn theo dõi, rồi mới vào hệ thống chính.
+  //   - Đơn vị chưa được cấp dòng xe nào (0 dòng) → vẫn dừng ở màn chọn để hiển thị thông
+  //     báo "chưa được cấp quyền" rõ ràng thay vì im lặng chặn truy cập.
   const handleGateLogin=(e)=>{
     e.preventDefault();
     if(!uid2){setErr(t.errNoAcc);return;}
@@ -1016,6 +1025,13 @@ function LoginScreen({onLogin, resume}){
     if(!u){setErr(t.errBadPw);return;}
     setErr("");
     setAuthedUser(u);
+    const allowed=getAllowedLines(u);
+    if(allowed.length===1){
+      // Đơn vị chuyên trách 1 dòng xe duy nhất → vào thẳng Hệ thống chính (ảnh 1)
+      setActiveLine(allowed[0]);
+      onLogin(u, userList, {openNewProject:false, line:allowed[0], statusId:"inprogress"});
+      return;
+    }
     setStep("select");
   };
 
