@@ -1319,7 +1319,67 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     supabase.from("custom_depts").upsert({ten:label},{onConflict:"ten"}).then(({error})=>{
       if(error)console.error("Lưu phòng/ban lên Supabase thất bại:",error.message);
     });
-    if(updateForm) setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));
+    if(updateForm){const r=donViBaseRole(label);setForm(f=>({...f,role:r,don_vi:label,avatar:donViAvatar(label)}));}
+  };
+
+  // ✅ Suy luận VAI TRÒ THẬT (chức năng) của 1 đơn vị tùy chỉnh dựa theo QUY ƯỚC ĐẶT TÊN:
+  //   "KHO VT..."  → vai trò "kho" (có chức năng Soạn Hàng)
+  //   "XH_..."     → vai trò "xuonghan" (có chức năng Duyệt Hàng)
+  //   còn lại      → "khth" (chỉ xem, như Phòng KH-TH)
+  // Dòng xe cụ thể mà đơn vị đó được thao tác là do Ô TICK ở bảng "Phân quyền dòng xe theo
+  // đơn vị" phía trên quyết định (ví dụ tick riêng "City Bus" cho "KHO VT1") — không hardcode ở đây.
+  const donViBaseRole=(dv)=>{
+    if(/^KHO\s*VT/i.test(dv)) return "kho";
+    if(/^XH[_\s-]/i.test(dv)) return "xuonghan";
+    return "khth";
+  };
+  const donViAvatar=(dv)=>{
+    const r=donViBaseRole(dv);
+    return r==="kho"?"📦":r==="xuonghan"?"🚗":"📋";
+  };
+
+  // ✅ Đổi tên 1 đơn vị tùy chỉnh — cập nhật đồng bộ: danh sách đơn vị, phân quyền dòng xe,
+  // và toàn bộ tài khoản đang thuộc đơn vị đó (đổi sang tên mới), cả trên Supabase.
+  const renameCustomDept=async(oldName)=>{
+    const name=window.prompt(`Đổi tên đơn vị "${oldName}" thành:`,oldName);
+    if(!name||!name.trim()||name.trim()===oldName)return;
+    const newName=name.trim();
+    if(customDepts.includes(newName)||BASE_DON_VI.includes(newName)){alert(`⚠️ Tên đơn vị "${newName}" đã tồn tại!`);return;}
+    setCustomDepts(l=>{
+      const updated=l.map(d=>d===oldName?newName:d);
+      try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
+      return updated;
+    });
+    const oldLines=lineQuyen[oldName]||[];
+    setLineQuyen(q=>{const {[oldName]:_,...rest}=q;return {...rest,[newName]:oldLines};});
+    dbUpsertQuyenDongXe&&dbUpsertQuyenDongXe(newName,oldLines);
+    users.filter(u=>u.don_vi===oldName).forEach(u=>{
+      const updatedUser={...u,don_vi:newName};
+      setUsers(us=>us.map(x=>x.id===u.id?updatedUser:x));
+      dbUpsertUser&&dbUpsertUser(updatedUser);
+    });
+    try{
+      await supabase.from("custom_depts").delete().eq("ten",oldName);
+      await supabase.from("custom_depts").upsert({ten:newName},{onConflict:"ten"});
+    }catch(e){console.error("Đổi tên đơn vị thất bại:",e.message);}
+  };
+
+  // ✅ Xoá 1 đơn vị tùy chỉnh — chặn xoá nếu còn tài khoản đang thuộc đơn vị đó.
+  const deleteCustomDept=async(name)=>{
+    const affected=users.filter(u=>u.don_vi===name);
+    if(affected.length>0){
+      alert(`⚠️ Không thể xoá "${name}" vì còn ${affected.length} tài khoản đang thuộc đơn vị này.\nVui lòng đổi đơn vị cho các tài khoản đó trước khi xoá.`);
+      return;
+    }
+    if(!window.confirm(`Xoá đơn vị "${name}"? Hành động này không thể hoàn tác.`))return;
+    setCustomDepts(l=>{
+      const updated=l.filter(d=>d!==name);
+      try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
+      return updated;
+    });
+    setLineQuyen(q=>{const {[name]:_,...rest}=q;return rest;});
+    try{ await supabase.from("custom_depts").delete().eq("ten",name); }
+    catch(e){console.error("Xoá đơn vị thất bại:",e.message);}
   };
   const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
@@ -1394,9 +1454,12 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
               <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>Đơn vị</th>
               {ALL_LINES_META.map(l=><th key={l.id} style={{padding:"8px 12px",textAlign:"center",fontWeight:700,color:"#6b7280",fontSize:11}}>{l.label}</th>)}
+              <th style={{padding:"8px 12px",textAlign:"center",fontWeight:700,color:"#6b7280",fontSize:11}}>Sửa/Xoá</th>
             </tr></thead>
             <tbody>
-              {allDonViGroups.map((dv,i)=>(
+              {allDonViGroups.map((dv,i)=>{
+                const isCore=BASE_DON_VI.includes(dv); // 4 đơn vị gốc — không cho sửa/xoá vì gắn liền vai trò hệ thống
+                return(
                 <tr key={dv} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
                   <td style={{padding:"8px 12px",fontWeight:600}}>{dv}</td>
                   {ALL_LINES_META.map(l=>{
@@ -1407,8 +1470,19 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                       </td>
                     );
                   })}
+                  <td style={{padding:"8px 12px",textAlign:"center",whiteSpace:"nowrap"}}>
+                    {isCore?(
+                      <span style={{fontSize:10,color:"#cbd5e1"}}>—</span>
+                    ):(
+                      <div style={{display:"inline-flex",gap:6}}>
+                        <button onClick={()=>renameCustomDept(dv)} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"4px 9px",fontSize:11}}>Sửa</button>
+                        <button onClick={()=>deleteCustomDept(dv)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"4px 9px",fontSize:11}}>Xoá</button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1434,18 +1508,22 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
           <div>
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Vai trò</label>
             <select
-              value={form.role==="khth"&&form.don_vi&&form.don_vi!=="Phòng KH-TH"?`khth::${form.don_vi}`:form.role}
+              value={customDepts.includes(form.don_vi)?`${form.role}::${form.don_vi}`:form.role}
               onChange={e=>{
                 const v=e.target.value;
                 if(v==="__add_new__"){addCustomDept();return;}
-                if(v.startsWith("khth::")){const label=v.slice(6);setForm(f=>({...f,role:"khth",don_vi:label,avatar:"📋"}));return;}
+                if(v.includes("::")){const [r,label]=v.split("::");setForm(f=>({...f,role:r,don_vi:label,avatar:donViAvatar(label)}));return;}
                 const r=v;setForm(f=>({...f,role:r,don_vi:r==="thck"?"Nhà máy THCK":r==="kho"?"KHO VẬT TƯ":r==="khth"?"Phòng KH-TH":"XƯỞNG HÀN",avatar:r==="thck"?"🏭":r==="kho"?"📦":r==="khth"?"📋":"🚗"}));
               }} style={inp}>
               <option value="thck">🏭 Nhà máy THCK</option>
               <option value="xuonghan">🚗 XƯỞNG HÀN</option>
               <option value="kho">📦 KHO VẬT TƯ</option>
               <option value="khth">📋 Phòng KH-TH (chỉ xem)</option>
-              {customDepts.map(d=><option key={d} value={`khth::${d}`}>📋 {d} (chỉ xem)</option>)}
+              {customDepts.map(d=>{
+                const r=donViBaseRole(d);
+                const label=r==="kho"?`📦 ${d} (Soạn hàng)`:r==="xuonghan"?`🚗 ${d} (Duyệt hàng)`:`📋 ${d} (chỉ xem)`;
+                return <option key={d} value={`${r}::${d}`}>{label}</option>;
+              })}
               <option value="__add_new__">➕ Thêm phòng/ban khác...</option>
             </select>
           </div>
@@ -4085,20 +4163,28 @@ Bạn có chắc chắn không?`;
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
               {projsSorted.map((p,idx)=>(
                 <div key={p.id}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,fontSize:12,fontWeight:700,
+                  style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"10px 12px",borderRadius:12,fontSize:12,fontWeight:700,
                     background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",
                     border:`1.5px solid ${p.id===pid?(p.mau||"#2563eb"):"#e5e7eb"}`,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                   <div onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
-                    style={{display:"flex",alignItems:"center",gap:10,flex:1,cursor:"pointer",minWidth:0}}>
+                    style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flex:1,cursor:"pointer",minWidth:0}}>
                     <div style={{width:24,height:24,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{idx+1}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",minWidth:0}}>
-                      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.ten}</span>
-                      {(p.lenh_sx||p.lo_sx)&&(
-                        <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
-                          {p.lenh_sx}{p.lenh_sx&&p.lo_sx&&" / "}{p.lo_sx}
-                        </span>
-                      )}
-                    </div>
+                    <span>{p.ten}</span>
+                    {(p.lenh_sx||p.lo_sx)&&(
+                      <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
+                        {p.lenh_sx}{p.lenh_sx&&p.lo_sx&&" / "}{p.lo_sx}
+                      </span>
+                    )}
+                    {p.ngay_khoi_tao&&(
+                      <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
+                        KT: {p.ngay_khoi_tao}
+                      </span>
+                    )}
+                    {p.ngay_hoan_thanh&&(
+                      <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
+                        HT: {p.ngay_hoan_thanh}
+                      </span>
+                    )}
                   </div>
                   <button onClick={(e)=>{e.stopPropagation();markProjectDone(p);}}
                     style={{flexShrink:0,border:"none",borderRadius:8,background:"#dc2626",color:"#fff",fontWeight:800,fontSize:11,
