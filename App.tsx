@@ -881,6 +881,36 @@ const KL_LINES = [
 //   );
 const LINE_IDS = KL_LINES.map(l=>l.id); // ["12m","citybus","minibus"]
 
+// ═══════════════════════════════════════════════════════════════
+//  ĐƠN VỊ "CHUYÊN TRÁCH" — LUÔN VÀO THẲNG ĐÚNG TAB, KHÔNG BAO GIỜ RA "TỔNG QUAN"
+// ═══════════════════════════════════════════════════════════════
+// ✅ Các đơn vị dưới đây (Nhà máy THCK, Kho Vật Tư, Kho CityBus, Kho 12M, XH_Minibus,
+// XH_CityBus, XH_12) PHẢI vào THẲNG đúng tab nghiệp vụ của mình ngay sau khi đăng nhập:
+//   - Nhóm "kho/soạn hàng" (Nhà máy THCK, KHO VẬT TƯ, KHO CITYBUS, KHO 12M) → tab "soan" (📋 Soạn Hàng)
+//   - Nhóm "xưởng/nhận hàng" (XH_MINIBUS, XH_CITYBUS, XH_12) → tab "duyet" (✅ Nhận Hàng)
+// TUYỆT ĐỐI KHÔNG được rơi vào màn "Tổng Quan / Danh mục dự án" (showTongQuan), "Khởi tạo
+// Dự án" (showKhoiTao) hay "Đã thực hiện" (showDaThucHien) — dù có truyền statusId gì đi nữa.
+// Hàm getDirectEntryTab() dùng CHUNG cho cả màn đăng nhập (LoginScreen) lẫn xử lý onLogin
+// trong App, để chỉ có 1 nguồn sự thật duy nhất — sửa 1 chỗ, áp dụng mọi nơi.
+// Tên đơn vị được CHUẨN HOÁ (bỏ dấu, bỏ khoảng trắng/gạch dưới, viết hoa) trước khi so khớp,
+// nên "XH_12"/"XH 12M"/"xh_12m" hay "Kho Citybus"/"KHO CITYBUS" đều nhận diện đúng như nhau.
+const normalizeDonViKey = (dv) => String(dv||"")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/đ/gi,"d")
+  .toUpperCase()
+  .replace(/[^A-Z0-9]/g,"");
+const DIRECT_ENTRY_TAB_BY_DON_VI = {
+  "NHAMAYTHCK": "soan",
+  "KHOVATTU":   "soan",
+  "KHOCITYBUS": "soan",
+  "KHO12M":     "soan",
+  "XHMINIBUS":  "duyet",
+  "XHCITYBUS":  "duyet",
+  "XH12":       "duyet",  // chấp nhận cả "XH_12" và "XH_12M" vì normalize bỏ hết chữ không phải A-Z0-9... xem thêm alias dưới
+  "XH12M":      "duyet",
+};
+const getDirectEntryTab = (don_vi) => DIRECT_ENTRY_TAB_BY_DON_VI[normalizeDonViKey(don_vi)] || null;
+
 // ── Màu đặc trưng của từng dòng xe (dùng cho vòng tròn icon) ──
 const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#ff9a1f"};
 // ✅ Hàm dùng chung: vẽ 1 vòng tròn tô màu bao quanh icon chiếc xe — áp dụng cho MỌI
@@ -1026,12 +1056,20 @@ function LoginScreen({onLogin, resume}){
     setErr("");
     setAuthedUser(u);
     const allowed=getAllowedLines(u);
+    const directTab=getDirectEntryTab(u.don_vi);
+    if(directTab){
+      // ✅ Đơn vị chuyên trách (Nhà máy THCK/KHO VẬT TƯ/KHO CITYBUS/KHO 12M/XH_MINIBUS/
+      // XH_CITYBUS/XH_12) → BẮT BUỘC vào thẳng đúng tab, không qua màn chọn dòng xe lẫn
+      // Tổng Quan/Danh mục dự án. Dùng dòng xe đầu tiên được cấp quyền (mặc định minibus).
+      const line=allowed[0]||"minibus";
+      setActiveLine(line);
+      onLogin(u, userList, {openNewProject:false, line, directTab});
+      return;
+    }
     if(allowed.length===1){
-      // ✅ Đơn vị chuyên trách 1 dòng xe duy nhất → vào THẲNG Hệ thống chính (ảnh 1, tab
-      // Soạn Hàng/Nhận Hàng...) — KHÔNG được truyền statusId:"inprogress" vì giá trị đó lại
-      // dẫn vào màn "Tổng Quan" (danh mục dự án, ảnh dashboard riêng) chứ không phải hệ thống
-      // chính. Để vào đúng hệ thống chính (tabs), KHÔNG truyền statusId (rơi vào nhánh else
-      // trong xử lý onLogin của App, tự set tab theo role và tắt hết showTongQuan/KhoiTao/DaThucHien).
+      // ✅ Đơn vị 1-dòng-xe khác (đơn vị tuỳ chỉnh thêm sau này, chưa có trong bảng
+      // DIRECT_ENTRY_TAB_BY_DON_VI ở trên) → vẫn vào thẳng Hệ thống chính theo vai trò,
+      // KHÔNG truyền statusId (statusId:"inprogress" dẫn nhầm vào màn "Tổng Quan").
       setActiveLine(allowed[0]);
       onLogin(u, userList, {openNewProject:false, line:allowed[0]});
       return;
@@ -4200,7 +4238,15 @@ Bạn có chắc chắn không?`;
           setBomMauLoaiList([]); setBomMauByLoai({}); setBmTab("");
         }
         setBackToGate(false);
-        if(opts?.statusId==="inprogress"){
+        if(opts?.directTab){
+          // ✅ ƯU TIÊN TUYỆT ĐỐI: đơn vị chuyên trách (xem getDirectEntryTab) luôn vào thẳng
+          // đúng tab nghiệp vụ của Hệ thống chính — bỏ qua hoàn toàn statusId, KHÔNG BAO GIỜ
+          // mở Tổng Quan/Khởi Tạo Dự án/Đã Thực Hiện dù opts có truyền gì đi nữa.
+          setShowTongQuan(false);
+          setShowKhoiTao(false);
+          setShowDaThucHien(false);
+          setTab(opts.directTab);
+        }else if(opts?.statusId==="inprogress"){
           // "Đang thực hiện" → màn hình "Tổng quan" ĐỘC LẬP (chỉ xem số liệu), có nút "← Trở về".
           setShowTongQuan(true);
           setShowKhoiTao(false);
