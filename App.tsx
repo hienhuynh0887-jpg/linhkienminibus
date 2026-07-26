@@ -4091,17 +4091,17 @@ Bạn có chắc chắn không?`;
                   <div onClick={()=>{setPid(p.id);try{localStorage.setItem("lastPid",p.id);}catch{}}}
                     style={{display:"flex",alignItems:"center",gap:10,flex:1,cursor:"pointer",minWidth:0}}>
                     <div style={{width:24,height:24,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{idx+1}</div>
-                    <div style={{display:"flex",flexDirection:"column",lineHeight:1.35,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",minWidth:0}}>
                       <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.ten}</span>
                       {(p.lenh_sx||p.lo_sx)&&(
-                        <span style={{fontSize:10,fontWeight:600,opacity:.8}}>
-                          {p.lenh_sx&&`Lệnh SX: ${p.lenh_sx}`}{p.lenh_sx&&p.lo_sx&&" · "}{p.lo_sx&&`Lô SX: ${p.lo_sx}`}
+                        <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
+                          {p.lenh_sx}{p.lenh_sx&&p.lo_sx&&" / "}{p.lo_sx}
                         </span>
                       )}
                     </div>
                   </div>
                   <button onClick={(e)=>{e.stopPropagation();markProjectDone(p);}}
-                    style={{flexShrink:0,border:"2px solid #16a34a",borderRadius:8,background:"#dc2626",color:"#fff",fontWeight:800,fontSize:11,
+                    style={{flexShrink:0,border:"none",borderRadius:8,background:"#dc2626",color:"#fff",fontWeight:800,fontSize:11,
                       padding:"7px 12px",cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,0.18)",whiteSpace:"nowrap"}}>
                     ✅ Hoàn thành
                   </button>
