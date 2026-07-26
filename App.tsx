@@ -931,6 +931,35 @@ function VehicleIconCircle({lineId, size=22, icon="🚌", color}){
     </span>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  THANH TIÊU ĐỀ DÙNG CHUNG — 3 MÀN HÌNH ĐỘC LẬP
+//  (Khởi tạo Dự án · Tổng Quan/Đang thực hiện · Đã thực hiện)
+// ═══════════════════════════════════════════════════════════════
+// ✅ 1 hàm dùng chung cho cả 3 màn, áp dụng ĐỒNG NHẤT cho MỌI dòng xe (Mini Bus/City Bus/12M)
+// — chỉ cần truyền activeLine, tự lấy đúng icon/tên dòng xe qua KL_LINES/VehicleIconCircle.
+// Bố cục: [← Trở về] ── [🚌 Dòng xe: ... — CĂN GIỮA] ── [Đăng xuất].
+// Nút "Đăng xuất": nền đen nhạt, chữ trắng in đậm, viền bo tròn màu cam.
+function ScreenTopBar({onBack, badgeBorderColor, activeLine, onLogout}){
+  const baseBtn={border:"none",borderRadius:999,cursor:"pointer",fontFamily:"inherit",padding:"7px 16px",fontSize:12};
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:10}}>
+      <button onClick={onBack}
+        style={{...baseBtn,background:"rgba(249,115,22,0.12)",color:"#fdba74",fontWeight:700,border:"1.5px solid #f97316",flexShrink:0}}>
+        ← Trở về
+      </button>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:`2px solid ${badgeBorderColor}`,flex:1,minWidth:0}}>
+        <VehicleIconCircle lineId={activeLine} size={20}/>
+        <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
+        <span style={{fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+      </div>
+      <button onClick={onLogout}
+        style={{...baseBtn,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,border:"1.5px solid #f97316",flexShrink:0}}>
+        Đăng xuất
+      </button>
+    </div>
+  );
+}
 const LINE_QUYEN_DEFAULT = {
   "Nhà máy THCK": ["minibus"],
   "XƯỞNG HÀN":    ["minibus","citybus","12m"],
@@ -2076,6 +2105,14 @@ export default function App(){
 
   const inp={width:"100%",padding:"7px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)",transition:"border-color .15s,box-shadow .15s"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
+  // ✅ Đăng xuất dùng CHUNG cho cả 3 màn hình độc lập (Khởi tạo Dự án/Tổng Quan/Đã thực hiện)
+  // qua <ScreenTopBar/> — áp dụng như nhau cho mọi dòng xe (Mini Bus/City Bus/12M).
+  const handleLogoutScreenDocLap=()=>{
+    if(window.confirm("Đăng xuất?")){
+      try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}
+      setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);
+    }
+  };
 
   // ── State ──
   const [lang, setLang] = useState(()=>localStorage.getItem("appLang")||"vi");
@@ -4283,17 +4320,7 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
         <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-            <button onClick={()=>{setBackToGate(true);setShowKhoiTao(false);}}
-              style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
-              ← Trở về
-            </button>
-            <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #3b82f6"}}>
-              <VehicleIconCircle lineId={activeLine} size={20}/>
-              <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
-              <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
-            </div>
-          </div>
+          <ScreenTopBar onBack={()=>{setBackToGate(true);setShowKhoiTao(false);}} badgeBorderColor="#3b82f6" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
           <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>🆕 GIAI ĐOẠN · 01 — KHỞI TẠO DỰ ÁN</div>
           <div style={{fontSize:11,opacity:.75,marginTop:4}}>Tạo mới dự án, thiết lập BOM và định mức ban đầu.</div>
         </div>
@@ -4319,17 +4346,7 @@ Bạn có chắc chắn không?`;
         return(
         <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
           <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-              <button onClick={()=>{setBackToGate(true);setShowTongQuan(false);}}
-                style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
-                ← Trở về
-              </button>
-              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #f59e0b"}}>
-                <VehicleIconCircle lineId={activeLine} size={20}/>
-                <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
-                <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
-              </div>
-            </div>
+            <ScreenTopBar onBack={()=>{setBackToGate(true);setShowTongQuan(false);}} badgeBorderColor="#f59e0b" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
             <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>DANH MỤC CÁC DỰ ÁN ĐANG THỰC HIỆN</div>
           </div>
           {/* Danh sách dự án ĐANG THỰC HIỆN — dạng THẺ (mỗi dự án 1 dòng full-width).
@@ -4524,17 +4541,7 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
         <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-            <button onClick={()=>{setBackToGate(true);setShowDaThucHien(false);}}
-              style={{...btn,background:"rgba(249,115,22,0.12)",color:"#fdba74",padding:"7px 16px",fontSize:12,fontWeight:700,border:"1.5px solid #f97316",borderRadius:999}}>
-              ← Trở về
-            </button>
-            <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:"2px solid #14b8a6"}}>
-              <VehicleIconCircle lineId={activeLine} size={20}/>
-              <span style={{fontSize:10,opacity:.75}}>Dòng xe:</span>
-              <span style={{fontSize:12,fontWeight:700}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
-            </div>
-          </div>
+          <ScreenTopBar onBack={()=>{setBackToGate(true);setShowDaThucHien(false);}} badgeBorderColor="#14b8a6" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
           <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>✅ GIAI ĐOẠN · 03 — ĐÃ THỰC HIỆN</div>
           <div style={{fontSize:11,opacity:.75,marginTop:4}}>Lưu trữ hồ sơ, đối chiếu và tổng kết dự án hoàn tất.</div>
         </div>
