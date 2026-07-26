@@ -890,7 +890,7 @@ const LINE_IDS = KL_LINES.map(l=>l.id); // ["12m","citybus","minibus"]
 //   - Nhóm "xưởng/nhận hàng" (XH_MINIBUS, XH_CITYBUS, XH_12) → tab "duyet" (✅ Nhận Hàng)
 // TUYỆT ĐỐI KHÔNG được rơi vào màn "Tổng Quan / Danh mục dự án" (showTongQuan), "Khởi tạo
 // Dự án" (showKhoiTao) hay "Đã thực hiện" (showDaThucHien) — dù có truyền statusId gì đi nữa.
-// Hàm getDirectEntryTab() dùng CHUNG cho cả màn đăng nhập (LoginScreen) lẫn xử lý onLogin
+// Hàm getDirectEntry() dùng CHUNG cho cả màn đăng nhập (LoginScreen) lẫn xử lý onLogin
 // trong App, để chỉ có 1 nguồn sự thật duy nhất — sửa 1 chỗ, áp dụng mọi nơi.
 // Tên đơn vị được CHUẨN HOÁ (bỏ dấu, bỏ khoảng trắng/gạch dưới, viết hoa) trước khi so khớp,
 // nên "XH_12"/"XH 12M"/"xh_12m" hay "Kho Citybus"/"KHO CITYBUS" đều nhận diện đúng như nhau.
@@ -899,17 +899,22 @@ const normalizeDonViKey = (dv) => String(dv||"")
   .replace(/đ/gi,"d")
   .toUpperCase()
   .replace(/[^A-Z0-9]/g,"");
-const DIRECT_ENTRY_TAB_BY_DON_VI = {
-  "NHAMAYTHCK": "soan",
-  "KHOVATTU":   "soan",
-  "KHOCITYBUS": "soan",
-  "KHO12M":     "soan",
-  "XHMINIBUS":  "duyet",
-  "XHCITYBUS":  "duyet",
-  "XH12":       "duyet",  // chấp nhận cả "XH_12" và "XH_12M" vì normalize bỏ hết chữ không phải A-Z0-9... xem thêm alias dưới
-  "XH12M":      "duyet",
+// ✅ Mỗi đơn vị chuyên trách gắn CỨNG với ĐÚNG 1 tab + 1 dòng xe cố định — KHÔNG lấy dòng
+// xe theo allowed[0]/thứ tự bảng "quyen_dong_xe" nữa (thứ tự đó phụ thuộc dữ liệu đã lưu
+// trên Supabase, có thể lệch nếu trước đây từng cấp nhầm nhiều dòng cho 1 đơn vị chuyên
+// trách — VD "Nhà máy THCK" từng bị lưu luôn cả "12M"/"CityBus" khiến allerd[0] trả về
+// "12m" thay vì "minibus"). Gán cứng ở đây đảm bảo LUÔN đúng bất kể dữ liệu server thế nào.
+const DIRECT_ENTRY_BY_DON_VI = {
+  "NHAMAYTHCK": {tab:"soan",  line:"minibus"},
+  "KHOVATTU":   {tab:"soan",  line:"minibus"},
+  "KHOCITYBUS": {tab:"soan",  line:"citybus"},
+  "KHO12M":     {tab:"soan",  line:"12m"},
+  "XHMINIBUS":  {tab:"duyet", line:"minibus"},
+  "XHCITYBUS":  {tab:"duyet", line:"citybus"},
+  "XH12":       {tab:"duyet", line:"12m"},  // chấp nhận cả "XH_12" và "XH_12M" (đều normalize về "XH12"/"XH12M")
+  "XH12M":      {tab:"duyet", line:"12m"},
 };
-const getDirectEntryTab = (don_vi) => DIRECT_ENTRY_TAB_BY_DON_VI[normalizeDonViKey(don_vi)] || null;
+const getDirectEntry = (don_vi) => DIRECT_ENTRY_BY_DON_VI[normalizeDonViKey(don_vi)] || null;
 
 // ── Màu đặc trưng của từng dòng xe (dùng cho vòng tròn icon) ──
 const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#ff9a1f"};
@@ -1056,14 +1061,14 @@ function LoginScreen({onLogin, resume}){
     setErr("");
     setAuthedUser(u);
     const allowed=getAllowedLines(u);
-    const directTab=getDirectEntryTab(u.don_vi);
-    if(directTab){
+    const directEntry=getDirectEntry(u.don_vi);
+    if(directEntry){
       // ✅ Đơn vị chuyên trách (Nhà máy THCK/KHO VẬT TƯ/KHO CITYBUS/KHO 12M/XH_MINIBUS/
-      // XH_CITYBUS/XH_12) → BẮT BUỘC vào thẳng đúng tab, không qua màn chọn dòng xe lẫn
-      // Tổng Quan/Danh mục dự án. Dùng dòng xe đầu tiên được cấp quyền (mặc định minibus).
-      const line=allowed[0]||"minibus";
-      setActiveLine(line);
-      onLogin(u, userList, {openNewProject:false, line, directTab});
+      // XH_CITYBUS/XH_12) → BẮT BUỘC vào thẳng đúng tab VÀ đúng dòng xe cố định của mình,
+      // không qua màn chọn dòng xe lẫn Tổng Quan/Danh mục dự án, không phụ thuộc thứ tự
+      // bảng phân quyền đã lưu trên Supabase.
+      setActiveLine(directEntry.line);
+      onLogin(u, userList, {openNewProject:false, line:directEntry.line, directTab:directEntry.tab});
       return;
     }
     if(allowed.length===1){
@@ -4239,7 +4244,7 @@ Bạn có chắc chắn không?`;
         }
         setBackToGate(false);
         if(opts?.directTab){
-          // ✅ ƯU TIÊN TUYỆT ĐỐI: đơn vị chuyên trách (xem getDirectEntryTab) luôn vào thẳng
+          // ✅ ƯU TIÊN TUYỆT ĐỐI: đơn vị chuyên trách (xem getDirectEntry) luôn vào thẳng
           // đúng tab nghiệp vụ của Hệ thống chính — bỏ qua hoàn toàn statusId, KHÔNG BAO GIỜ
           // mở Tổng Quan/Khởi Tạo Dự án/Đã Thực Hiện dù opts có truyền gì đi nữa.
           setShowTongQuan(false);
