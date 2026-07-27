@@ -2779,9 +2779,33 @@ export default function App(){
       if(ct?.length) await supabase.from(T("phieu_ct")).upsert(ct);
     }catch(e){console.error("dbSavePhieu:",e);}
   };
-  // ⚠️ Đã bỏ ghi lịch sử giao dịch lên Supabase (bảng "lich_su") để không phát sinh
-  // thêm dữ liệu — lsDB vẫn được cập nhật cục bộ (addLS) trong phiên làm việc hiện tại.
-  const dbAddLS=async(row)=>{};
+  // ✅ FIX: Bảng "chi tiết giao xe" trước đây KHÔNG lưu lên Supabase — dbAddLS chỉ là hàm
+  // rỗng (no-op) do quyết định cũ "không phát sinh thêm dữ liệu" cho MỌI loại lịch sử (tạo
+  // mới BOM, xuất kho, duyệt phiếu...). Giờ bật lại RIÊNG cho việc ghi nhận GIAO XE (gọi từ
+  // submitGiaoXe bên dưới) — các addLS() khác trong app (tạo BOM, xuất kho, duyệt phiếu…)
+  // VẪN chỉ lưu cục bộ như cũ, không đổi hành vi, để không phát sinh thêm ghi DB ngoài ý muốn.
+  //
+  // ⚠️ SQL cần chạy 1 lần trên Supabase (SQL Editor) nếu bảng "lich_su" (hoặc "lich_su_<dòng
+  // xe>") chưa có các cột dưới đây — script này AN TOÀN chạy nhiều lần (IF NOT EXISTS):
+  //
+  //   alter table lich_su add column if not exists ho_va_ten text;
+  //   alter table lich_su add column if not exists ngay_giao text;
+  //   alter table lich_su add column if not exists gio_giao text;
+  //   alter table lich_su add column if not exists dong_xe text;
+  //   -- Nếu app đang chạy nhiều dòng xe riêng bảng (vd lich_su_xh, lich_su_mb2...), chạy
+  //   -- thêm câu lệnh trên cho từng bảng lich_su_<dòng xe> tương ứng.
+  //
+  const dbAddLS=async(row)=>{
+    const {data,error}=await supabase.from(T("lich_su")).upsert(row).select("id");
+    if(error){
+      console.error("dbAddLS error:",error.message,error);
+      throw new Error("Lỗi lưu lịch sử giao xe: "+error.message);
+    }
+    if(!data?.length){
+      console.error("dbAddLS: RLS/permission chặn âm thầm — upsert không trả về dòng nào cho lịch sử",row.id);
+      throw new Error("Supabase không xác nhận lưu được lịch sử giao xe (khả năng do RLS policy chặn quyền ghi bảng lich_su)");
+    }
+  };
   // ⚠️ Đã bỏ hẳn "Nhật ký thay đổi BOM" (bảng Supabase "bom_log") cùng với tab Thống kê.
   const addBomLog=()=>{};
   const dbUpdatePhieuCt=async(ctid,ok,nguoi_duyet?,sl_thuc_nhan?,sl_thieu?)=>{
@@ -3114,7 +3138,10 @@ export default function App(){
     if(!slXe||slXe<=0){flash("⚠️ SL xe phải lớn hơn 0!");return;}
     if(!gxForm.ngayGiao){flash("⚠️ Vui lòng chọn ngày giao!");return;}
     const now=new Date();
-    const thoiGian=now.toLocaleTimeString("vi-VN",{hour12:false});
+    const pad=n=>String(n).padStart(2,"0");
+    const gioGiao=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const idLog=uid();
+    const tsLog=now.toISOString();
     setProjs(ps=>{
       const next=ps.map(p=>p.id===projId?{...p,da_giao:Math.min((p.da_giao||0)+slXe,p.so_xe||1)}:p);
       const updated=next.find(p=>p.id===projId);
@@ -3124,8 +3151,17 @@ export default function App(){
       });
       return next;
     });
-    addLS(projId,{pid:projId,loai:"Giao xe",sl:slXe,hoVaTen:gxForm.hoVaTen,ngayGiao:gxForm.ngayGiao,dongXe:p2.ten,
-      gc:`${p2.ten} · Giao ${slXe} xe · ${gxForm.ngayGiao} ${thoiGian} · NS giao: ${gxForm.hoVaTen}`});
+    const lsRow={id:idLog,ts:tsLog,pid:projId,loai:"Giao xe",sl:slXe,ten:p2.ten,
+      ho_va_ten:gxForm.hoVaTen,ngay_giao:gxForm.ngayGiao,gio_giao:gioGiao,dong_xe:p2.ten,
+      nguoi_duyet:gxForm.hoVaTen,
+      gc:`${p2.ten} · Giao ${slXe} xe · ${gxForm.ngayGiao} ${gioGiao} · NS giao: ${gxForm.hoVaTen}`};
+    addLS(projId,lsRow);
+    // ✅ Lưu lịch sử giao xe lên Supabase — trước đây addLS chỉ lưu cục bộ nên reload là
+    // mất, giờ gọi thêm dbAddLS để bảng "chi tiết giao xe" tồn tại lâu dài trên máy chủ.
+    dbAddLS(lsRow).catch(e=>{
+      console.error("submitGiaoXe: lỗi lưu lịch sử giao xe:",e);
+      flash(`⚠️ Đã cập nhật SL xe nhưng LƯU LỊCH SỬ GIAO XE lên máy chủ thất bại: ${e.message}`);
+    });
     setGxModalPid(null);
     flash("✅ Đã ghi nhận giao xe!");
   };
@@ -4457,7 +4493,7 @@ Bạn có chắc chắn không?`;
               — Tất cả dự án của dòng xe này đã "Hoàn thành". Xem ở mục "Đã thực hiện". —
             </div>
           ):(
-          <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
             {/* ── Khối 1: Tiến Trình Giao Xe ── */}
             <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
@@ -4490,18 +4526,23 @@ Bạn có chắc chắn không?`;
                 </button>
                 {showGiaoXeChiTiet&&(()=>{
                   const giaoXeLog=ls.filter(r=>r.loai==="Giao xe");
+                  const cols="34px 50px 1.3fr 1.2fr 72px 60px";
                   return(
                   <div style={{marginTop:10,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
-                    <div style={{display:"grid",gridTemplateColumns:"28px 1fr 1.2fr 1.3fr 1fr",gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
-                      <span>STT</span><span>SL xe</span><span>Dòng xe</span><span>Nhân sự giao</span><span>Ngày giao</span>
+                    <div style={{overflowX:"auto"}}>
+                    <div style={{minWidth:420}}>
+                    <div style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                      <span>STT</span><span>SL xe</span><span>Dòng xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
                     </div>
                     {giaoXeLog.length===0?(
                       <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
                     ):giaoXeLog.map((r,i)=>(
-                      <div key={r.id} style={{display:"grid",gridTemplateColumns:"28px 1fr 1.2fr 1.3fr 1fr",gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff"}}>
-                        <span>{i+1}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.dongXe||proj.ten}</span><span style={{wordBreak:"break-word"}}>{r.hoVaTen||"—"}</span><span>{r.ngayGiao||"—"}</span>
+                      <div key={r.id} style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff"}}>
+                        <span>{i+1}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||proj.ten}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
                       </div>
                     ))}
+                    </div>
+                    </div>
                   </div>
                   );
                 })()}
