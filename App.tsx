@@ -948,10 +948,13 @@ function ScreenTopBar({onBack, badgeBorderColor, activeLine, onLogout}){
         style={{...baseBtn,background:"rgba(249,115,22,0.12)",color:"#fdba74",fontWeight:700,border:"1.5px solid #f97316",flexShrink:0}}>
         ← Trở về
       </button>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:`2px solid ${badgeBorderColor}`,flex:1,minWidth:0}}>
-        <VehicleIconCircle lineId={activeLine} size={20}/>
-        <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
-        <span style={{fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+      {/* Wrapper co giãn để CĂN GIỮA, nhưng viền cam chỉ ôm sát đúng nội dung "Dòng xe: ..." */}
+      <div style={{flex:1,display:"flex",justifyContent:"center",minWidth:0}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:`2px solid ${badgeBorderColor}`,maxWidth:"100%"}}>
+          <VehicleIconCircle lineId={activeLine} size={20}/>
+          <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
+          <span style={{fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+        </div>
       </div>
       <button onClick={onLogout}
         style={{...baseBtn,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,border:"1.5px solid #f97316",flexShrink:0}}>
@@ -1022,7 +1025,7 @@ const KL_PROJECT_STATUSES = [
 // ─── Login Screen — Cổng vào (tài khoản) → chọn dòng xe → trạng thái dự án ────
 // resume: khi quay lại từ màn "Tổng quan" (nút "← Trở về"), truyền {authedUser,userList,activeLine}
 // để mở thẳng BƯỚC 3 (chọn trạng thái dự án) — không bắt đăng nhập lại từ đầu.
-function LoginScreen({onLogin, resume}){
+function LoginScreen({onLogin, resume, onLogout}){
   // "gate" (đăng nhập tài khoản) → "select" (chọn dòng xe) → "project" (chọn trạng thái dự án)
   const [step, setStep]   = useState(resume ? "project" : "gate");
   const [activeLine, setActiveLine] = useState(resume?.activeLine || null);
@@ -1238,7 +1241,11 @@ function LoginScreen({onLogin, resume}){
             <h1>Kim Long Motor</h1>
           </div>
         </div>
-        <div className="status"><span>● ONLINE</span></div>
+        {/* ✅ Thay "● ONLINE" bằng nút Đăng xuất — viền cam, nền đen nhạt, chữ trắng in đậm */}
+        <button onClick={()=>{setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất"
+          style={{border:"1.5px solid #f97316",borderRadius:999,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,fontSize:12,padding:"7px 16px",cursor:"pointer",fontFamily:"inherit"}}>
+          Đăng xuất
+        </button>
       </header>
 
       {step==="select" && (
@@ -4263,6 +4270,7 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <LoginScreen
         resume={backToGate && user ? {authedUser:user, userList:users, activeLine} : null}
+        onLogout={handleLogoutScreenDocLap}
         onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
         try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
         // ✅ Ghi nhận dòng xe vừa chọn (12m / citybus / minibus) — quyết định app sẽ đọc/ghi
