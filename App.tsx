@@ -941,23 +941,21 @@ function VehicleIconCircle({lineId, size=22, icon="🚌", color}){
 // Bố cục: [← Trở về] ── [🚌 Dòng xe: ... — CĂN GIỮA] ── [Đăng xuất].
 // Nút "Đăng xuất": nền đen nhạt, chữ trắng in đậm, viền bo tròn màu cam.
 function ScreenTopBar({onBack, badgeBorderColor, activeLine, onLogout}){
-  const baseBtn={border:"none",borderRadius:999,cursor:"pointer",fontFamily:"inherit",padding:"7px 16px",fontSize:12};
+  const baseBtn={border:"none",borderRadius:999,cursor:"pointer",fontFamily:"inherit",padding:"6px 13px",fontSize:11.5,whiteSpace:"nowrap"};
   return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:10}}>
+    <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"center",gap:8,rowGap:8,marginBottom:10}}>
       <button onClick={onBack}
-        style={{...baseBtn,background:"rgba(249,115,22,0.12)",color:"#fdba74",fontWeight:700,border:"1.5px solid #f97316",flexShrink:0}}>
+        style={{...baseBtn,background:"rgba(249,115,22,0.12)",color:"#fdba74",fontWeight:700,border:"1.5px solid #f97316",flex:"0 0 auto"}}>
         ← Trở về
       </button>
-      {/* Wrapper co giãn để CĂN GIỮA, nhưng viền cam chỉ ôm sát đúng nội dung "Dòng xe: ..." */}
-      <div style={{flex:1,display:"flex",justifyContent:"center",minWidth:0}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:`2px solid ${badgeBorderColor}`,maxWidth:"100%"}}>
-          <VehicleIconCircle lineId={activeLine} size={20}/>
-          <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
-          <span style={{fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
-        </div>
+      {/* Badge dòng xe: co giãn nhưng không bao giờ đè lên 2 nút hai bên nhờ flex-wrap ở container cha */}
+      <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:`2px solid ${badgeBorderColor}`,minWidth:0,maxWidth:"100%",flex:"0 1 auto",order:0}}>
+        <VehicleIconCircle lineId={activeLine} size={18}/>
+        <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
+        <span style={{fontSize:11.5,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
       </div>
       <button onClick={onLogout}
-        style={{...baseBtn,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,border:"1.5px solid #f97316",flexShrink:0}}>
+        style={{...baseBtn,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,border:"1.5px solid #f97316",flex:"0 0 auto"}}>
         Đăng xuất
       </button>
     </div>
@@ -2157,6 +2155,12 @@ export default function App(){
   const [tqVtOpen, setTqVtOpen] = useState({nguon:"", field:""});
   const tqVtRef = useRef(null); // vùng chi tiết vật tư đang mở, dùng để chụp ảnh "Xuất & chia sẻ"
   const [tqDangChiaSe, setTqDangChiaSe] = useState(false);
+  // ✅ Modal "GHI NHẬN GIAO XE" — thay thế hộp thoại prompt() cũ khi bấm "✎ Bấm để sửa" ở
+  // khối "Tiến độ giao xe". gxModalPid = id dự án đang ghi nhận (null = đóng modal).
+  const [gxModalPid, setGxModalPid] = useState(null);
+  const [gxForm, setGxForm] = useState({ngayGiao:"", hoVaTen:"", slXe:1});
+  const [gxNow, setGxNow] = useState(new Date());
+  const [showGiaoXeChiTiet, setShowGiaoXeChiTiet] = useState(false);
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [dbErr,    setDbErr]    = useState("");
@@ -3092,23 +3096,45 @@ export default function App(){
       });
     }
   };
-  // ✅ "SL xe đã giao" — nhập tay thủ công (giống editSoXe), dùng cho khối "Tiến Trình Giao Xe"
-  // ở tab Tổng quan. Giá trị được kẹp trong khoảng [0, so_xe] để không bao giờ vượt tổng số xe.
-  const editSoXeGiao=(projId)=>{
+  // ✅ "SL xe đã giao" — trước đây dùng prompt() đơn giản, giờ thay bằng modal "GHI NHẬN
+  // GIAO XE" đầy đủ (loại xe, ngày giao, thời gian, nhân sự giao, SL xe). Mỗi lần xác nhận
+  // là 1 ĐỢT giao xe mới — SL xe của đợt sẽ CỘNG DỒN vào tổng "da_giao" (kẹp không vượt so_xe).
+  const openGiaoXeModal=(projId)=>{
     const p2=projs.find(p=>p.id===projId); if(!p2) return;
-    const v=prompt("SL xe đã giao:",p2.da_giao||0);
-    if(v!==null&&!isNaN(v)&&Number(v)>=0){
-      setProjs(ps=>{
-        const next=ps.map(p=>p.id===projId?{...p,da_giao:Math.min(Math.round(Number(v)),p.so_xe||1)}:p);
-        const updated=next.find(p=>p.id===projId);
-        if(updated)dbUpsertProj(updated).catch(e=>{
-          console.error("editSoXeGiao: lỗi lưu:",e);
-          flash(`⚠️ Lỗi lưu SL xe đã giao: ${e.message}`);
-        });
-        return next;
-      });
-    }
+    const now=new Date();
+    setGxNow(now);
+    setGxForm({ngayGiao:now.toISOString().slice(0,10), hoVaTen:user?.ten||"", slXe:1});
+    setGxModalPid(projId);
   };
+  const submitGiaoXe=()=>{
+    const projId=gxModalPid; if(!projId) return;
+    const p2=projs.find(p=>p.id===projId); if(!p2) return;
+    const slXe=Math.round(Number(gxForm.slXe));
+    if(!gxForm.hoVaTen.trim()){flash("⚠️ Vui lòng nhập Họ và Tên nhân sự giao xe!");return;}
+    if(!slXe||slXe<=0){flash("⚠️ SL xe phải lớn hơn 0!");return;}
+    if(!gxForm.ngayGiao){flash("⚠️ Vui lòng chọn ngày giao!");return;}
+    const now=new Date();
+    const thoiGian=now.toLocaleTimeString("vi-VN",{hour12:false});
+    setProjs(ps=>{
+      const next=ps.map(p=>p.id===projId?{...p,da_giao:Math.min((p.da_giao||0)+slXe,p.so_xe||1)}:p);
+      const updated=next.find(p=>p.id===projId);
+      if(updated)dbUpsertProj(updated).catch(e=>{
+        console.error("submitGiaoXe: lỗi lưu:",e);
+        flash(`⚠️ Lỗi lưu SL xe đã giao: ${e.message}`);
+      });
+      return next;
+    });
+    addLS(projId,{pid:projId,loai:"Giao xe",sl:slXe,hoVaTen:gxForm.hoVaTen,ngayGiao:gxForm.ngayGiao,dongXe:p2.ten,
+      gc:`${p2.ten} · Giao ${slXe} xe · ${gxForm.ngayGiao} ${thoiGian} · NS giao: ${gxForm.hoVaTen}`});
+    setGxModalPid(null);
+    flash("✅ Đã ghi nhận giao xe!");
+  };
+  // ⏱️ Đồng hồ thời gian thực trong modal Giao xe — chỉ chạy khi modal đang mở.
+  useEffect(()=>{
+    if(!gxModalPid)return;
+    const iv=setInterval(()=>setGxNow(new Date()),1000);
+    return ()=>clearInterval(iv);
+  },[gxModalPid]);
 
   const [selMa,      setSelMa]      = useState(null);  // hàng được click
   const [showImport, setShowImport] = useState(false);
@@ -4365,9 +4391,36 @@ Bạn có chắc chắn không?`;
           {projs.filter(p=>p.trang_thai!=="hoan_thanh").length>0&&(()=>{
             const projsSorted=[...projs].filter(p=>p.trang_thai!=="hoan_thanh").sort((a,b)=>String(b.id||"").localeCompare(String(a.id||"")));
             const sttMau=["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#6366f1","#84cc16"];
+            // ✅ Điều kiện để nút "Hoàn thành" sáng lên và thao tác được: dự án phải ĐỒNG THỜI
+            // (1) đã GIAO HẾT xe (da_giao ≥ so_xe) và (2) đã NHẬN ĐỦ vật tư (mọi mã trong BOM
+            // của dự án đó đã được xác nhận nhận đủ số lượng cần). Tính riêng cho TỪNG dự án p
+            // (không phải chỉ dự án đang chọn/pid) bằng cách tự tổng hợp từ bomDB[p.id] +
+            // phDB[p.id] — logic tương tự useMemo "th" ở trên nhưng áp cho mọi dự án trong list.
+            const checkProjDu=(p)=>{
+              const soXeP=p.so_xe||1;
+              const daGiaoP=Math.min(p.da_giao||0,soXeP);
+              const daGiaoDu=daGiaoP>=soXeP;
+              const bomP=bomDB[p.id]||[];
+              const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
+              const dnXNMapP={};
+              for(const ph of phP){
+                for(const c of(ph.ct||[])){
+                  if(c.ok) dnXNMapP[c.ma]=(dnXNMapP[c.ma]||0)+(c.sl_thuc_nhan??c.sl??0);
+                }
+              }
+              const EPS=1e-6;
+              const vatTuDu=bomP.length>0&&bomP.every(v=>{
+                const cn=(Number(v.dm)||0)*soXeP;
+                const dn=Number(dnXNMapP[v.ma])||0;
+                return dn+EPS>=cn;
+              });
+              return{daGiaoDu,vatTuDu,duDieuKien:daGiaoDu&&vatTuDu};
+            };
             return(
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {projsSorted.map((p,idx)=>(
+              {projsSorted.map((p,idx)=>{
+                const {duDieuKien}=checkProjDu(p);
+                return(
                 <div key={p.id}
                   style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"10px 12px",borderRadius:12,fontSize:12,fontWeight:700,
                     background:p.id===pid?(p.mau||"#2563eb"):"#fff",color:p.id===pid?"#fff":"#374151",
@@ -4376,29 +4429,22 @@ Bạn có chắc chắn không?`;
                     style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flex:1,cursor:"pointer",minWidth:0}}>
                     <div style={{width:24,height:24,borderRadius:"50%",background:sttMau[idx%sttMau.length],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>{idx+1}</div>
                     <span>{p.ten}</span>
-                    {(p.lenh_sx||p.lo_sx)&&(
-                      <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
-                        {p.lenh_sx}{p.lenh_sx&&p.lo_sx&&" / "}{p.lo_sx}
-                      </span>
-                    )}
-                    {p.ngay_khoi_tao&&(
-                      <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
-                        KT: {p.ngay_khoi_tao}
-                      </span>
-                    )}
-                    {p.ngay_hoan_thanh&&(
-                      <span style={{background:"#000",color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>
-                        HT: {p.ngay_hoan_thanh}
-                      </span>
-                    )}
+                    {p.lenh_sx&&<span style={{whiteSpace:"nowrap"}}>LỆNH SX: {p.lenh_sx}</span>}
+                    {p.lo_sx&&<span style={{whiteSpace:"nowrap"}}>LÔ SX: {p.lo_sx}</span>}
+                    {p.ngay_khoi_tao&&<span style={{whiteSpace:"nowrap"}}>NGÀY KHỞI TẠO: {p.ngay_khoi_tao}</span>}
+                    {p.ngay_hoan_thanh&&<span style={{whiteSpace:"nowrap"}}>NGÀY HOÀN THÀNH: {p.ngay_hoan_thanh}</span>}
                   </div>
-                  <button onClick={(e)=>{e.stopPropagation();markProjectDone(p);}}
-                    style={{flexShrink:0,border:"none",borderRadius:8,background:"#dc2626",color:"#fff",fontWeight:800,fontSize:11,
-                      padding:"7px 12px",cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,0.18)",whiteSpace:"nowrap"}}>
-                    ✅ Hoàn thành
+                  <button disabled={!duDieuKien} onClick={(e)=>{e.stopPropagation();if(duDieuKien)markProjectDone(p);}}
+                    title={duDieuKien?"":"Chỉ thao tác được khi đã giao hết xe và nhận đủ vật tư"}
+                    style={{flexShrink:0,border:"none",borderRadius:8,
+                      background:duDieuKien?"#16a34a":"#4b5563",color:duDieuKien?"#fff":"#9ca3af",fontWeight:800,fontSize:11,
+                      padding:"7px 12px",cursor:duDieuKien?"pointer":"not-allowed",opacity:duDieuKien?1:0.6,
+                      boxShadow:duDieuKien?"0 2px 0 rgba(0,0,0,0.18)":"none",whiteSpace:"nowrap"}}>
+                    Hoàn thành
                   </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
             );
           })()}
@@ -4420,10 +4466,10 @@ Bạn có chắc chắn không?`;
               </div>
               <div style={{padding:16,display:"flex",flexDirection:"column",flex:1}}>
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <div onClick={()=>editSoXeGiao(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #fde68a"}}>
+                  <div onClick={()=>openGiaoXeModal(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #fde68a"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
-                    <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Bấm để sửa</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Giao xe</div>
                   </div>
                   <div style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",border:"1px solid #fde68a"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
@@ -4436,6 +4482,29 @@ Bạn có chắc chắn không?`;
                   </div>
                   <Prog p={pctGiao} done={conLai===0&&soXe>0}/>
                 </div>
+                <button onClick={()=>setShowGiaoXeChiTiet(s=>!s)}
+                  style={{marginTop:12,width:"100%",border:"1.5px solid #2563eb",borderRadius:8,
+                    background:"rgba(17,24,39,0.85)",color:"#fff",fontWeight:800,fontSize:11,
+                    padding:"8px 10px",cursor:"pointer",letterSpacing:.3,fontFamily:"inherit"}}>
+                  {showGiaoXeChiTiet?"▲ ẨN THÔNG TIN CHI TIẾT":"XEM THÔNG TIN CHI TIẾT"}
+                </button>
+                {showGiaoXeChiTiet&&(()=>{
+                  const giaoXeLog=ls.filter(r=>r.loai==="Giao xe");
+                  return(
+                  <div style={{marginTop:10,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"28px 1fr 1.2fr 1.3fr 1fr",gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                      <span>STT</span><span>SL xe</span><span>Dòng xe</span><span>Nhân sự giao</span><span>Ngày giao</span>
+                    </div>
+                    {giaoXeLog.length===0?(
+                      <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
+                    ):giaoXeLog.map((r,i)=>(
+                      <div key={r.id} style={{display:"grid",gridTemplateColumns:"28px 1fr 1.2fr 1.3fr 1fr",gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff"}}>
+                        <span>{i+1}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.dongXe||proj.ten}</span><span style={{wordBreak:"break-word"}}>{r.hoVaTen||"—"}</span><span>{r.ngayGiao||"—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                  );
+                })()}
               </div>
             </div>
             {/* ── Khối 2: Tiến độ nhận vật tư (THCK / CKD) ── */}
@@ -4536,6 +4605,49 @@ Bạn có chắc chắn không?`;
             </div>
           </div>
           )}
+
+          {/* ── MODAL "BẢNG TIẾN ĐỘ GIAO XE" — ghi nhận 1 đợt giao xe (thay cho prompt() cũ) ── */}
+          {gxModalPid&&(()=>{
+            const p2=projs.find(p=>p.id===gxModalPid);
+            return(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}
+              onClick={e=>{if(e.target===e.currentTarget)setGxModalPid(null);}}>
+              <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+                <div style={{fontWeight:800,fontSize:15,color:"#b45309"}}>🚌 BẢNG TIẾN ĐỘ GIAO XE</div>
+                <div style={{fontSize:11,color:"#6b7280",marginBottom:14}}>{p2?`${p2.icon||"🚐"} ${p2.ten}`:""}</div>
+
+                <div style={{borderTop:"1.5px dashed #e5e7eb",margin:"0 0 14px"}}/>
+
+                <div style={{marginBottom:12}}>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Ngày giao</label>
+                  <input type="date" value={gxForm.ngayGiao} onChange={e=>setGxForm(f=>({...f,ngayGiao:e.target.value}))} style={inp}/>
+                </div>
+
+                <div style={{marginBottom:12}}>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Thời gian</label>
+                  <div style={{...inp,background:"#f3f4f6",color:"#374151",fontWeight:700,textAlign:"center"}}>
+                    {gxNow.toLocaleTimeString("vi-VN",{hour12:false})} · {gxNow.toLocaleDateString("vi-VN")}
+                  </div>
+                </div>
+
+                <div style={{marginBottom:12}}>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Nhân sự giao (Họ và Tên)</label>
+                  <input value={gxForm.hoVaTen} onChange={e=>setGxForm(f=>({...f,hoVaTen:e.target.value}))} placeholder="Nhập họ và tên..." style={inp}/>
+                </div>
+
+                <div style={{marginBottom:18}}>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>SL xe</label>
+                  <input type="number" min={1} value={gxForm.slXe} onChange={e=>setGxForm(f=>({...f,slXe:e.target.value}))} style={inp}/>
+                </div>
+
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                  <button onClick={()=>setGxModalPid(null)} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"8px 16px"}}>Hủy</button>
+                  <button onClick={submitGiaoXe} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 18px",fontWeight:800}}>✅ Lưu</button>
+                </div>
+              </div>
+            </div>
+            );
+          })()}
         </div>
         );
       })()}
