@@ -403,25 +403,42 @@ const KL_LOGIN_CSS = `
 }
 .kl-select-login .status span{color:var(--teal);}
 .kl-select-login .hero{padding:56px 6vw 10px;}
-.kl-select-login .hero .eyebrow{
-  font-family:'Oswald', sans-serif;
-  font-size:clamp(22px, 3vw, 32px);
-  font-weight:700;
-  letter-spacing:.08em;
+.kl-select-login #select-view .hero{padding:60px 6vw 12px; text-align:center;}
+.kl-select-login #select-view .hero .eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.2em;
   color:var(--steel);
   text-transform:uppercase;
-  margin-bottom:10px;
+  margin-bottom:20px;
+  padding:7px 16px;
+  border:1px solid rgba(47,143,255,0.35);
+  border-radius:999px;
+  background:rgba(47,143,255,0.08);
 }
-.kl-select-login .hero h2{
+.kl-select-login #select-view .hero .eyebrow::before{
+  content:"";
+  width:6px; height:6px; border-radius:50%;
+  background:var(--steel);
+  box-shadow:0 0 8px var(--steel);
+  flex-shrink:0;
+}
+.kl-select-login #select-view .hero h2{
   font-family:'Oswald', sans-serif;
-  font-weight:500;
-  font-size:clamp(18px, 2.2vw, 24px);
-  text-transform:uppercase;
-  letter-spacing:.01em;
-  line-height:1.2;
-  color:var(--muted);
+  font-weight:700;
+  font-size:clamp(24px, 3.6vw, 36px);
+  text-transform:none;
+  letter-spacing:.005em;
+  line-height:1.28;
+  color:var(--text);
+  max-width:640px;
+  margin:0 auto;
 }
-.kl-select-login .hero p{margin-top:12px; color:var(--muted); font-size:15px; max-width:520px;}
+.kl-select-login #select-view .hero p{margin:16px auto 0; color:var(--muted); font-size:14.5px; line-height:1.65; max-width:460px;}
 .kl-select-login main{
   flex:1;
   display:flex;
@@ -1197,7 +1214,7 @@ function LoginScreen({onLogin, resume, onLogout}){
                       placeholder="Tên đăng nhập" autoComplete="off" required/>
                   </div>
                   <datalist id="tk-list">
-                    {userList.filter(u=>!u.an).map(u=>(
+                    {userList.map(u=>(
                       <option key={u.id} value={u.id}>{`${u.avatar} ${u.ten} (${u.don_vi})`}</option>
                     ))}
                   </datalist>
@@ -1420,11 +1437,49 @@ function SignaturePad({initial, onSave, onClose}){
 // Kèm theo các đơn vị "theo dõi tổng thể" (chỉ xem): "Phòng KT", "Ban CN", "Ban LĐNM".
 const DEFAULT_CUSTOM_DEPTS = ["KHO CITYBUS","KHO 12M","XH_MINIBUS","XH_CITYBUS","XH_12","Phòng KT","Ban CN","Ban LĐNM"];
 
+// ── Khối gấp/mở (accordion) dùng chung cho trang "Người dùng" — giúp gom các bảng lớn
+// (phân quyền, form thêm tài khoản, danh sách theo đơn vị) lại gọn gàng, đỡ rối mắt. ──
+function AccordionCard({icon,title,subtitle,badge,badgeColor="#1d4ed8",open,onToggle,right,children}){
+  return(
+    <div style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",marginBottom:12}}>
+      <div onClick={onToggle} style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:10,cursor:onToggle?"pointer":"default",background:"#f8fafc",userSelect:"none"}}>
+        <span style={{fontSize:17,flexShrink:0}}>{icon}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#1f2937",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <span>{title}</span>
+            {badge!=null&&<span style={{background:badgeColor,color:"#fff",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{badge}</span>}
+          </div>
+          {subtitle&&<div style={{fontSize:11,color:"#6b7280",marginTop:3}}>{subtitle}</div>}
+        </div>
+        {right}
+        {onToggle&&<span style={{fontSize:11,color:"#9ca3af",flexShrink:0,transform:open?"rotate(180deg)":"none",transition:"transform .18s",marginLeft:4}}>▼</span>}
+      </div>
+      {open&&<div style={{padding:16,borderTop:"1px solid #e5e7eb"}}>{children}</div>}
+    </div>
+  );
+}
+const StatCard=({icon,label,value,color})=>(
+  <div style={{background:"#fff",borderRadius:10,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",gap:10}}>
+    <div style={{width:34,height:34,borderRadius:9,background:color+"1a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{icon}</div>
+    <div style={{minWidth:0}}>
+      <div style={{fontSize:16,fontWeight:800,color:"#1f2937",lineHeight:1.1}}>{value}</div>
+      <div style={{fontSize:10.5,color:"#6b7280",whiteSpace:"nowrap"}}>{label}</div>
+    </div>
+  </div>
+);
+
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe}){
   const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
+  // ── State cho giao diện gọn (accordion) + tìm kiếm ──
+  const [permOpen,setPermOpen]     = useState(false);   // khối "Phân quyền dòng xe" — mặc định gấp lại
+  const [addOpen,setAddOpen]       = useState(false);   // khối "Thêm tài khoản mới" — mặc định gấp lại
+  const [search,setSearch]         = useState("");       // tìm theo ID / họ tên / đơn vị
+  const [collapsedGroups,setCollapsedGroups]=useState(()=>new Set()); // các đơn vị (có tài khoản) đang bị gấp lại
+  const toggleGroup=dv=>setCollapsedGroups(s=>{const n=new Set(s);n.has(dv)?n.delete(dv):n.add(dv);return n;});
+  const normTxt=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
   // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "Phòng KH-TH" — chỉ xem, không thao tác)
   // Dùng chung cho MỌI dòng xe/thiết bị — đồng bộ qua Supabase bảng "custom_depts" (không qua T(),
   // vì đơn vị/phòng ban là cơ cấu tổ chức chung, không tách theo dòng xe). localStorage chỉ còn
@@ -1603,21 +1658,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     dbDeleteUser&&dbDeleteUser(id);
     fl("✓ Đã xóa");
   };
-  const anTaiKhoan=async id=>{
-    const u=users.find(x=>x.id===id);
-    if(!u){fl("⚠️ Không tìm thấy tài khoản!");return;}
-    if(id===currentUser.id){fl("⚠️ Không thể ẩn tài khoản đang dùng!");return;}
-    const newAn=!u.an;
-    const msg=newAn
-      ?`Ẩn tài khoản "${u.ten}"?\nTài khoản này sẽ không xuất hiện ở màn hình đăng nhập.`
-      :`Hiện tài khoản "${u.ten}"?\nTài khoản này sẽ xuất hiện lại ở màn hình đăng nhập.`;
-    if(!window.confirm(msg))return;
-    const ok=await dbUpsertUser({...u,an:newAn});
-    if(!ok)return;
-    setUsers(l=>l.map(x=>x.id===id?{...x,an:newAn}:x));
-    fl(newAn?"✓ Đã ẩn tài khoản":"✓ Đã hiện tài khoản");
-  };
-  const startEdit=u=>{setForm({...u});setEdit(u.id);};
+  const startEdit=u=>{setForm({...u});setEdit(u.id);setAddOpen(true);};
   const resetForm=()=>{setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});setEdit(null);};
 
   // Coi là "Online" nếu last_active trong vòng 45s gần nhất (heartbeat gửi mỗi 20s)
@@ -1641,10 +1682,54 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     dbUpsertQuyenDongXe&&dbUpsertQuyenDongXe(donVi,next);
   };
 
+  // ✅ TRƯỚC ĐÂY: chỉ gom tài khoản theo 4 VAI TRÒ (thck/xuonghan/kho/khth) — nghĩa là
+  // MỌI đơn vị cùng vai trò "kho" (KHO VẬT TƯ, KHO CITYBUS, KHO 12M...) bị dồn chung
+  // vào MỘT bảng "📦 KHO VẬT TƯ" duy nhất, và mọi đơn vị "khth" (Phòng KH-TH, Phòng KT,
+  // Ban CN, BAN LĐNM...) bị dồn chung vào bảng "📋 Phòng KH-TH" — không tách riêng
+  // được từng đơn vị như mong muốn.
+  // NAY: mỗi ĐƠN VỊ (don_vi) có bảng tài khoản RIÊNG của mình — áp dụng chung cho MỌI
+  // đơn vị tùy chỉnh, kể cả các đơn vị thêm sau này, không cần sửa code thêm nữa.
+  const roleMeta={thck:{icon:"🏭",mau:"#1d4ed8"},xuonghan:{icon:"🚗",mau:"#b45309"},kho:{icon:"📦",mau:"#0f766e"},khth:{icon:"📋",mau:"#7c3aed"}};
+  const baseRoleOf=dv=>dv==="Nhà máy THCK"?"thck":dv==="XƯỞNG HÀN"?"xuonghan":dv==="KHO VẬT TƯ"?"kho":dv==="Phòng KH-TH"?"khth":donViBaseRole(dv);
+  // Đề phòng tài khoản nào đó có don_vi không khớp bất kỳ đơn vị nào đang biết (đơn vị
+  // đã bị xoá/đổi tên...) — vẫn gom vào 1 nhóm riêng theo đúng tên đó để KHÔNG có tài
+  // khoản nào bị "mất tích" khỏi danh sách.
+  const knownDv=new Set(allDonViGroups);
+  const extraDv=Array.from(new Set(users.filter(u=>!knownDv.has(u.don_vi)).map(u=>u.don_vi)));
+  const allGroupDv=[...allDonViGroups,...extraDv];
+  const allGroups=allGroupDv.map(dv=>{
+    const grpList=users.filter(u=>u.don_vi===dv);
+    const role=grpList[0]?.role||baseRoleOf(dv);
+    const meta=roleMeta[role]||roleMeta.khth;
+    return {dv,grpList,grpOnline:grpList.filter(isOnline).length,grpMau:meta.mau,grpIcon:meta.icon};
+  });
+  const groupsWithAccounts=allGroups.filter(g=>g.grpList.length>0);
+  const emptyGroups=allGroups.filter(g=>g.grpList.length===0);
+  const totalOnline=users.filter(isOnline).length;
+
+  // ── Áp dụng tìm kiếm (theo ID / họ tên / đơn vị, không phân biệt hoa-thường & dấu) ──
+  const q=normTxt(search);
+  const visibleGroups=groupsWithAccounts
+    .map(g=>({...g,shown:q?g.grpList.filter(u=>normTxt(u.id).includes(q)||normTxt(u.ten).includes(q)||normTxt(u.dv).includes(q)):g.grpList}))
+    .filter(g=>q?g.shown.length>0:true);
+
   return(
     <div>
-      <div style={{background:"#fff",borderRadius:10,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-        <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:"#1f2937"}}>🚌 Phân quyền dòng xe theo đơn vị</div>
+      {/* ── TỔNG QUAN ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:14}}>
+        <StatCard icon="👥" label="Tổng tài khoản" value={users.length} color="#1d4ed8"/>
+        <StatCard icon="🏢" label="Đơn vị đang dùng" value={`${groupsWithAccounts.length}/${allGroups.length}`} color="#7c3aed"/>
+        <StatCard icon="🟢" label="Đang online" value={totalOnline} color="#16a34a"/>
+      </div>
+
+      {/* ── TÌM KIẾM ── */}
+      <div style={{marginBottom:14}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Tìm theo ID, họ tên hoặc đơn vị..." style={inp}/>
+      </div>
+
+      {/* ── PHÂN QUYỀN DÒNG XE (gấp gọn mặc định) ── */}
+      <AccordionCard icon="🚌" title="Phân quyền dòng xe theo đơn vị" badge={`${allGroups.length} đơn vị`} badgeColor="#7c3aed"
+        open={permOpen} onToggle={()=>setPermOpen(o=>!o)}>
         <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Tick chọn (các) dòng xe mà mỗi đơn vị được phép truy cập ở màn hình đăng nhập. Áp dụng chung cho cả đơn vị. Tài khoản <b>admin</b> luôn có toàn quyền cả 3 dòng, không phụ thuộc bảng này.</div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
@@ -1684,10 +1769,11 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
           </table>
         </div>
         <button onClick={()=>addCustomDept(false)} style={{...btn,background:"#eef2ff",color:"#4338ca",fontWeight:700,padding:"7px 14px",marginTop:12}}>➕ Thêm đơn vị</button>
-      </div>
+      </AccordionCard>
 
-      <div style={{background:"#fff",borderRadius:10,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-        <div style={{fontWeight:700,fontSize:13,marginBottom:14,color:"#1f2937"}}>{editing?"✏️ Cập nhật tài khoản":"➕ Thêm tài khoản mới"}</div>
+      {/* ── THÊM / SỬA TÀI KHOẢN (gấp gọn mặc định, tự mở khi bấm Sửa) ── */}
+      <AccordionCard icon={editing?"✏️":"➕"} title={editing?"Cập nhật tài khoản":"Thêm tài khoản mới"}
+        open={editing?true:addOpen} onToggle={editing?undefined:()=>setAddOpen(o=>!o)}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:12}}>
           <div>
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>ID đăng nhập *</label>
@@ -1731,77 +1817,72 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             </select>
           </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#dc2626":"#16a34a",minWidth:160}}>{flash2}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:8}}>
-            {editing&&<button onClick={resetForm} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 14px"}}>Hủy</button>}
+            {editing&&<button onClick={()=>{resetForm();setAddOpen(false);}} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 14px"}}>Hủy</button>}
             {currentUser.id==="xh04"&&<button onClick={lockOtherXH} style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 14px"}}>🔒 Khóa XH khác</button>}
             <button onClick={save} style={{...btn,background:"#1d4ed8",color:"#fff",padding:"7px 18px",fontSize:13}}>{editing?"Lưu cập nhật":"Thêm tài khoản"}</button>
           </div>
         </div>
-      </div>
+      </AccordionCard>
 
-      {(()=>{
-        // ✅ TRƯỚC ĐÂY: chỉ gom tài khoản theo 4 VAI TRÒ (thck/xuonghan/kho/khth) — nghĩa là
-        // MỌI đơn vị cùng vai trò "kho" (KHO VẬT TƯ, KHO CITYBUS, KHO 12M...) bị dồn chung
-        // vào MỘT bảng "📦 KHO VẬT TƯ" duy nhất, và mọi đơn vị "khth" (Phòng KH-TH, Phòng KT,
-        // Ban CN, BAN LĐNM...) bị dồn chung vào bảng "📋 Phòng KH-TH" — không tách riêng
-        // được từng đơn vị như mong muốn.
-        // NAY: mỗi ĐƠN VỊ (don_vi) có bảng tài khoản RIÊNG của mình — giống hệt cách 3 đơn vị
-        // gốc (Nhà máy THCK / XƯỞNG HÀN / KHO VẬT TƯ) đang hiển thị — áp dụng chung cho MỌI
-        // đơn vị tùy chỉnh (Phòng KT, Ban CN, KHO CITYBUS, KHO 12M, XH_MINIBUS, XH_CITYBUS,
-        // XH_12M, BAN LĐNM...), kể cả các đơn vị thêm sau này, không cần sửa code thêm nữa.
-        const roleMeta={thck:{icon:"🏭",mau:"#1d4ed8"},xuonghan:{icon:"🚗",mau:"#b45309"},kho:{icon:"📦",mau:"#0f766e"},khth:{icon:"📋",mau:"#7c3aed"}};
-        const baseRoleOf=dv=>dv==="Nhà máy THCK"?"thck":dv==="XƯỞNG HÀN"?"xuonghan":dv==="KHO VẬT TƯ"?"kho":dv==="Phòng KH-TH"?"khth":donViBaseRole(dv);
-        // Đề phòng tài khoản nào đó có don_vi không khớp bất kỳ đơn vị nào đang biết (đơn vị
-        // đã bị xoá/đổi tên...) — vẫn gom vào 1 nhóm riêng theo đúng tên đó để KHÔNG có tài
-        // khoản nào bị "mất tích" khỏi danh sách.
-        const knownDv=new Set(allDonViGroups);
-        const extraDv=Array.from(new Set(users.filter(u=>!knownDv.has(u.don_vi)).map(u=>u.don_vi)));
-        const allGroupDv=[...allDonViGroups,...extraDv];
-        return allGroupDv.map(dv=>{
-          const grpList=users.filter(u=>u.don_vi===dv);
-          const role=grpList[0]?.role||baseRoleOf(dv);
-          const meta=roleMeta[role]||roleMeta.khth;
-          const grpOnline=grpList.filter(isOnline).length;
-          const grpMau=meta.mau, grpLabel=`${meta.icon} ${dv}`;
-          return(
-            <div key={dv} style={{background:"#fff",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",marginBottom:12}}>
-              <div style={{padding:"10px 16px",borderBottom:"1px solid #e5e7eb",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:10,background:"#f8fafc"}}>
-                <span>{grpLabel}</span>
-                <span style={{background:grpMau,color:"#fff",borderRadius:20,padding:"2px 10px",fontSize:11}}>{grpList.length} tài khoản</span>
-                {grpOnline>0&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}><span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>{grpOnline} online</span>}
-              </div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-                    {["","ID",t("thHoTen"),t("lbDV"),t("thTrangThai"),t("thMatKhau"),"","",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>
-                    {grpList.map((u,i)=>(
-                      <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
-                        <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
-                        <td style={{padding:"8px 12px",fontWeight:700,color:grpMau,fontFamily:"monospace"}}>{u.id}</td>
-                        <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}</td>
-                        <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
-                        <td style={{padding:"8px 12px"}}>
-                          {isOnline(u)
-                            ?<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>Online</span>
-                            :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
-                        </td>
-                        <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
-                        <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
-                        <td style={{padding:"8px 12px"}}><button onClick={()=>anTaiKhoan(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":u.an?"#dbeafe":"#fef3c7",color:u.id===currentUser.id?"#9ca3af":u.an?"#1d4ed8":"#92400e",fontWeight:700}}>{u.an?"Hiện tk":"Ẩn tk"}</button></td>
-                        <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      {/* ── DANH SÁCH THEO ĐƠN VỊ (chỉ những đơn vị đang có tài khoản) ── */}
+      {visibleGroups.length===0&&q&&(
+        <div style={{textAlign:"center",padding:"24px 12px",color:"#9ca3af",fontSize:12,background:"#fff",borderRadius:10,marginBottom:12}}>Không tìm thấy tài khoản/đơn vị nào khớp "{search}"</div>
+      )}
+      {visibleGroups.map(g=>{
+        const {dv,shown,grpOnline,grpMau,grpIcon}=g;
+        const open=q?true:!collapsedGroups.has(dv);
+        return(
+          <AccordionCard key={dv} icon={grpIcon} title={dv} badge={`${shown.length} tài khoản`} badgeColor={grpMau}
+            open={open} onToggle={q?undefined:()=>toggleGroup(dv)}
+            right={grpOnline>0&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>{grpOnline} online</span>}>
+            <div style={{overflowX:"auto",margin:"-16px"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
+                  {["","ID",t("thHoTen"),t("lbDV"),t("thTrangThai"),t("thMatKhau"),"",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {shown.map((u,i)=>(
+                    <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
+                      <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
+                      <td style={{padding:"8px 12px",fontWeight:700,color:grpMau,fontFamily:"monospace"}}>{u.id}</td>
+                      <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}</td>
+                      <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
+                      <td style={{padding:"8px 12px"}}>
+                        {isOnline(u)
+                          ?<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>Online</span>
+                          :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
+                      </td>
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
+                      <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
+                      <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          );
-        });
-      })()}
+          </AccordionCard>
+        );
+      })}
+
+      {/* ── ĐƠN VỊ CHƯA CÓ TÀI KHOẢN — gộp thành 1 dải chip gọn thay vì mỗi đơn vị 1 bảng trống ── */}
+      {!q&&emptyGroups.length>0&&(
+        <div style={{background:"#fff",borderRadius:10,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:10}}>🗂️ Đơn vị chưa có tài khoản ({emptyGroups.length}) — bấm để thêm tài khoản đầu tiên</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {emptyGroups.map(g=>(
+              <button key={g.dv} onClick={()=>{
+                setForm(f=>({...f,role:baseRoleOf(g.dv),don_vi:g.dv,avatar:g.grpIcon}));
+                setAddOpen(true);
+              }} style={{border:"1px dashed #d1d5db",borderRadius:20,background:"#f9fafb",color:"#6b7280",fontSize:11.5,fontWeight:600,padding:"6px 12px",cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:6}}>
+                <span>{g.grpIcon}</span><span>{g.dv}</span><span style={{color:"#c7d2fe",fontWeight:800}}>+</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
