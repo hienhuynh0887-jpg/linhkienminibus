@@ -2158,7 +2158,7 @@ export default function App(){
   // ✅ Modal "GHI NHẬN GIAO XE" — thay thế hộp thoại prompt() cũ khi bấm "✎ Bấm để sửa" ở
   // khối "Tiến độ giao xe". gxModalPid = id dự án đang ghi nhận (null = đóng modal).
   const [gxModalPid, setGxModalPid] = useState(null);
-  const [gxForm, setGxForm] = useState({ngayGiao:"", hoVaTen:"", slXe:1});
+  const [gxForm, setGxForm] = useState({sop:"", ngayGiao:"", hoVaTen:"", slXe:1});
   const [gxNow, setGxNow] = useState(new Date());
   const [showGiaoXeChiTiet, setShowGiaoXeChiTiet] = useState(false);
   const [users,    setUsers]    = useState(USERS_DEF);
@@ -2792,6 +2792,7 @@ export default function App(){
   //   alter table lich_su add column if not exists ngay_giao text;
   //   alter table lich_su add column if not exists gio_giao text;
   //   alter table lich_su add column if not exists dong_xe text;
+  //   alter table lich_su add column if not exists sop text;
   //   -- Nếu app đang chạy nhiều dòng xe riêng bảng (vd lich_su_xh, lich_su_mb2...), chạy
   //   -- thêm câu lệnh trên cho từng bảng lich_su_<dòng xe> tương ứng.
   //
@@ -3123,17 +3124,35 @@ export default function App(){
   // ✅ "SL xe đã giao" — trước đây dùng prompt() đơn giản, giờ thay bằng modal "GHI NHẬN
   // GIAO XE" đầy đủ (loại xe, ngày giao, thời gian, nhân sự giao, SL xe). Mỗi lần xác nhận
   // là 1 ĐỢT giao xe mới — SL xe của đợt sẽ CỘNG DỒN vào tổng "da_giao" (kẹp không vượt so_xe).
+  // ✅ Sinh danh sách Sop tuần tự từ khoảng "sop_tu" → "sop_den" khai báo lúc tạo dự án.
+  // Giữ nguyên độ dài số 0 ở đầu (vd "001"→"010") theo độ dài dài nhất giữa 2 mốc.
+  const buildSopRange=(tu,den)=>{
+    const tuStr=String(tu||"").trim(), denStr=String(den||"").trim();
+    if(!tuStr||!denStr) return[];
+    const a=parseInt(tuStr,10), b=parseInt(denStr,10);
+    if(isNaN(a)||isNaN(b)) return[];
+    const lo=Math.min(a,b), hi=Math.max(a,b);
+    const width=Math.max(tuStr.replace(/[^0-9]/g,"").length, denStr.replace(/[^0-9]/g,"").length);
+    const out=[];
+    for(let i=lo;i<=hi;i++) out.push(String(i).padStart(width,"0"));
+    return out;
+  };
   const openGiaoXeModal=(projId)=>{
     const p2=projs.find(p=>p.id===projId); if(!p2) return;
     const now=new Date();
     setGxNow(now);
-    setGxForm({ngayGiao:now.toISOString().slice(0,10), hoVaTen:user?.ten||"", slXe:1});
+    const allSop=buildSopRange(p2.sop_tu,p2.sop_den);
+    const usedSop=new Set((lsDB[projId]||[]).filter(r=>r.loai==="Giao xe"&&r.sop).map(r=>r.sop));
+    const firstAvail=allSop.find(s=>!usedSop.has(s))||"";
+    setGxForm({sop:firstAvail, ngayGiao:now.toISOString().slice(0,10), hoVaTen:user?.ten||"", slXe:1});
     setGxModalPid(projId);
   };
   const submitGiaoXe=()=>{
     const projId=gxModalPid; if(!projId) return;
     const p2=projs.find(p=>p.id===projId); if(!p2) return;
     const slXe=Math.round(Number(gxForm.slXe));
+    const allSopChk=buildSopRange(p2.sop_tu,p2.sop_den);
+    if(allSopChk.length>0&&!gxForm.sop){flash("⚠️ Vui lòng chọn Sop!");return;}
     if(!gxForm.hoVaTen.trim()){flash("⚠️ Vui lòng nhập Họ và Tên nhân sự giao xe!");return;}
     if(!slXe||slXe<=0){flash("⚠️ SL xe phải lớn hơn 0!");return;}
     if(!gxForm.ngayGiao){flash("⚠️ Vui lòng chọn ngày giao!");return;}
@@ -3142,6 +3161,7 @@ export default function App(){
     const gioGiao=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     const idLog=uid();
     const tsLog=now.toISOString();
+    const dongXe=p2.mo_ta||p2.ten;
     setProjs(ps=>{
       const next=ps.map(p=>p.id===projId?{...p,da_giao:Math.min((p.da_giao||0)+slXe,p.so_xe||1)}:p);
       const updated=next.find(p=>p.id===projId);
@@ -3152,9 +3172,9 @@ export default function App(){
       return next;
     });
     const lsRow={id:idLog,ts:tsLog,pid:projId,loai:"Giao xe",sl:slXe,ten:p2.ten,
-      ho_va_ten:gxForm.hoVaTen,ngay_giao:gxForm.ngayGiao,gio_giao:gioGiao,dong_xe:p2.ten,
+      ho_va_ten:gxForm.hoVaTen,ngay_giao:gxForm.ngayGiao,gio_giao:gioGiao,dong_xe:dongXe,sop:gxForm.sop||"",
       nguoi_duyet:gxForm.hoVaTen,
-      gc:`${p2.ten} · Giao ${slXe} xe · ${gxForm.ngayGiao} ${gioGiao} · NS giao: ${gxForm.hoVaTen}`};
+      gc:`${dongXe} · Sop ${gxForm.sop||"—"} · Giao ${slXe} xe · ${gxForm.ngayGiao} ${gioGiao} · NS giao: ${gxForm.hoVaTen}`};
     addLS(projId,lsRow);
     // ✅ Lưu lịch sử giao xe lên Supabase — trước đây addLS chỉ lưu cục bộ nên reload là
     // mất, giờ gọi thêm dbAddLS để bảng "chi tiết giao xe" tồn tại lâu dài trên máy chủ.
@@ -4237,8 +4257,8 @@ Bạn có chắc chắn không?`;
         <input value={nPF.ten} onChange={e=>setNPF(f=>({...f,ten:e.target.value}))} style={inp} placeholder="Tên dự án..."/>
       </div>
       <div>
-        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Mô tả</label>
-        <input value={nPF.moTa} onChange={e=>setNPF(f=>({...f,moTa:e.target.value}))} style={inp} placeholder="Mô tả..."/>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Dòng xe</label>
+        <input value={nPF.moTa} onChange={e=>setNPF(f=>({...f,moTa:e.target.value}))} style={inp} placeholder="Dòng xe..."/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <div>
@@ -4269,7 +4289,7 @@ Bạn có chắc chắn không?`;
       </div>
       <div>
         <label style={{display:"block",fontSize:11,fontWeight:700,color:"#065f46",marginBottom:3}}>🚌 SL XE *</label>
-        <input type="number" min={1} value={nPF.so_xe} onChange={e=>setNPF(f=>({...f,so_xe:parseInt(e.target.value)||1}))}
+        <input type="number" min={1} value={nPF.so_xe} onChange={e=>setNPF(f=>({...f,so_xe:e.target.value}))}
           style={{...inp,fontWeight:700,color:"#065f46",border:"1.5px solid #6ee7b7",background:"#f0fdf4"}}/>
       </div>
       <div>
@@ -4526,19 +4546,19 @@ Bạn có chắc chắn không?`;
                 </button>
                 {showGiaoXeChiTiet&&(()=>{
                   const giaoXeLog=ls.filter(r=>r.loai==="Giao xe");
-                  const cols="34px 50px 1.3fr 1.2fr 72px 60px";
+                  const cols="34px 1.3fr 60px 50px 1.2fr 72px 60px";
                   return(
                   <div style={{marginTop:10,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
                     <div style={{overflowX:"auto"}}>
-                    <div style={{minWidth:420}}>
+                    <div style={{minWidth:480}}>
                     <div style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
-                      <span>STT</span><span>SL xe</span><span>Dòng xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
+                      <span>STT</span><span>Dòng xe</span><span>Sop</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
                     </div>
                     {giaoXeLog.length===0?(
                       <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
                     ):giaoXeLog.map((r,i)=>(
                       <div key={r.id} style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff"}}>
-                        <span>{i+1}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||proj.ten}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
+                        <span>{i+1}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||proj.ten}</span><span>{r.sop||"—"}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
                       </div>
                     ))}
                     </div>
@@ -4650,6 +4670,10 @@ Bạn có chắc chắn không?`;
           {/* ── MODAL "BẢNG TIẾN ĐỘ GIAO XE" — ghi nhận 1 đợt giao xe (thay cho prompt() cũ) ── */}
           {gxModalPid&&(()=>{
             const p2=projs.find(p=>p.id===gxModalPid);
+            const dongXeVal=p2?(p2.mo_ta||p2.ten):"";
+            const allSop=p2?buildSopRange(p2.sop_tu,p2.sop_den):[];
+            const usedSop=new Set((lsDB[gxModalPid]||[]).filter(r=>r.loai==="Giao xe"&&r.sop).map(r=>r.sop));
+            const availableSop=allSop.filter(s=>!usedSop.has(s));
             return(
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}
               onClick={e=>{if(e.target===e.currentTarget)setGxModalPid(null);}}>
@@ -4658,6 +4682,22 @@ Bạn có chắc chắn không?`;
                 <div style={{fontSize:11,color:"#6b7280",marginBottom:14}}>{p2?`${p2.icon||"🚐"} ${p2.ten}`:""}</div>
 
                 <div style={{borderTop:"1.5px dashed #e5e7eb",margin:"0 0 14px"}}/>
+
+                <div style={{marginBottom:12}}>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Dòng xe</label>
+                  <div style={{...inp,background:"#f3f4f6",color:"#374151",fontWeight:700}}>{dongXeVal||"—"}</div>
+                </div>
+
+                <div style={{marginBottom:12}}>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Sop</label>
+                  <select value={gxForm.sop} onChange={e=>setGxForm(f=>({...f,sop:e.target.value}))} style={inp}>
+                    <option value="">-- Chọn Sop --</option>
+                    {availableSop.map(s=><option key={s} value={s}>{s}</option>)}
+                    {gxForm.sop&&!availableSop.includes(gxForm.sop)&&<option value={gxForm.sop}>{gxForm.sop}</option>}
+                  </select>
+                  {allSop.length===0&&<div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>Dự án chưa khai báo khoảng Sop.</div>}
+                  {allSop.length>0&&availableSop.length===0&&<div style={{fontSize:10,color:"#dc2626",marginTop:3}}>⚠️ Đã hết Sop khả dụng.</div>}
+                </div>
 
                 <div style={{marginBottom:12}}>
                   <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Ngày giao</label>
