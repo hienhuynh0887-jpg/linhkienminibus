@@ -1478,6 +1478,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [addOpen,setAddOpen]       = useState(false);   // khối "Thêm tài khoản mới" — mặc định gấp lại
   const [search,setSearch]         = useState("");       // tìm theo ID / họ tên / đơn vị
   const [collapsedGroups,setCollapsedGroups]=useState(()=>new Set()); // các đơn vị (có tài khoản) đang bị gấp lại
+  const [confirmDelDept,setConfirmDelDept]=useState(null); // tên đơn vị đang chờ bấm xác nhận xoá lần 2
   const toggleGroup=dv=>setCollapsedGroups(s=>{const n=new Set(s);n.has(dv)?n.delete(dv):n.add(dv);return n;});
   const normTxt=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
   // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "Phòng KH-TH" — chỉ xem, không thao tác)
@@ -1616,22 +1617,47 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     }catch(e){console.error("Đổi tên đơn vị thất bại:",e.message);}
   };
 
-  // ✅ Xoá 1 đơn vị tùy chỉnh — chặn xoá nếu còn tài khoản đang thuộc đơn vị đó.
-  const deleteCustomDept=async(name)=>{
-    const affected=users.filter(u=>u.don_vi===name);
-    if(affected.length>0){
-      alert(`⚠️ Không thể xoá "${name}" vì còn ${affected.length} tài khoản đang thuộc đơn vị này.\nVui lòng đổi đơn vị cho các tài khoản đó trước khi xoá.`);
-      return;
-    }
-    if(!window.confirm(`Xoá đơn vị "${name}"? Hành động này không thể hoàn tác.`))return;
+  // ── Xoá 1 đơn vị tùy chỉnh ──
+  // ⚠️ FIX: nút "Xoá" trước đây dùng window.confirm() để hỏi xác nhận. Trên một số trình
+  // duyệt/khung nhúng di động (webview trong app khác, PWA đã "Thêm vào màn hình chính"...),
+  // window.confirm()/alert() có thể bị chặn hoặc không hiển thị được gì cả — khiến người
+  // dùng bấm "Xoá" nhưng KHÔNG THẤY GÌ XẢY RA (tưởng nút bị lỗi). Nay thay bằng cơ chế xác
+  // nhận NGAY TRONG GIAO DIỆN (bấm lần 1 → nút chuyển thành "Xác nhận xoá?", bấm lần 2 trong
+  // vòng 4 giây mới thực sự xoá) — không phụ thuộc hộp thoại của trình duyệt nữa.
+  // Đồng thời: nếu xoá trên Supabase thất bại (mất mạng, quyền RLS chặn...), sẽ HOÀN TÁC lại
+  // đơn vị vừa xoá trên giao diện và báo lỗi rõ ràng, thay vì chỉ log console rồi "biến mất"
+  // âm thầm — trước đây lỗi này bị nuốt lặng lẽ khiến đơn vị tưởng đã xoá nhưng vẫn còn trên
+  // máy chủ, tải lại trang là hiện lại y như chưa xoá được.
+  const doDeleteCustomDept=async(name)=>{
+    setConfirmDelDept(null);
+    const prevDepts=customDepts;
+    const prevLineQuyen=lineQuyen;
     setCustomDepts(l=>{
       const updated=l.filter(d=>d!==name);
       try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
       return updated;
     });
     setLineQuyen(q=>{const {[name]:_,...rest}=q;return rest;});
-    try{ await supabase.from("custom_depts").delete().eq("ten",name); }
-    catch(e){console.error("Xoá đơn vị thất bại:",e.message);}
+    try{
+      const {error}=await supabase.from("custom_depts").delete().eq("ten",name);
+      if(error)throw error;
+      fl(`✓ Đã xoá đơn vị "${name}"`);
+    }catch(e){
+      // Xoá trên máy chủ thất bại — hoàn tác lại trên giao diện để không bị lệch dữ liệu
+      setCustomDepts(prevDepts);
+      setLineQuyen(prevLineQuyen);
+      fl(`⚠️ Xoá "${name}" thất bại (${e.message||"lỗi không rõ"}). Vui lòng thử lại.`);
+    }
+  };
+  const deleteCustomDept=(name)=>{
+    const affected=users.filter(u=>u.don_vi===name);
+    if(affected.length>0){
+      fl(`⚠️ Không thể xoá "${name}" vì còn ${affected.length} tài khoản đang thuộc đơn vị này. Vui lòng đổi đơn vị cho các tài khoản đó trước.`);
+      return;
+    }
+    if(confirmDelDept===name){ doDeleteCustomDept(name); return; }
+    setConfirmDelDept(name);
+    setTimeout(()=>setConfirmDelDept(cur=>cur===name?null:cur),4000);
   };
   const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
@@ -1758,7 +1784,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                     ):(
                       <div style={{display:"inline-flex",gap:6}}>
                         <button onClick={()=>renameCustomDept(dv)} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"4px 9px",fontSize:11}}>Sửa</button>
-                        <button onClick={()=>deleteCustomDept(dv)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"4px 9px",fontSize:11}}>Xoá</button>
+                        <button onClick={()=>deleteCustomDept(dv)} style={{...btn,background:confirmDelDept===dv?"#991b1b":"#fee2e2",color:confirmDelDept===dv?"#fff":"#991b1b",padding:"4px 9px",fontSize:11,fontWeight:confirmDelDept===dv?800:600}}>{confirmDelDept===dv?"Bấm lại để xoá":"Xoá"}</button>
                       </div>
                     )}
                   </td>
@@ -1768,7 +1794,10 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             </tbody>
           </table>
         </div>
-        <button onClick={()=>addCustomDept(false)} style={{...btn,background:"#eef2ff",color:"#4338ca",fontWeight:700,padding:"7px 14px",marginTop:12}}>➕ Thêm đơn vị</button>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}>
+          <button onClick={()=>addCustomDept(false)} style={{...btn,background:"#eef2ff",color:"#4338ca",fontWeight:700,padding:"7px 14px"}}>➕ Thêm đơn vị</button>
+          {flash2&&<span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#dc2626":"#16a34a"}}>{flash2}</span>}
+        </div>
       </AccordionCard>
 
       {/* ── THÊM / SỬA TÀI KHOẢN (gấp gọn mặc định, tự mở khi bấm Sửa) ── */}
@@ -2900,6 +2929,15 @@ export default function App(){
       throw new Error("Supabase không xác nhận lưu được lịch sử giao xe (khả năng do RLS policy chặn quyền ghi bảng lich_su)");
     }
   };
+  // ✅ Xoá 1 dòng lịch sử giao xe (dùng để dọn các dòng trùng Sop do ghi nhận đồng thời
+  // từ nhiều phiên/thiết bị gây ra). Xoá cả trên Supabase lẫn state cục bộ.
+  const dbDeleteLS=async(id)=>{
+    const {error}=await supabase.from(T("lich_su")).delete().eq("id",id);
+    if(error){
+      console.error("dbDeleteLS error:",error.message,error);
+      throw new Error("Lỗi xoá lịch sử giao xe: "+error.message);
+    }
+  };
   // ⚠️ Đã bỏ hẳn "Nhật ký thay đổi BOM" (bảng Supabase "bom_log") cùng với tab Thống kê.
   const addBomLog=()=>{};
   const dbUpdatePhieuCt=async(ctid,ok,nguoi_duyet?,sl_thuc_nhan?,sl_thieu?)=>{
@@ -3296,6 +3334,19 @@ export default function App(){
     });
     setGxModalPid(null);
     flash("✅ Đã ghi nhận giao xe!");
+  };
+  // ✅ Xoá 1 dòng trong bảng "chi tiết giao xe" — dùng khi có dòng bị TRÙNG (do ghi nhận
+  // đồng thời từ nhiều phiên/thiết bị chọn trùng Sop) hoặc ghi nhận NHẦM. Sau khi xoá,
+  // "SL xe đã giao" tự cập nhật lại vì được tính trực tiếp từ tổng bảng này.
+  const deleteGiaoXeLog=(projId,row)=>{
+    if(!window.confirm(`Xoá dòng giao xe này?\nSop ${row.sop||"—"} · ${fmt(row.sl||0)} xe · ${row.ngay_giao||""}\nKhông thể hoàn tác!`))return;
+    setLsDB(s=>({...s,[projId]:(s[projId]||[]).filter(r=>r.id!==row.id)}));
+    dbDeleteLS(row.id).then(()=>{
+      flash("✅ Đã xoá dòng giao xe!");
+    }).catch(e=>{
+      console.error("deleteGiaoXeLog:",e);
+      flash(`⚠️ Xoá cục bộ thành công nhưng xoá trên máy chủ thất bại: ${e.message}`);
+    });
   };
   // ⏱️ Đồng hồ thời gian thực trong modal Giao xe — chỉ chạy khi modal đang mở.
   useEffect(()=>{
@@ -4542,7 +4593,13 @@ Bạn có chắc chắn không?`;
   if(showTongQuan) return (
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       {(()=>{
-        const daGiao=Math.min(proj.da_giao||0,soXe);
+        // ✅ FIX: tính "SL xe đã giao" trực tiếp từ bảng lịch sử "Giao xe" (ls) — nguồn dữ liệu
+        // gốc và luôn đầy đủ — thay vì dùng proj.da_giao (một bộ đếm cộng dồn lưu riêng trên
+        // dự án). proj.da_giao có thể bị LỆCH so với bảng chi tiết khi có ghi nhận đồng thời
+        // từ nhiều phiên/thiết bị (mỗi phiên đọc da_giao cũ rồi ghi đè — "last write wins" —
+        // làm mất một phần số đã cộng), trong khi các dòng lịch sử (đợt giao) luôn được thêm
+        // mới, không bị ghi đè. Vì vậy tổng SL trong bảng chi tiết mới là số ĐÚNG.
+        const daGiao=Math.min((ls||[]).filter(r=>r.loai==="Giao xe").reduce((s,r)=>s+(Number(r.sl)||0),0),soXe);
         const conLai=Math.max(0,soXe-daGiao);
         const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
         return(
@@ -4566,7 +4623,9 @@ Bạn có chắc chắn không?`;
             // phDB[p.id] — logic tương tự useMemo "th" ở trên nhưng áp cho mọi dự án trong list.
             const checkProjDu=(p)=>{
               const soXeP=p.so_xe||1;
-              const daGiaoP=Math.min(p.da_giao||0,soXeP);
+              // ✅ FIX: cùng lý do như "daGiao" ở trên — tính từ lịch sử giao xe của TỪNG
+              // dự án (lsDB[p.id]) thay vì p.da_giao để tránh lệch số.
+              const daGiaoP=Math.min((lsDB[p.id]||[]).filter(r=>r.loai==="Giao xe").reduce((s,r)=>s+(Number(r.sl)||0),0),soXeP);
               const daGiaoDu=daGiaoP>=soXeP;
               const bomP=bomDB[p.id]||[];
               const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
@@ -4658,19 +4717,21 @@ Bạn có chắc chắn không?`;
                 </button>
                 {showGiaoXeChiTiet&&(()=>{
                   const giaoXeLog=ls.filter(r=>r.loai==="Giao xe");
-                  const cols="34px 1.3fr 60px 50px 1.2fr 72px 60px";
+                  const cols="34px 1.3fr 60px 50px 1.2fr 72px 60px 34px";
                   return(
                   <div style={{marginTop:10,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
                     <div style={{overflowX:"auto"}}>
-                    <div style={{minWidth:480}}>
+                    <div style={{minWidth:520}}>
                     <div style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
-                      <span>STT</span><span>Dòng xe</span><span>Sop</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
+                      <span>STT</span><span>Dòng xe</span><span>Sop</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span><span></span>
                     </div>
                     {giaoXeLog.length===0?(
                       <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
                     ):giaoXeLog.map((r,i)=>(
-                      <div key={r.id} style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff"}}>
+                      <div key={r.id} style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
                         <span>{i+1}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||proj.ten}</span><span>{r.sop||"—"}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
+                        <button onClick={()=>deleteGiaoXeLog(pid,r)} title="Xoá dòng này"
+                          style={{border:"none",borderRadius:5,background:"#fee2e2",color:"#dc2626",fontWeight:800,fontSize:11,width:22,height:22,cursor:"pointer",lineHeight:"22px",padding:0}}>✕</button>
                       </div>
                     ))}
                     </div>
