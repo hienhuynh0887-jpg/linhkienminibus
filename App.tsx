@@ -580,9 +580,9 @@ const KL_LOGIN_CSS = `
   background:var(--accent, var(--steel));
 }
 .kl-select-login .back-btn{
-  background:rgba(249,115,22,0.08); border:1.5px solid #f97316; border-radius:999px; color:#f97316;
+  background:rgba(249,115,22,0.08); border:1.5px solid #f97316; border-radius:999px; color:#fff;
   font-family:'JetBrains Mono', monospace;
-  font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
   display:inline-flex; align-items:center; gap:6px;
   padding:7px 16px;
   cursor:pointer; margin-bottom:22px;
@@ -1053,6 +1053,43 @@ function LoginScreen({onLogin, resume, onLogout}){
   const {lang} = useLang();
   const t = LOGIN_I18N[lang];
 
+  // ✅ FIX: nút "trở lui" (back) vật lý/gesture trên điện thoại trước đây KHÔNG lùi về bước
+  // trước trong app (gate→select→project) — vì SPA này không đồng bộ với lịch sử trình
+  // duyệt, nên back sẽ thoát thẳng khỏi trang. Đoạn dưới đồng bộ "step" với History API:
+  // mỗi lần tiến 1 bước (gate→select, select→project) sẽ pushState; khi bấm back (nút vật
+  // lý/gesture HOẶC nút "← Quay lại" trên màn hình — cả 2 đều gọi goStep/goBack bên dưới)
+  // trình duyệt phát sự kiện "popstate", app bắt sự kiện này và tự lùi "step" lại, KHÔNG
+  // rời khỏi trang.
+  const stepRef = useRef(step);
+  useEffect(()=>{ stepRef.current=step; },[step]);
+  useEffect(()=>{
+    // đánh dấu entry ban đầu (trang vừa mở) bằng chính step khởi tạo, để khi back về tới
+    // đây thì popstate trả state đúng bằng step ban đầu thay vì rỗng.
+    try{ window.history.replaceState({klStep:step}, ""); }catch{}
+    const onPop=(e)=>{
+      const s=e.state?.klStep;
+      if(s) setStep(s);
+    };
+    window.addEventListener("popstate", onPop);
+    return ()=>window.removeEventListener("popstate", onPop);
+  },[]);
+  // Tiến 1 bước: lưu bước mới vào lịch sử trình duyệt rồi mới đổi state.
+  const goStep=(next)=>{
+    try{ window.history.pushState({klStep:next}, ""); }catch{}
+    setStep(next);
+  };
+  // Lùi 1 bước: đi qua window.history.back() (thay vì setStep trực tiếp) để nút bấm trên
+  // màn hình và nút back vật lý luôn đồng bộ, không bị lệch ngăn xếp lịch sử.
+  const goBackHistory=(fallbackStep)=>{
+    if(window.history.state?.klStep && window.history.state.klStep!==stepRef.current){
+      window.history.back();
+    }else{
+      window.history.back();
+      // phòng khi không có entry hợp lệ để back tới (hiếm khi xảy ra) — vẫn đảm bảo lùi step
+      setTimeout(()=>{ if(stepRef.current===fallbackStep) setStep(fallbackStep); },50);
+    }
+  };
+
   // Nạp font chữ cho giao diện đăng nhập (chỉ 1 lần)
   useEffect(()=>{
     if(!document.getElementById("kl-fonts-link")){
@@ -1126,7 +1163,7 @@ function LoginScreen({onLogin, resume, onLogout}){
       onLogin(u, userList, {openNewProject:false, line:allowed[0]});
       return;
     }
-    setStep("select");
+    goStep("select");
   };
 
   // ── Bước 2: Chọn dòng xe ──
@@ -1140,7 +1177,7 @@ function LoginScreen({onLogin, resume, onLogout}){
     }
     setErr("");
     setActiveLine(l.id);
-    setStep("project");
+    goStep("project");
   };
 
   // ── Bước 3: Chọn trạng thái dự án ──
@@ -1156,7 +1193,7 @@ function LoginScreen({onLogin, resume, onLogout}){
     onLogin(authedUser, userList, {openNewProject:s.id==="new", line:activeLine, statusId:s.id});
   };
 
-  const backToSelect=()=>{ setErr(""); setStep("select"); };
+  const backToSelect=()=>{ setErr(""); goBackHistory("select"); };
 
   const line = KL_LINES.find(l=>l.id===activeLine) || KL_LINES[2];
 
@@ -2296,6 +2333,54 @@ export default function App(){
   // ✅ Nhớ tab đang xem qua localStorage — sau khi tạo dự án xong (hoặc bất kỳ lúc nào)
   // reload/refresh trang, người dùng ở lại ĐÚNG tab đang xem, không bị nhảy về tab mặc định.
   const [tab,      setTab]      = useState(()=>{try{return localStorage.getItem("lastTab")||"ds";}catch{return "ds";}});
+  // ✅ FIX: nút "trở lui" vật lý/gesture trên điện thoại trước đây KHÔNG lùi về bước trước
+  // trong app — vì SPA này không đồng bộ với lịch sử trình duyệt, back sẽ thoát thẳng khỏi
+  // trang. Đoạn dưới đồng bộ TOÀN BỘ điều hướng cấp cao với History API:
+  //   • 3 màn hình độc lập: Tổng quan / Khởi tạo Dự án / Đã thực hiện
+  //   • "Hệ thống chính" (giao diện tab: Danh sách/Soạn hàng/Duyệt...) — mỗi lần đổi tab sẽ
+  //     lưu 1 mốc lịch sử, back sẽ lùi qua từng tab đã xem trước khi thoát hẳn ra màn đăng nhập.
+  // Mỗi lần "tiến" (đổi tab, hoặc mở 1 trong 3 màn độc lập) → pushState 1 mốc mới. Khi bấm
+  // back (vật lý/gesture HOẶC nút "← Trở về"/"← Quay lại" trên màn hình — tất cả đều đi qua
+  // history.back()), popstate được bắt và app tự lùi lại đúng 1 bước, KHÔNG rời khỏi trang.
+  const navRef = useRef(null); // mốc điều hướng hiện tại đã ghi nhận: "khoiTao"|"tongQuan"|"daThucHien"|"main:<tab>"|null
+  const fromPopRef = useRef(false); // true khi đang set state DO popstate gây ra — tránh push lại lịch sử
+  useEffect(()=>{
+    const cur = showKhoiTao?"khoiTao":showTongQuan?"tongQuan":showDaThucHien?"daThucHien":(user&&!backToGate)?`main:${tab}`:null;
+    if(cur!==navRef.current){
+      if(fromPopRef.current){
+        // state vừa đổi là do popstate (back) gây ra → chỉ cập nhật mốc, KHÔNG push thêm
+        fromPopRef.current=false;
+      }else if(cur){
+        try{ window.history.pushState({klNav:cur}, ""); }catch{}
+      }
+      navRef.current=cur;
+    }
+  },[showTongQuan,showKhoiTao,showDaThucHien,user,backToGate,tab]);
+  useEffect(()=>{
+    const onPop=(e)=>{
+      const s=e.state?.klNav;
+      fromPopRef.current=true;
+      if(s&&s.startsWith("main:")){
+        setBackToGate(false); setShowTongQuan(false); setShowKhoiTao(false); setShowDaThucHien(false);
+        setTab(s.slice(5));
+      }else if(s==="khoiTao"||s==="tongQuan"||s==="daThucHien"){
+        setBackToGate(false);
+        setShowKhoiTao(s==="khoiTao"); setShowTongQuan(s==="tongQuan"); setShowDaThucHien(s==="daThucHien");
+      }else{
+        // hết mốc điều hướng nội bộ (lùi ra khỏi cả "hệ thống chính" lẫn 3 màn độc lập)
+        // → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập, KHÔNG rời trang.
+        if(navRef.current){ setBackToGate(true); setShowTongQuan(false); setShowKhoiTao(false); setShowDaThucHien(false); }
+        else fromPopRef.current=false;
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return ()=>window.removeEventListener("popstate", onPop);
+  },[]);
+  // Dùng cho nút "← Trở về" trên cả 3 màn độc lập — đi qua history.back() để đồng bộ với back vật lý.
+  const goBackScreen=()=>{
+    if(navRef.current){ window.history.back(); }
+    else{ setBackToGate(true); }
+  };
   const [xhDaXNShowAll, setXhDaXNShowAll] = useState(false);
   const [search,   setSearch]   = useState("");
   const [fdm,      setFdm]      = useState("Tất cả");
@@ -4573,7 +4658,7 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
         <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-          <ScreenTopBar onBack={()=>{setBackToGate(true);setShowKhoiTao(false);}} badgeBorderColor="#3b82f6" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
+          <ScreenTopBar onBack={goBackScreen} badgeBorderColor="#3b82f6" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
           <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>🆕 GIAI ĐOẠN · 01 — KHỞI TẠO DỰ ÁN</div>
           <div style={{fontSize:11,opacity:.75,marginTop:4}}>Tạo mới dự án, thiết lập BOM và định mức ban đầu.</div>
         </div>
@@ -4605,7 +4690,7 @@ Bạn có chắc chắn không?`;
         return(
         <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
           <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-            <ScreenTopBar onBack={()=>{setBackToGate(true);setShowTongQuan(false);}} badgeBorderColor="#f59e0b" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
+            <ScreenTopBar onBack={goBackScreen} badgeBorderColor="#f59e0b" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
             <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>DANH MỤC CÁC DỰ ÁN ĐANG THỰC HIỆN</div>
           </div>
           {/* Danh sách dự án ĐANG THỰC HIỆN — dạng THẺ (mỗi dự án 1 dòng full-width).
@@ -4919,7 +5004,7 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
         <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-          <ScreenTopBar onBack={()=>{setBackToGate(true);setShowDaThucHien(false);}} badgeBorderColor="#14b8a6" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
+          <ScreenTopBar onBack={goBackScreen} badgeBorderColor="#14b8a6" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
           <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>✅ GIAI ĐOẠN · 03 — ĐÃ THỰC HIỆN</div>
           <div style={{fontSize:11,opacity:.75,marginTop:4}}>Lưu trữ hồ sơ, đối chiếu và tổng kết dự án hoàn tất.</div>
         </div>
