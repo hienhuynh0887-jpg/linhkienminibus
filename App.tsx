@@ -2322,6 +2322,9 @@ export default function App(){
   const tqVtRef = useRef(null); // vùng chi tiết vật tư đang mở, dùng để chụp ảnh "Xuất & chia sẻ"
   const [tqDangChiaSe, setTqDangChiaSe] = useState(false);
   const [tqDangXuatExcel, setTqDangXuatExcel] = useState(false);
+  // Chi tiết đang mở trong bảng "Đã thực hiện" (Giai đoạn 03) khi bấm vào ô SL xe/Đã giao/Đã nhận
+  // {pid, kind:"xe"|"giao"|"nhan", nguon?:"THCK"|"CKD"}
+  const [dtOpenDaTH, setDtOpenDaTH] = useState(null);
   // ✅ Modal "GHI NHẬN GIAO XE" — thay thế hộp thoại prompt() cũ khi bấm "✎ Bấm để sửa" ở
   // khối "Tiến độ giao xe". gxModalPid = id dự án đang ghi nhận (null = đóng modal).
   const [gxModalPid, setGxModalPid] = useState(null);
@@ -5069,7 +5072,7 @@ Bạn có chắc chắn không?`;
           // phDB[p.id] (không phụ thuộc dự án đang chọn/pid), theo cùng công thức "th" ở trên:
           // Đã giao = SL đã GỬI (kể cả chờ duyệt) ≥ SL cần · Đã nhận = SL ĐÃ XÁC NHẬN ≥ SL cần.
           const EPS=1e-6;
-          const vatTuStats=(p)=>{
+          const vatTuItems=(p)=>{
             const soXeP=p.so_xe||1;
             const bomP=bomDB[p.id]||[];
             const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
@@ -5080,89 +5083,144 @@ Bạn có chắc chắn không?`;
                 if(c.ok) dnXNMap[c.ma]=(dnXNMap[c.ma]||0)+(c.sl_thuc_nhan??c.sl??0);
               }
             }
+            return bomP.map(v=>{
+              const cn=(Number(v.dm)||0)*soXeP;
+              const dnGui=Number(dnGuiMap[v.ma])||0;
+              const dnXN=Number(dnXNMap[v.ma])||0;
+              return{...v,cn,dnGui,dnXN,doneGui:dnGui+EPS>=cn,done:dnXN+EPS>=cn};
+            });
+          };
+          const vatTuStats=(p)=>{
+            const items=vatTuItems(p);
             const out={};
             for(const nguon of["THCK","CKD"]){
-              const itemsNg=bomP.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
-              let daGiao=0,daNhan=0;
-              itemsNg.forEach(v=>{
-                const cn=(Number(v.dm)||0)*soXeP;
-                if((Number(dnGuiMap[v.ma])||0)+EPS>=cn)daGiao++;
-                if((Number(dnXNMap[v.ma])||0)+EPS>=cn)daNhan++;
-              });
-              out[nguon]={tongMa:itemsNg.length,daGiao,daNhan};
+              const itemsNg=items.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
+              out[nguon]={tongMa:itemsNg.length,daGiao:itemsNg.filter(v=>v.doneGui).length,daNhan:itemsNg.filter(v=>v.done).length};
             }
             return out;
           };
-          const thBold={fontSize:9,fontWeight:800,color:"#fff",textTransform:"uppercase",padding:"8px 10px",background:"#111827",textAlign:"left"};
-          const td={fontSize:12,color:"#374151",padding:"8px 10px",borderTop:"1px solid #f1f5f9"};
+          const thBold={fontSize:9,fontWeight:800,color:"#fff",textTransform:"uppercase",padding:"7px 9px",background:"#111827",textAlign:"center",whiteSpace:"nowrap"};
+          const td={fontSize:12,color:"#374151",padding:"7px 9px",borderTop:"1px solid #f1f5f9",textAlign:"center"};
+          const clickTd={...td,cursor:"pointer",textDecoration:"underline",textDecorationStyle:"dotted",fontWeight:800};
+          const dt=dtOpenDaTH&&doneList.find(p=>p.id===dtOpenDaTH.pid)?dtOpenDaTH:null;
+          const dtProj=dt?doneList.find(p=>p.id===dt.pid):null;
+          const toggleDt=(pid_,kind,nguon)=>{
+            setDtOpenDaTH(cur=>(cur&&cur.pid===pid_&&cur.kind===kind&&cur.nguon===nguon)?null:{pid:pid_,kind,nguon});
+          };
+          const vtCols="70px 1fr 62px";
+          const xeCols="50px 1fr 60px 1.2fr 72px 60px";
           return(
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            {/* ── Bảng 1: NỘI DUNG DỰ ÁN ── */}
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* ── Bảng gộp: NỘI DUNG DỰ ÁN + NHẬN VẬT TƯ (THCK & CKD) song song, dùng chung STT/Tên dự án ── */}
             <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #99f6e4"}}>
-              <div style={{padding:"8px 14px",background:"#f0fdfa",fontSize:12,fontWeight:800,color:"#0f766e"}}>📋 NỘI DUNG DỰ ÁN</div>
+              <div style={{padding:"8px 14px",background:"#f0fdfa",fontSize:12,fontWeight:800,color:"#0f766e"}}>📋 NỘI DUNG DỰ ÁN &amp; NHẬN VẬT TƯ</div>
               <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",minWidth:640}}>
+                <table style={{width:"100%",borderCollapse:"collapse",minWidth:920}}>
                   <thead>
                     <tr>
-                      <th style={{...thBold,width:34}}>STT</th>
-                      <th style={thBold}>Tên dự án</th>
+                      <th style={{...thBold,width:34}} rowSpan={2}>STT</th>
+                      <th style={thBold} rowSpan={2}>Tên dự án</th>
+                      <th style={thBold} colSpan={5}>Nội dung dự án</th>
+                      <th style={{...thBold,background:"#b45309"}} colSpan={3}>THCK</th>
+                      <th style={{...thBold,background:"#0369a1"}} colSpan={3}>CKD</th>
+                    </tr>
+                    <tr>
                       <th style={thBold}>Sop</th>
                       <th style={thBold}>Dòng xe</th>
                       <th style={thBold}>Ngày bắt đầu</th>
                       <th style={thBold}>Ngày kết thúc</th>
-                      <th style={{...thBold,textAlign:"right"}}>SL xe</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {doneList.map((p,idx)=>(
-                      <tr key={p.id} style={{background:idx%2?"#f9fafb":"#fff"}}>
-                        <td style={td}>{idx+1}</td>
-                        <td style={{...td,fontWeight:700,color:"#1f2937"}}>{p.ten}</td>
-                        <td style={td}>{sopRange(p)}</td>
-                        <td style={td}>{tenDongXe}</td>
-                        <td style={td}>{p.ngay_khoi_tao||"—"}</td>
-                        <td style={{...td,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</td>
-                        <td style={{...td,textAlign:"right",fontWeight:700}}>{p.so_xe||1}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* ── Bảng 2: NHẬN VẬT TƯ (THCK & CKD) ── */}
-            <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #99f6e4"}}>
-              <div style={{padding:"8px 14px",background:"#f0fdfa",fontSize:12,fontWeight:800,color:"#0f766e"}}>📦 NHẬN VẬT TƯ</div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",minWidth:520}}>
-                  <thead>
-                    <tr>
-                      <th style={{...thBold,width:34}}>STT</th>
-                      <th style={thBold}>Tên dự án</th>
-                      <th style={thBold}>Nguồn</th>
-                      <th style={{...thBold,textAlign:"right"}}>Tổng mã</th>
-                      <th style={{...thBold,textAlign:"right"}}>Đã giao</th>
-                      <th style={{...thBold,textAlign:"right"}}>Đã nhận</th>
+                      <th style={thBold}>SL xe</th>
+                      <th style={{...thBold,background:"#b45309"}}>Tổng mã</th>
+                      <th style={{...thBold,background:"#b45309"}}>Đã giao</th>
+                      <th style={{...thBold,background:"#b45309"}}>Đã nhận</th>
+                      <th style={{...thBold,background:"#0369a1"}}>Tổng mã</th>
+                      <th style={{...thBold,background:"#0369a1"}}>Đã giao</th>
+                      <th style={{...thBold,background:"#0369a1"}}>Đã nhận</th>
                     </tr>
                   </thead>
                   <tbody>
                     {doneList.map((p,idx)=>{
                       const st=vatTuStats(p);
-                      return["THCK","CKD"].map((nguon,j)=>(
-                        <tr key={p.id+"_"+nguon} style={{background:idx%2?"#f9fafb":"#fff"}}>
-                          {j===0&&<td style={{...td,verticalAlign:"top"}} rowSpan={2}>{idx+1}</td>}
-                          {j===0&&<td style={{...td,fontWeight:700,color:"#1f2937",verticalAlign:"top"}} rowSpan={2}>{p.ten}</td>}
-                          <td style={{...td,fontWeight:700,color:nguon==="THCK"?"#b45309":"#0369a1"}}>{nguon}</td>
-                          <td style={{...td,textAlign:"right"}}>{st[nguon].tongMa}</td>
-                          <td style={{...td,textAlign:"right",color:"#0369a1",fontWeight:700}}>{st[nguon].daGiao}</td>
-                          <td style={{...td,textAlign:"right",color:"#16a34a",fontWeight:700}}>{st[nguon].daNhan}</td>
-                        </tr>
-                      ));
+                      return(
+                      <tr key={p.id} style={{background:idx%2?"#f9fafb":"#fff"}}>
+                        <td style={td}>{idx+1}</td>
+                        <td style={{...td,fontWeight:700,color:"#1f2937",textAlign:"left"}}>{p.ten}</td>
+                        <td style={td}>{sopRange(p)}</td>
+                        <td style={td}>{tenDongXe}</td>
+                        <td style={td}>{p.ngay_khoi_tao||"—"}</td>
+                        <td style={{...td,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</td>
+                        <td style={{...clickTd,color:"#374151"}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
+                        <td style={td}>{st.THCK.tongMa}</td>
+                        <td style={{...clickTd,color:"#0369a1"}} onClick={()=>toggleDt(p.id,"giao","THCK")} title="Xem chi tiết đã giao THCK">{st.THCK.daGiao}</td>
+                        <td style={{...clickTd,color:"#16a34a"}} onClick={()=>toggleDt(p.id,"nhan","THCK")} title="Xem chi tiết đã nhận THCK">{st.THCK.daNhan}</td>
+                        <td style={td}>{st.CKD.tongMa}</td>
+                        <td style={{...clickTd,color:"#0369a1"}} onClick={()=>toggleDt(p.id,"giao","CKD")} title="Xem chi tiết đã giao CKD">{st.CKD.daGiao}</td>
+                        <td style={{...clickTd,color:"#16a34a"}} onClick={()=>toggleDt(p.id,"nhan","CKD")} title="Xem chi tiết đã nhận CKD">{st.CKD.daNhan}</td>
+                      </tr>
+                      );
                     })}
                   </tbody>
                 </table>
               </div>
             </div>
+
+            {/* ── Bảng chi tiết — hiện ra khi bấm vào ô SL xe / Đã giao / Đã nhận ── */}
+            {dt&&dtProj&&(()=>{
+              const tieuDe=dt.kind==="xe"
+                ?`🚌 Chi tiết giao xe — ${dtProj.ten}`
+                :`📦 Chi tiết ${dt.kind==="giao"?"đã giao":"đã nhận"} ${dt.nguon} — ${dtProj.ten}`;
+              return(
+              <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #bae6fd"}}>
+                <div style={{padding:"8px 14px",background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                  <b style={{fontSize:12,color:"#1d4ed8"}}>{tieuDe}</b>
+                  <button onClick={()=>setDtOpenDaTH(null)} style={{border:"none",background:"transparent",color:"#1d4ed8",fontWeight:800,fontSize:14,cursor:"pointer",lineHeight:1,padding:4}}>✕</button>
+                </div>
+                {dt.kind==="xe"?(()=>{
+                  const rows=(lsDB[dtProj.id]||[]).filter(r=>r.loai==="Giao xe");
+                  return(
+                  <div style={{overflowX:"auto"}}>
+                    <div style={{minWidth:520}}>
+                      <div style={{display:"grid",gridTemplateColumns:xeCols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                        <span>Sop</span><span>Dòng xe</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
+                      </div>
+                      <div style={{maxHeight:296,overflowY:"auto"}}>
+                        {rows.length===0?(
+                          <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
+                        ):rows.map((r,i)=>(
+                          <div key={r.id} style={{display:"grid",gridTemplateColumns:xeCols,gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
+                            <span>{r.sop||"—"}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||dtProj.ten}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  );
+                })():(()=>{
+                  const items=vatTuItems(dtProj).filter(v=>(v.ng||"").trim().toUpperCase()===dt.nguon&&(dt.kind==="giao"?v.doneGui:v.done));
+                  return(
+                  <div style={{overflowX:"auto"}}>
+                    <div style={{minWidth:420}}>
+                      <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                        <span>Mã</span><span>Tên vật tư</span><span style={{textAlign:"right"}}>SL</span>
+                      </div>
+                      <div style={{maxHeight:296,overflowY:"auto"}}>
+                        {items.length===0?(
+                          <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
+                        ):items.map((v,i)=>(
+                          <div key={v.id||v.ma} style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"7px 10px",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
+                            <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3,wordBreak:"break-word"}}>{v.ma}</span>
+                            <span style={{fontSize:12,color:"#1f2937",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
+                            <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(dt.kind==="giao"?v.dnGui:v.dnXN)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  );
+                })()}
+              </div>
+              );
+            })()}
           </div>
           );
         })()}
