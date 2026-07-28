@@ -941,21 +941,21 @@ function VehicleIconCircle({lineId, size=22, icon="🚌", color}){
 // Bố cục: [← Trở về] ── [🚌 Dòng xe: ... — CĂN GIỮA] ── [Đăng xuất].
 // Nút "Đăng xuất": nền đen nhạt, chữ trắng in đậm, viền bo tròn màu cam.
 function ScreenTopBar({onBack, badgeBorderColor, activeLine, onLogout}){
-  const baseBtn={border:"none",borderRadius:999,cursor:"pointer",fontFamily:"inherit",padding:"6px 13px",fontSize:11.5,whiteSpace:"nowrap"};
+  const baseBtn={border:"none",borderRadius:999,cursor:"pointer",fontFamily:"inherit",padding:"5px 9px",fontSize:10,whiteSpace:"nowrap",flexShrink:0};
   return (
-    <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"center",gap:8,rowGap:8,marginBottom:10}}>
+    <div style={{display:"flex",flexWrap:"nowrap",alignItems:"center",justifyContent:"space-between",gap:5,marginBottom:10}}>
       <button onClick={onBack}
-        style={{...baseBtn,background:"rgba(249,115,22,0.12)",color:"#fdba74",fontWeight:700,border:"1.5px solid #f97316",flex:"0 0 auto"}}>
+        style={{...baseBtn,background:"rgba(249,115,22,0.12)",color:"#fdba74",fontWeight:700,border:"1.5px solid #f97316"}}>
         ← Trở về
       </button>
-      {/* Badge dòng xe: co giãn nhưng không bao giờ đè lên 2 nút hai bên nhờ flex-wrap ở container cha */}
-      <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"4px 10px",border:`2px solid ${badgeBorderColor}`,minWidth:0,maxWidth:"100%",flex:"0 1 auto",order:0}}>
-        <VehicleIconCircle lineId={activeLine} size={18}/>
-        <span style={{fontSize:10,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
-        <span style={{fontSize:11.5,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
+      {/* Badge dòng xe: co giãn để luôn vừa 1 hàng cùng 2 nút hai bên, tên dài sẽ tự rút gọn "..." */}
+      <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"3px 8px",border:`2px solid ${badgeBorderColor}`,minWidth:0,flex:"1 1 auto",justifyContent:"center"}}>
+        <VehicleIconCircle lineId={activeLine} size={15}/>
+        <span style={{fontSize:9,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
+        <span style={{fontSize:10,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
       </div>
       <button onClick={onLogout}
-        style={{...baseBtn,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,border:"1.5px solid #f97316",flex:"0 0 auto"}}>
+        style={{...baseBtn,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,border:"1.5px solid #f97316"}}>
         Đăng xuất
       </button>
     </div>
@@ -3105,6 +3105,25 @@ export default function App(){
       flash("✓ Đã sửa tên dự án");
     }
   };
+  // ✅ "Dòng xe" (cột mo_ta) — trước đây KHÔNG có cách nào sửa lại sau khi tạo dự án, nên
+  // với các dự án cũ (tạo trước khi đổi nhãn "Mô tả"→"Dòng xe", hoặc bỏ trống lúc tạo) giá
+  // trị này bị fallback về đúng TÊN dự án (mo_ta:nPF.moTa||nPF.ten lúc mkProj) → khiến ô
+  // "Dòng xe" trong modal "Giao xe" hiển thị trùng tên dự án thay vì đúng dòng xe thật.
+  const editProjMoTa=(id,curMoTa)=>{
+    const v=prompt("Sửa Dòng xe:",curMoTa||"");
+    if(v!==null){
+      setProjs(ps=>{
+        const next=ps.map(p=>p.id===id?{...p,mo_ta:v.trim()}:p);
+        const updated=next.find(p=>p.id===id);
+        if(updated)dbUpsertProj(updated).catch(e=>{
+          console.error("editProjMoTa: lỗi lưu:",e);
+          flash(`⚠️ Lỗi lưu Dòng xe: ${e.message}`);
+        });
+        return next;
+      });
+      flash("✓ Đã sửa Dòng xe");
+    }
+  };
   const editSoXe=()=>{
     const v=prompt("Số xe:",soXe);
     if(v&&!isNaN(v)&&Number(v)>0){
@@ -4685,7 +4704,11 @@ Bạn có chắc chắn không?`;
 
                 <div style={{marginBottom:12}}>
                   <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Dòng xe</label>
-                  <div style={{...inp,background:"#f3f4f6",color:"#374151",fontWeight:700}}>{dongXeVal||"—"}</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <div style={{...inp,flex:1,background:"#f3f4f6",color:"#374151",fontWeight:700}}>{dongXeVal||"—"}</div>
+                    <span onClick={()=>{editProjMoTa(gxModalPid,p2?.mo_ta);}} title="Sửa Dòng xe"
+                      style={{fontSize:16,cursor:"pointer",flexShrink:0,padding:"6px 8px",background:"#f3f4f6",borderRadius:7,border:"1.5px solid #e5e7eb"}}>✏️</span>
+                  </div>
                 </div>
 
                 <div style={{marginBottom:12}}>
@@ -4901,7 +4924,8 @@ Bạn có chắc chắn không?`;
                         <span style={{fontSize:12,fontWeight:600,color:p.id===pid?(p.mau||"#2563eb"):"#1f2937",lineHeight:1.3}}>{p.ten}</span>
                       </span>
                       {p.id===pid&&<span style={{fontSize:11,color:p.mau||"#2563eb",flexShrink:0}}>●</span>}
-                      <span onClick={(e)=>{e.stopPropagation();editProjName(p.id,p.ten);}} style={{fontSize:13,padding:"2px 4px",flexShrink:0,opacity:.55}}>✏️</span>
+                      <span onClick={(e)=>{e.stopPropagation();editProjName(p.id,p.ten);}} title="Sửa tên dự án" style={{fontSize:13,padding:"2px 4px",flexShrink:0,opacity:.55}}>✏️</span>
+                      <span onClick={(e)=>{e.stopPropagation();editProjMoTa(p.id,p.mo_ta);}} title="Sửa Dòng xe" style={{fontSize:12,padding:"2px 4px",flexShrink:0,opacity:.55}}>🚌</span>
                     </div>
                   ))}
                 </div>
