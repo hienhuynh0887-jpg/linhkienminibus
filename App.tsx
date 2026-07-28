@@ -949,7 +949,7 @@ function ScreenTopBar({onBack, badgeBorderColor, activeLine, onLogout}){
         ← Trở về
       </button>
       {/* Badge dòng xe: co giãn để luôn vừa 1 hàng cùng 2 nút hai bên, tên dài sẽ tự rút gọn "..." */}
-      <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"3px 8px",border:`2px solid ${badgeBorderColor}`,minWidth:0,flex:"1 1 auto",justifyContent:"center"}}>
+      <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"3px 8px",border:`2px solid ${badgeBorderColor}`,minWidth:0,flex:"0 1 auto"}}>
         <VehicleIconCircle lineId={activeLine} size={15}/>
         <span style={{fontSize:9,opacity:.75,whiteSpace:"nowrap"}}>Dòng xe:</span>
         <span style={{fontSize:10,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
@@ -1272,6 +1272,18 @@ function LoginScreen({onLogin, resume, onLogout}){
                 );
               })}
             </div>
+            {/* ✅ Trường hợp ĐẶC BIỆT riêng cho tài khoản "xh04" — cho vào thẳng "Hệ thống
+                chính" ở tab "✅ Nhận Hàng" (duyệt), bỏ qua bước chọn Trạng thái dự án, y hệt
+                quyền của 1 đơn vị chuyên trách. Không áp dụng cho bất kỳ tài khoản nào khác. */}
+            {authedUser?.id==="xh04"&&(
+              <div style={{marginTop:18,textAlign:"center"}}>
+                <span onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
+                  style={{display:"inline-block",cursor:"pointer",color:"#fdba74",fontWeight:700,fontSize:13,
+                    borderBottom:"1.5px dashed #fdba74",padding:"4px 2px"}}>
+                  ⚡ Truy cập hệ thống chính →
+                </span>
+              </div>
+            )}
           </main>
           {err&&(
             <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5"}}>
