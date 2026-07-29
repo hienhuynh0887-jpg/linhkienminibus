@@ -1065,7 +1065,20 @@ function LoginScreen({onLogin, resume, onLogout}){
   useEffect(()=>{
     // đánh dấu entry ban đầu (trang vừa mở) bằng chính step khởi tạo, để khi back về tới
     // đây thì popstate trả state đúng bằng step ban đầu thay vì rỗng.
-    try{ window.history.replaceState({klStep:step}, ""); }catch{}
+    // ✅ FIX: khi mở qua "resume" (bấm "← Trở về" từ Tổng quan → vào THẲNG bước "project"),
+    // trước đó KHÔNG hề có entry "select" nào được push trong lịch sử của phiên này — nếu chỉ
+    // replaceState mỗi "project" thì bấm "← Quay lại chọn dòng xe" (hoặc nút back vật lý) sẽ
+    // lùi ra NGOÀI luồng app (mất trắng, không về được màn chọn dòng xe). Nên ở trường hợp
+    // resume, ta dựng sẵn 1 entry "select" bên dưới rồi mới push "project" lên trên, để back
+    // luôn có chỗ lùi về đúng ý.
+    try{
+      if(resume){
+        window.history.replaceState({klStep:"select"}, "");
+        window.history.pushState({klStep:"project"}, "");
+      }else{
+        window.history.replaceState({klStep:step}, "");
+      }
+    }catch{}
     const onPop=(e)=>{
       const s=e.state?.klStep;
       if(s) setStep(s);
@@ -2338,7 +2351,13 @@ export default function App(){
   const [showDaThucHien, setShowDaThucHien] = useState(()=>{try{return localStorage.getItem("screenMode")==="daThucHien";}catch{return false;}});
   // Bấm "← Trở về" trên Tổng quan → quay lại BƯỚC 3 (chọn trạng thái dự án) của màn đăng nhập,
   // KHÔNG bắt đăng nhập lại (xem prop "resume" của LoginScreen).
-  const [backToGate, setBackToGate] = useState(false);
+  // ✅ FIX: backToGate trước đây chỉ là state trong bộ nhớ (không lưu localStorage) — khi
+  // người dùng bấm "← Trở về" để lùi về màn "Chọn trạng thái dự án" (LoginScreen bước "project")
+  // rồi F5, backToGate reset về false trong khi "user" vẫn còn trong localStorage, khiến điều
+  // kiện `!user || backToGate` sai và app nhảy thẳng vào hệ thống chính thay vì ở lại đúng màn
+  // đang xem. Nay đọc/ghi backToGate qua localStorage giống các screenMode khác để F5 giữ đúng
+  // màn hình.
+  const [backToGate, setBackToGate] = useState(()=>{try{return localStorage.getItem("screenMode")==="gate";}catch{return false;}});
   // ✅ Màn "Tổng quan": mở/đóng bảng chi tiết vật tư khi bấm "SL đã nhận" / "SL thiếu"
   // trong khối THCK/CKD. nguon: "THCK"|"CKD"|"" (đóng). field: "done"|"thieu".
   const [tqVtOpen, setTqVtOpen] = useState({nguon:"", field:""});
@@ -3161,9 +3180,10 @@ export default function App(){
       if(showKhoiTao) localStorage.setItem("screenMode","khoiTao");
       else if(showTongQuan) localStorage.setItem("screenMode","tongQuan");
       else if(showDaThucHien) localStorage.setItem("screenMode","daThucHien");
+      else if(backToGate) localStorage.setItem("screenMode","gate");
       else localStorage.setItem("screenMode","main");
     }catch{}
-  },[showKhoiTao,showTongQuan,showDaThucHien]);
+  },[showKhoiTao,showTongQuan,showDaThucHien,backToGate]);
 
   // ── Đồng bộ phiên đăng nhập vào localStorage (giữ đăng nhập qua các lần auto-reload) ──
   useEffect(()=>{
@@ -4867,14 +4887,14 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
             {/* ── Khối 2: Tiến độ nhận vật tư (THCK / CKD) ── */}
-            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #bae6fd",display:"flex",flexDirection:"column"}}>
-              <div style={{padding:"14px 16px",background:"#eff6ff",display:"flex",alignItems:"center",gap:8}}>
+            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a",display:"flex",flexDirection:"column"}}>
+              <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>📦</span>
-                <span style={{fontWeight:800,fontSize:14,color:"#0369a1"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
               </div>
               <div style={{padding:"16px 16px 4px",display:"flex",flexDirection:"column",flex:1}}>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#fffbeb","#fde68a"]].map(([nguon,icon,mau,bgLight,bd])=>{
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
@@ -5417,14 +5437,14 @@ Bạn có chắc chắn không?`;
       )}
 
       {/* TABS */}
-      <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"0 18px",display:"flex",gap:2,overflowX:"auto"}}>
+      <div style={{background:"#0a0a0a",borderBottom:"1px solid #000",padding:"0 18px",display:"flex",gap:2,overflowX:"auto"}}>
         {TABS_NOW.map(([k])=>{
           const active=tab===k;
           const c=k==="soan"?mauRole:k==="bc"?"#7c3aed":k==="users"?"#6b7280":mauRole;
           const label=t(`tab_${k}`);
           return(
-            <button key={k} onClick={()=>setTab(k)} style={{...btn,background:"none",borderRadius:0,fontWeight:active?700:400,
-              color:active?c:"#6b7280",borderBottom:active?`2px solid ${c}`:"2px solid transparent",
+            <button key={k} onClick={()=>setTab(k)} style={{...btn,background:"none",borderRadius:0,fontWeight:700,
+              color:"#fff",textTransform:"uppercase",borderBottom:active?`2px solid ${c}`:"2px solid transparent",
               padding:"10px 13px",fontSize:13,whiteSpace:"nowrap"}}>
               {k==="soan"&&soaned>0?`${label} (${soaned}/${bom.length})`:label}
             </button>
