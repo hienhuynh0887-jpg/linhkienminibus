@@ -2338,6 +2338,53 @@ export default function App(){
   const I=S=>S.inp; // shorthand for style
   const B=S=>S.btn;
 
+  // ✅ FIX: một số tiện ích mở rộng trình duyệt (từ điển y khoa, dịch thuật, gõ tiếng Việt...)
+  // tự động quét chữ trên MỌI trang web và thay các từ viết tắt trùng khớp bằng nghĩa đầy đủ
+  // của chúng — ví dụ "CKD" (viết tắt nội bộ của mình cho nguồn vật tư) trùng với "CKD" =
+  // "Chronic Kidney Disease" trong y khoa nên bị 1 số tiện ích tự đổi thành "Bệnh thận mãn
+  // tính" ngay trên màn hình người dùng. Đây KHÔNG phải lỗi ở code/font của app, mà do phần
+  // mềm chạy ở tầng trình duyệt chỉnh sửa lại DOM sau khi trang đã hiển thị.
+  // → Giải pháp: 1 effect DUY NHẤT chạy 1 lần ở gốc App, tự động chèn ký tự "vô hình"
+  // (zero-width space, mắt người không thấy, không ảnh hưởng bố cục/copy-paste) xen giữa các
+  // chữ cái của những từ viết tắt nhạy cảm, phá vỡ chuỗi ký tự mà các tiện ích đó tìm-thay-thế,
+  // trong khi người dùng vẫn đọc thấy đúng "CKD" bình thường. Áp dụng cho TOÀN BỘ trang (kể cả
+  // nội dung được render động sau này) nhờ MutationObserver theo dõi mọi thay đổi DOM.
+  useEffect(()=>{
+    const ZW="\u200B"; // zero-width space — vô hình, không đổi cách hiển thị hay khi copy ra vẫn đọc đúng chữ
+    const SHIELD_WORDS=["CKD"]; // thêm từ khác vào đây nếu sau này phát hiện bị thay nghĩa tương tự
+    const RE=new RegExp("\\b("+SHIELD_WORDS.join("|")+")\\b","g");
+    const SKIP_TAGS=new Set(["SCRIPT","STYLE","NOSCRIPT","TEXTAREA","INPUT"]);
+
+    const shieldTextNode=(tn)=>{
+      const p=tn.parentNode;
+      if(!p||SKIP_TAGS.has(p.tagName)) return;
+      const v=tn.nodeValue;
+      if(v&&RE.test(v)){
+        RE.lastIndex=0;
+        tn.nodeValue=v.replace(RE,(m)=>m.split("").join(ZW));
+      }
+    };
+    const shieldSubtree=(root)=>{
+      if(root.nodeType===Node.TEXT_NODE){ shieldTextNode(root); return; }
+      if(root.nodeType!==Node.ELEMENT_NODE) return;
+      if(SKIP_TAGS.has(root.tagName)) return;
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{
+        acceptNode:n=>SKIP_TAGS.has(n.parentNode?.tagName)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT
+      });
+      let n; while(n=walker.nextNode()) shieldTextNode(n);
+    };
+
+    shieldSubtree(document.body);
+    const obs=new MutationObserver(muts=>{
+      for(const m of muts){
+        if(m.type==="characterData") shieldTextNode(m.target);
+        else for(const node of m.addedNodes) shieldSubtree(node);
+      }
+    });
+    obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+    return ()=>obs.disconnect();
+  },[]);
+
   const inp={width:"100%",padding:"7px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)",transition:"border-color .15s,box-shadow .15s"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
   // ✅ Đăng xuất dùng CHUNG cho cả 3 màn hình độc lập (Khởi tạo Dự án/Tổng Quan/Đã thực hiện)
