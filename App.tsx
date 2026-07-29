@@ -1974,26 +1974,42 @@ const sapXepDM=(a,b)=>{
 // ═══════════════════════════════════════════════════════════════
 
 // Xuất Excel từ mảng rows (mỗi phần tử là object {col:value})
+// ⚠️ Dùng "exceljs" thay vì "xlsx" (SheetJS bản community/miễn phí KHÔNG ghi được style khi
+// xuất file — thuộc tính ws[addr].s trước đây bị bỏ qua hoàn toàn lúc writeFile, nên file Excel
+// xuất ra luôn bị mất màu nền/chữ trắng/viền dù code có gán style). exceljs hỗ trợ ghi đầy đủ
+// font/fill/border khi xuất, nên tiêu đề sẽ luôn có nền xanh đậm + chữ trắng in hoa + kẻ bảng.
+//
+// ⚠️ CẦN CÀI ĐẶT: thêm "exceljs" vào package.json của dự án (npm install exceljs) nếu chưa có.
 async function xuatExcel(rows, tenFile="BaoCao", tieuDe="Báo cáo vật tư"){
-  const {utils, writeFile} = await import("xlsx");
-  const ws = utils.json_to_sheet(rows);
-  const range = utils.decode_range(ws["!ref"]||"A1");
-  const thinBorder={style:"thin",color:{rgb:"9CA3AF"}};
-  const border={top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder};
-  // Tô nền xanh đậm cố định + chữ trắng cho hàng tiêu đề, kẻ viền toàn bộ bảng dữ liệu
-  for(let R=range.s.r;R<=range.e.r;R++){
-    for(let C=range.s.c;C<=range.e.c;C++){
-      const addr=utils.encode_cell({r:R,c:C});
-      if(!ws[addr])continue;
-      ws[addr].s=R===0
-        ?{font:{bold:true,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1D4ED8"}},alignment:{vertical:"center",horizontal:"center"},border}
-        :{border};
-    }
-  }
-  const wb = utils.book_new();
-  utils.book_append_sheet(wb, ws, tieuDe.slice(0,31));
-  writeFile(wb, `${tenFile}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const ExcelJS = await import("exceljs");
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet((tieuDe||"Sheet1").slice(0,31));
+  const cols = rows&&rows.length ? Object.keys(rows[0]) : [];
+  ws.columns = cols.map(c=>({header:String(c).toUpperCase(), key:c, width:Math.max(12,String(c).length+4)}));
+  (rows||[]).forEach(r=>ws.addRow(r));
+
+  const thin={style:"thin",color:{argb:"FF9CA3AF"}};
+  const border={top:thin,bottom:thin,left:thin,right:thin};
+  ws.eachRow((row,rowIdx)=>{
+    row.eachCell({includeEmpty:true},cell=>{
+      cell.border=border;
+      if(rowIdx===1){
+        cell.font={bold:true,color:{argb:"FFFFFFFF"}};
+        cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF1D4ED8"}};
+        cell.alignment={vertical:"middle",horizontal:"center"};
+      }
+    });
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download=`${tenFile}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
 }
+
 
 // HTML/CSS dùng chung cho bản in & bản render ảnh/PDF
 const BAO_CAO_STYLE=`
@@ -4893,7 +4909,7 @@ Bạn có chắc chắn không?`;
                 const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===tqVtOpen.nguon);
                 const rows=tqVtOpen.field==="done"?itemsNg.filter(v=>v.done):itemsNg.filter(v=>!v.done);
                 const tieuDe=`${tqVtOpen.nguon} · ${tqVtOpen.field==="done"?"Đã nhận":"Còn thiếu"} (${rows.length})`;
-                const vtCols="70px 1fr 62px";
+                const vtCols="30px 70px 1fr 56px 74px 74px 62px";
                 return(
                 <div style={{margin:"0 16px 16px",border:"1.5px solid #e5e7eb",borderRadius:10,overflow:"hidden"}}>
                   <div ref={tqVtRef} style={{background:"#fff"}}>
@@ -4901,15 +4917,19 @@ Bạn có chắc chắn không?`;
                       <b style={{fontSize:12,color:"#374151"}}>{tieuDe}</b>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
-                      <span>Mã</span><span>Tên vật tư</span><span style={{textAlign:"right"}}>SL</span>
+                      <span>STT</span><span>Mã</span><span>Tên vật tư</span><span>Định mức</span><span>Vị trí</span><span>Nguồn gốc</span><span style={{textAlign:"right"}}>SL</span>
                     </div>
                     <div style={{maxHeight:tqDangChiaSe?"none":296,overflowY:tqDangChiaSe?"visible":"auto"}}>
                       {rows.length===0?(
                         <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
                       ):rows.map((v,i)=>(
                         <div key={v.id||v.ma} style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"7px 10px",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
+                          <span style={{fontSize:10,color:"#94a3b8"}}>{i+1}</span>
                           <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3,wordBreak:"break-word"}}>{v.ma}</span>
                           <span style={{fontSize:12,color:"#1f2937",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
+                          <span style={{fontSize:10.5,color:"#374151"}}>{fmt(v.dm)}</span>
+                          <span style={{fontSize:10.5,color:"#374151",wordBreak:"break-word"}}>{v.vt||"—"}</span>
+                          <span style={{fontSize:10.5,color:"#374151",wordBreak:"break-word"}}>{v.ng||"—"}</span>
                           {tqVtOpen.field==="thieu"?(
                             <span style={{fontSize:10,fontWeight:800,color:"#dc2626",background:"#fee2e2",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.ct)}</span>
                           ):(
@@ -4922,12 +4942,29 @@ Bạn có chắc chắn không?`;
                   <div style={{display:"flex"}}>
                   <button disabled={tqDangChiaSe} onClick={async()=>{
                       setTqDangChiaSe(true);
-                      // ✅ FIX: đợi React render lại với danh sách MỞ HẾT (bỏ maxHeight/overflow) trước khi
-                      // chụp ảnh — nếu không, html2canvas sẽ cắt theo khung cuộn 320px như cũ, chỉ chụp
-                      // được phần đang hiển thị chứ không phải TOÀN BỘ vật tư (giống lỗi trong ảnh chụp màn hình).
-                      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-                      try{ await chiaSePhieuAnh(tqVtRef.current, {sp:`VatTu_${tqVtOpen.nguon}_${tqVtOpen.field}`}); }
-                      finally{ setTqDangChiaSe(false); }
+                      try{
+                        // ✅ Dùng chung pipeline xuatPDF/taoAnhBaoCao (giống các nút "Xuất & chia sẻ" khác
+                        // trong app): dựng HTML tiêu đề + bảng riêng (KHÔNG chụp trực tiếp DOM đang hiển
+                        // thị), rồi taoAnhBaoCao tự chia nhỏ thành từng nhóm 25 dòng/lần để chụp, tránh
+                        // treo máy / quá thời gian chờ (timeout) khi danh sách dài — đồng thời có cùng
+                        // định dạng (tiêu đề, cột, viền) với file Excel xuất ra.
+                        const rowsHtml=rows.map((v,i)=>`<tr>
+                          <td>${i+1}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
+                          <td style="text-align:center">${v.dv||""}</td>
+                          <td>${v.vt||""}</td>
+                          <td style="text-align:right">${fmt(v.cn)}</td>
+                          <td style="text-align:right;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
+                          <td style="text-align:right;color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
+                        </tr>`).join("");
+                        const daNhanNg=itemsNg.filter(v=>v.done).length;
+                        await xuatPDF(`<h2>📋 Chi tiết vật tư ${tqVtOpen.nguon} — ${tqVtOpen.field==="thieu"?"Còn thiếu":"Đã nhận"} (${rows.length} mã)</h2>
+                          <p class="sub">🚌 ${proj.icon||""} ${proj.ten} · ${itemsNg.length} mã · Đã nhận ${daNhanNg} · Còn thiếu ${itemsNg.length-daNhanNg}</p>
+                          <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Vị trí</th><th>Cần</th><th>Đã nhận</th><th>Còn thiếu</th></tr></thead><tbody>${rowsHtml}</tbody></table>`,
+                          `VatTu_${tqVtOpen.nguon}_${tqVtOpen.field}`);
+                      }catch(e){
+                        console.error("xuatPDF vat tu:",e);
+                        flash("❌ Tạo ảnh thất bại: "+e.message);
+                      }finally{ setTqDangChiaSe(false); }
                     }}
                     style={{flex:1,border:"none",borderTop:"1px solid #e5e7eb",borderRight:"1px solid #e5e7eb",background:"#eff6ff",color:"#1d4ed8",fontWeight:700,fontSize:12,padding:"9px 0",cursor:tqDangChiaSe?"not-allowed":"pointer",opacity:tqDangChiaSe?0.6:1}}>
                     {tqDangChiaSe?"⏳ Đang tạo ảnh...":"📤 Xuất & chia sẻ"}
