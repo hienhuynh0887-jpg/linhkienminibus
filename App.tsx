@@ -4970,13 +4970,18 @@ Bạn có chắc chắn không?`;
                 const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===tqVtOpen.nguon);
                 const rows=tqVtOpen.field==="done"?itemsNg.filter(v=>v.done):itemsNg.filter(v=>!v.done);
                 const tieuDe=`${tqVtOpen.nguon} · ${tqVtOpen.field==="done"?"Đã nhận":"Còn thiếu"} (${rows.length})`;
-                const vtCols="30px 70px 1fr 56px 74px 74px 62px";
+                const vtCols="30px 70px 170px 64px 80px 80px 62px";
                 return(
                 <div style={{margin:"0 16px 16px",border:"1.5px solid #e5e7eb",borderRadius:10,overflow:"hidden"}}>
                   <div ref={tqVtRef} style={{background:"#fff"}}>
                     <div style={{padding:"8px 10px",background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
                       <b style={{fontSize:12,color:"#374151"}}>{tieuDe}</b>
                     </div>
+                    {/* ✅ FIX: bọc trong khung cuộn NGANG (giống bảng "Giao xe") thay vì để lưới tự
+                        co cột lại trên màn hình hẹp — trước đây cột "Tên vật tư" bị bóp quá hẹp khiến
+                        chữ bị bẻ xuống dòng từng ký tự một (rất khó đọc). */}
+                    <div style={{overflowX:"auto"}}>
+                    <div style={{minWidth:610}}>
                     <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                       <span>STT</span><span>Mã</span><span>Tên vật tư</span><span>Định mức</span><span>Vị trí</span><span>Nguồn gốc</span><span style={{textAlign:"right"}}>SL</span>
                     </div>
@@ -4998,6 +5003,8 @@ Bạn có chắc chắn không?`;
                           )}
                         </div>
                       ))}
+                    </div>
+                    </div>
                     </div>
                   </div>
                   <div style={{display:"flex"}}>
@@ -6915,7 +6922,8 @@ Bạn có chắc chắn không?`;
             </div>
             {phIt.length>0&&(
               <div style={{border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden",marginBottom:16}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:480}}>
                   <thead><tr style={{background:"#f8fafc"}}>
                     {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSL"),""].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontWeight:700,color:"#6b7280"}}>{h}</th>)}
                   </tr></thead>
@@ -6934,6 +6942,7 @@ Bạn có chắc chắn không?`;
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
             <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
