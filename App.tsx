@@ -5264,7 +5264,7 @@ Bạn có chắc chắn không?`;
           return(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* ── Bảng gộp: NỘI DUNG DỰ ÁN + NHẬN VẬT TƯ (THCK & CKD) song song, dùng chung STT/Tên dự án ── */}
-            <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #99f6e4"}}>
+            <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #1e3a8a"}}>
               <div style={{padding:"8px 14px",background:"#f0fdfa",fontSize:12,fontWeight:800,color:"#0f766e"}}>📋 NỘI DUNG DỰ ÁN &amp; NHẬN VẬT TƯ</div>
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",minWidth:920}}>
@@ -5301,11 +5301,11 @@ Bạn có chắc chắn không?`;
                         <td style={td}>{p.mo_ta||p.ten}</td>
                         <td style={td}>{p.ngay_khoi_tao||"—"}</td>
                         <td style={{...td,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</td>
-                        <td style={{...clickTd,color:"#374151"}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
-                        <td style={td}>{st.THCK.tongMa}</td>
+                        <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
+                        <td style={{...td,background:"#111827",color:"#fff",fontWeight:800}}>{st.THCK.tongMa}</td>
                         <td style={{...clickTd,color:"#0369a1"}} onClick={()=>toggleDt(p.id,"giao","THCK")} title="Xem chi tiết đã giao THCK">{st.THCK.daGiao}</td>
                         <td style={{...clickTd,color:"#16a34a"}} onClick={()=>toggleDt(p.id,"nhan","THCK")} title="Xem chi tiết đã nhận THCK">{st.THCK.daNhan}</td>
-                        <td style={td}>{st.CKD.tongMa}</td>
+                        <td style={{...td,background:"#111827",color:"#fff",fontWeight:800}}>{st.CKD.tongMa}</td>
                         <td style={{...clickTd,color:"#0369a1"}} onClick={()=>toggleDt(p.id,"giao","CKD")} title="Xem chi tiết đã giao CKD">{st.CKD.daGiao}</td>
                         <td style={{...clickTd,color:"#16a34a"}} onClick={()=>toggleDt(p.id,"nhan","CKD")} title="Xem chi tiết đã nhận CKD">{st.CKD.daNhan}</td>
                       </tr>
