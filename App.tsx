@@ -5108,7 +5108,7 @@ Bạn có chắc chắn không?`;
             setDtOpenDaTH(cur=>(cur&&cur.pid===pid_&&cur.kind===kind&&cur.nguon===nguon)?null:{pid:pid_,kind,nguon});
           };
           const vtCols="70px 1fr 62px";
-          const xeCols="50px 1fr 60px 1.2fr 72px 60px";
+          const xeCols="36px 50px 1fr 60px 1.2fr 72px 60px";
           return(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* ── Bảng gộp: NỘI DUNG DỰ ÁN + NHẬN VẬT TƯ (THCK & CKD) song song, dùng chung STT/Tên dự án ── */}
@@ -5146,7 +5146,7 @@ Bạn có chắc chắn không?`;
                         <td style={td}>{idx+1}</td>
                         <td style={{...td,fontWeight:700,color:"#1f2937",textAlign:"left"}}>{p.ten}</td>
                         <td style={td}>{sopRange(p)}</td>
-                        <td style={td}>{tenDongXe}</td>
+                        <td style={td}>{p.mo_ta||p.ten}</td>
                         <td style={td}>{p.ngay_khoi_tao||"—"}</td>
                         <td style={{...td,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</td>
                         <td style={{...clickTd,color:"#374151"}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
@@ -5181,14 +5181,14 @@ Bạn có chắc chắn không?`;
                   <div style={{overflowX:"auto"}}>
                     <div style={{minWidth:520}}>
                       <div style={{display:"grid",gridTemplateColumns:xeCols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
-                        <span>Sop</span><span>Dòng xe</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
+                        <span>Stt</span><span>Sop</span><span>Dòng xe</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
                       </div>
                       <div style={{maxHeight:296,overflowY:"auto"}}>
                         {rows.length===0?(
                           <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
                         ):rows.map((r,i)=>(
                           <div key={r.id} style={{display:"grid",gridTemplateColumns:xeCols,gap:4,padding:"6px 8px",fontSize:10.5,color:"#374151",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
-                            <span>{r.sop||"—"}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||dtProj.ten}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
+                            <span>{i+1}</span><span>{r.sop||"—"}</span><span style={{wordBreak:"break-word"}}>{r.dong_xe||r.ten||dtProj.ten}</span><span>{fmt(r.sl||0)}</span><span style={{wordBreak:"break-word"}}>{r.ho_va_ten||r.nguoi_duyet||"—"}</span><span>{r.ngay_giao||(r.ts?r.ts.slice(0,10):"—")}</span><span>{r.gio_giao||(r.ts?r.ts.slice(11,19):"—")}</span>
                           </div>
                         ))}
                       </div>
