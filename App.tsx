@@ -1985,18 +1985,24 @@ async function xuatExcel(rows, tenFile="BaoCao", tieuDe="Báo cáo vật tư"){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet((tieuDe||"Sheet1").slice(0,31));
   const cols = rows&&rows.length ? Object.keys(rows[0]) : [];
-  ws.columns = cols.map(c=>({header:String(c).toUpperCase(), key:c, width:Math.max(12,String(c).length+4)}));
+  // ✅ Mặc định canh GIỮA mọi cột — riêng "Tên vật tư" / "Vị trí" giữ canh TRÁI (dễ đọc nội
+  // dung dài hơn) và được nới rộng cột hơn để không bị bó chữ.
+  const colTrai=new Set(["Tên vật tư","Vị trí"]);
+  ws.columns = cols.map(c=>({header:String(c).toUpperCase(), key:c, width:colTrai.has(c)?Math.max(22,String(c).length+4):Math.max(12,String(c).length+4)}));
   (rows||[]).forEach(r=>ws.addRow(r));
 
   const thin={style:"thin",color:{argb:"FF9CA3AF"}};
   const border={top:thin,bottom:thin,left:thin,right:thin};
   ws.eachRow((row,rowIdx)=>{
-    row.eachCell({includeEmpty:true},cell=>{
+    row.eachCell({includeEmpty:true},(cell,colNumber)=>{
       cell.border=border;
       if(rowIdx===1){
         cell.font={bold:true,color:{argb:"FFFFFFFF"}};
         cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF1D4ED8"}};
         cell.alignment={vertical:"middle",horizontal:"center"};
+      }else{
+        const ten=cols[colNumber-1];
+        cell.alignment={vertical:"middle",horizontal:colTrai.has(ten)?"left":"center"};
       }
     });
   });
@@ -2019,8 +2025,9 @@ const BAO_CAO_STYLE=`
   p.sub{font-size:10px;color:#6b7280;margin-bottom:12px;}
   table{width:100%;border-collapse:collapse;font-size:10px;}
   thead tr{background:#1d4ed8;color:#fff;}
-  th{padding:5px 7px;text-align:left;font-weight:700;white-space:nowrap;}
-  td{padding:4px 7px;border-bottom:1px solid #e5e7eb;}
+  th{padding:5px 7px;text-align:center;font-weight:700;white-space:nowrap;}
+  td{padding:4px 7px;border-bottom:1px solid #e5e7eb;text-align:center;}
+  td.l,th.l{text-align:left;}
   tr:nth-child(even){background:#f8fafc;}
   .badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;}
   .ok{background:#d1fae5;color:#065f46;}
@@ -2403,10 +2410,16 @@ export default function App(){
     window.addEventListener("popstate", onPop);
     return ()=>window.removeEventListener("popstate", onPop);
   },[]);
-  // Dùng cho nút "← Trở về" trên cả 3 màn độc lập — đi qua history.back() để đồng bộ với back vật lý.
+  // Dùng cho nút "← Trở về" trên cả 3 màn độc lập — ĐI THẲNG về màn "Chọn khu vực quản lý dự
+  // án" (BƯỚC 3 của màn đăng nhập, xem LoginScreen step==="project") một cách chắc chắn, không
+  // phụ thuộc vào window.history.back()/popstate (trước đây có thể không đáng tin cậy — ví dụ
+  // khi không có đủ mốc lịch sử đã lưu, back() có thể thoát hẳn ra ngoài trang thay vì lùi đúng
+  // 1 bước trong app).
   const goBackScreen=()=>{
-    if(navRef.current){ window.history.back(); }
-    else{ setBackToGate(true); }
+    setShowTongQuan(false);
+    setShowKhoiTao(false);
+    setShowDaThucHien(false);
+    setBackToGate(true);
   };
   const [xhDaXNShowAll, setXhDaXNShowAll] = useState(false);
   const [search,   setSearch]   = useState("");
@@ -4837,7 +4850,7 @@ Bạn có chắc chắn không?`;
                     <div style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                       <span>STT</span><span>Dòng xe</span><span>Sop</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
                     </div>
-                    <div style={{maxHeight:230,overflowY:"auto"}}>
+                    <div style={{maxHeight:575,overflowY:"auto"}}>
                     {giaoXeLog.length===0?(
                       <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Chưa có dữ liệu giao xe —</div>
                     ):giaoXeLog.map((r,i)=>(
@@ -4919,7 +4932,7 @@ Bạn có chắc chắn không?`;
                     <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                       <span>STT</span><span>Mã</span><span>Tên vật tư</span><span>Định mức</span><span>Vị trí</span><span>Nguồn gốc</span><span style={{textAlign:"right"}}>SL</span>
                     </div>
-                    <div style={{maxHeight:tqDangChiaSe?"none":296,overflowY:tqDangChiaSe?"visible":"auto"}}>
+                    <div style={{maxHeight:tqDangChiaSe?"none":592,overflowY:tqDangChiaSe?"visible":"auto"}}>
                       {rows.length===0?(
                         <div style={{padding:14,textAlign:"center",fontSize:11,color:"#9ca3af"}}>— Không có mã nào —</div>
                       ):rows.map((v,i)=>(
@@ -4949,12 +4962,12 @@ Bạn có chắc chắn không?`;
                         // treo máy / quá thời gian chờ (timeout) khi danh sách dài — đồng thời có cùng
                         // định dạng (tiêu đề, cột, viền) với file Excel xuất ra.
                         const rowsHtml=rows.map((v,i)=>`<tr>
-                          <td>${i+1}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
-                          <td style="text-align:center">${v.dv||""}</td>
-                          <td>${v.vt||""}</td>
-                          <td style="text-align:right">${fmt(v.cn)}</td>
-                          <td style="text-align:right;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
-                          <td style="text-align:right;color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
+                          <td>${i+1}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
+                          <td>${v.dv||""}</td>
+                          <td class="l">${v.vt||""}</td>
+                          <td>${fmt(v.cn)}</td>
+                          <td style="color:#065f46;font-weight:700">${fmt(v.dn)}</td>
+                          <td style="color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                         </tr>`).join("");
                         const daNhanNg=itemsNg.filter(v=>v.done).length;
                         await xuatPDF(`<h2>📋 Chi tiết vật tư ${tqVtOpen.nguon} — ${tqVtOpen.field==="thieu"?"Còn thiếu":"Đã nhận"} (${rows.length} mã)</h2>
@@ -5446,11 +5459,11 @@ Bạn có chắc chắn không?`;
                   )}
                   onPDF={()=>{
                     const rows=filtered.map((v,i)=>`<tr>
-                      <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
+                      <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                       <td style="text-align:center">${v.dv}</td>
                       <td style="text-align:center">${fmt(v.dm)}</td>
                       <td style="text-align:center;font-weight:700;color:#065f46">${fmt(v.dm*soXe)}</td>
-                      <td>${v.ng}</td><td>${v.vt||""}</td><td>${v.jig||""}</td><td>${v.gc||""}</td>
+                      <td>${v.ng}</td><td class="l">${v.vt||""}</td><td>${v.jig||""}</td><td>${v.gc||""}</td>
                     </tr>`).join("");
                     xuatPDF(`<h2>${t("rpDs")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${filtered.length}/${bom.length} mã · ${soXe} xe</p>
@@ -5632,7 +5645,7 @@ Bạn có chắc chắn không?`;
                         const daSoan2=bom.filter(v=>soan[v.ma]?.on);
                         const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
                         const mkRow=(v,ok)=>`<tr>
-                          <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
+                          <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                           <td style="text-align:center">${v.dv}</td>
                           <td style="text-align:center">${fmt(v.dm*soXe)}</td>
                           <td style="text-align:center;font-weight:700">${ok?fmt(soan[v.ma]?.sl??v.dm*soXe):"—"}</td>
@@ -6128,7 +6141,7 @@ Bạn có chắc chắn không?`;
                     )}
                     onPDF={()=>{
                       const rows=f2.map(v=>`<tr>
-                        <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
+                        <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                         <td style="text-align:center">${v.dv}</td>
                         <td style="text-align:center">${fmt(v.cn)}</td>
                         <td style="text-align:center;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
@@ -6335,12 +6348,12 @@ Bạn có chắc chắn không?`;
                             )}
                             onPDF={()=>{
                               const rowsHtml=dataXuat.map(v=>`<tr>
-                                <td>${v.stt}</td><td><b>${v.ma}</b></td><td>${v.ten}</td>
-                                <td style="text-align:center">${v.dv||""}</td>
-                                <td>${v.vt||""}</td>
-                                <td style="text-align:right">${fmt(v.cn)}</td>
-                                <td style="text-align:right;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
-                                <td style="text-align:right;color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
+                                <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
+                                <td>${v.dv||""}</td>
+                                <td class="l">${v.vt||""}</td>
+                                <td>${fmt(v.cn)}</td>
+                                <td style="color:#065f46;font-weight:700">${fmt(v.dn)}</td>
+                                <td style="color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                               </tr>`).join("");
                               xuatPDF(`<h2>📋 Chi tiết vật tư ${nguon} — ${nhanXuat}</h2>
                                 <p class="sub">${proj.icon} ${proj.ten} · ${tongMa} mã · Đã nhận ${maDaNhanNg} · Còn thiếu ${maConThieuNg}</p>
