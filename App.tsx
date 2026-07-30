@@ -1071,6 +1071,11 @@ function LoginScreen({onLogin, resume, onLogout}){
   const [userList,setUserList]=useState(resume?.userList || USERS_DEF);
   const [authedUser,setAuthedUser]=useState(resume?.authedUser || null);
   const [lineQuyen,setLineQuyen]=useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
+  const [showCpw2, setShowCpw2] = useState(false);
+  const [cpwForm2, setCpwForm2] = useState({cur:"",next:"",confirm:""});
+  const [cpwShow2, setCpwShow2] = useState({cur:false,next:false,confirm:false});
+  const [cpwErr2, setCpwErr2] = useState("");
+  const [cpwOk2, setCpwOk2] = useState("");
   const {lang} = useLang();
   const t = LOGIN_I18N[lang];
 
@@ -1340,6 +1345,66 @@ function LoginScreen({onLogin, resume, onLogout}){
           Đăng xuất
         </button>
       </header>
+
+      {/* ✅ Nút "Đổi mật khẩu" — đặt ngay dưới đường gạch ngang của header, viền xanh lá chuối */}
+      <div style={{display:"flex",justifyContent:"flex-end",padding:"10px 6vw 0"}}>
+        <button onClick={()=>{setShowCpw2(true);setCpwForm2({cur:"",next:"",confirm:""});setCpwShow2({cur:false,next:false,confirm:false});setCpwErr2("");setCpwOk2("");}}
+          title="Đổi mật khẩu"
+          style={{border:"1.5px solid #a3e635",borderRadius:999,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,fontSize:12,padding:"7px 16px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+          🔑 Đổi mật khẩu
+        </button>
+      </div>
+
+      {showCpw2&&authedUser&&(
+        <div onClick={e=>{if(e.target===e.currentTarget){setShowCpw2(false);}}}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:16}}>
+          <div style={{background:"#fff",borderRadius:14,padding:22,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}}>
+            <div style={{fontWeight:800,fontSize:16,marginBottom:4,color:"#111827"}}>🔑 Đổi mật khẩu</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Tài khoản: <b>{authedUser.ten||authedUser.id}</b></div>
+            {[["cur","Mật khẩu hiện tại"],["next","Mật khẩu mới"],["confirm","Nhập lại mật khẩu mới"]].map(([key,label])=>(
+              <div key={key} style={{marginBottom:12}}>
+                <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:4}}>{label}</label>
+                <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+                  <input type={cpwShow2[key]?"text":"password"} value={cpwForm2[key]}
+                    onChange={e=>{setCpwForm2(f=>({...f,[key]:e.target.value}));setCpwErr2("");}}
+                    style={{width:"100%",padding:"9px 40px 9px 12px",border:"1.5px solid #d1d5db",borderRadius:8,fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                  <button type="button" onClick={()=>setCpwShow2(s=>({...s,[key]:!s[key]}))} tabIndex={-1}
+                    style={{position:"absolute",right:10,background:"none",border:"none",padding:0,cursor:"pointer",color:"#9ca3af",display:"flex"}}>
+                    {cpwShow2[key]?(
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    ):(
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s3-8 11-8 11 8 11 8-3 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {cpwErr2&&<div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {cpwErr2}</div>}
+            {cpwOk2&&<div style={{background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#065f46",marginBottom:12}}>✅ {cpwOk2}</div>}
+            <div style={{display:"flex",gap:8,marginTop:4}}>
+              <button onClick={()=>setShowCpw2(false)}
+                style={{flex:1,padding:"9px 0",borderRadius:8,border:"1.5px solid #d1d5db",background:"#fff",color:"#374151",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                Huỷ
+              </button>
+              <button onClick={async()=>{
+                setCpwErr2("");setCpwOk2("");
+                if(!cpwForm2.cur||!cpwForm2.next||!cpwForm2.confirm){setCpwErr2("Vui lòng điền đầy đủ!");return;}
+                if(cpwForm2.cur!==authedUser.pw){setCpwErr2("Mật khẩu hiện tại không đúng!");return;}
+                if(cpwForm2.next.length<4){setCpwErr2("Mật khẩu mới tối thiểu 4 ký tự!");return;}
+                if(cpwForm2.next!==cpwForm2.confirm){setCpwErr2("Mật khẩu mới không khớp!");return;}
+                const updated={...authedUser,pw:cpwForm2.next};
+                setAuthedUser(updated);
+                setUserList(us=>us.map(u=>u.id===authedUser.id?{...u,pw:cpwForm2.next}:u));
+                try{ await supabase.from("users").update({pw:cpwForm2.next}).eq("id",authedUser.id); }catch{}
+                setCpwOk2("Đổi mật khẩu thành công!");
+                setTimeout(()=>{setShowCpw2(false);setCpwOk2("");},1500);
+              }} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",background:"#65a30d",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {step==="select" && (
         <div id="select-view">
@@ -5302,12 +5367,12 @@ Bạn có chắc chắn không?`;
                         <td style={td}>{p.ngay_khoi_tao||"—"}</td>
                         <td style={{...td,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</td>
                         <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
-                        <td style={{...td,background:"#111827",color:"#fff",fontWeight:800}}>{st.THCK.tongMa}</td>
-                        <td style={{...clickTd,color:"#0369a1"}} onClick={()=>toggleDt(p.id,"giao","THCK")} title="Xem chi tiết đã giao THCK">{st.THCK.daGiao}</td>
-                        <td style={{...clickTd,color:"#16a34a"}} onClick={()=>toggleDt(p.id,"nhan","THCK")} title="Xem chi tiết đã nhận THCK">{st.THCK.daNhan}</td>
+                        <td style={{...td,background:"#374151",color:"#fff",fontWeight:800}}>{st.THCK.tongMa}</td>
+                        <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"giao","THCK")} title="Xem chi tiết đã giao THCK">{st.THCK.daGiao}</td>
+                        <td style={{...clickTd,background:"#374151",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"nhan","THCK")} title="Xem chi tiết đã nhận THCK">{st.THCK.daNhan}</td>
                         <td style={{...td,background:"#111827",color:"#fff",fontWeight:800}}>{st.CKD.tongMa}</td>
-                        <td style={{...clickTd,color:"#0369a1"}} onClick={()=>toggleDt(p.id,"giao","CKD")} title="Xem chi tiết đã giao CKD">{st.CKD.daGiao}</td>
-                        <td style={{...clickTd,color:"#16a34a"}} onClick={()=>toggleDt(p.id,"nhan","CKD")} title="Xem chi tiết đã nhận CKD">{st.CKD.daNhan}</td>
+                        <td style={{...clickTd,background:"#374151",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"giao","CKD")} title="Xem chi tiết đã giao CKD">{st.CKD.daGiao}</td>
+                        <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"nhan","CKD")} title="Xem chi tiết đã nhận CKD">{st.CKD.daNhan}</td>
                       </tr>
                       );
                     })}
