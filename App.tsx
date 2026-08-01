@@ -4981,7 +4981,7 @@ Bạn có chắc chắn không?`;
                   <div onClick={()=>openGiaoXeModal(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #fde68a"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
-                    <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>✎ Giao xe</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"#fff",background:"#000",border:"1.5px solid #a3e635",borderRadius:6,padding:"2px 8px",marginTop:4,display:"inline-block"}}>✎ Giao xe</div>
                   </div>
                   <div style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",border:"1px solid #fde68a"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
