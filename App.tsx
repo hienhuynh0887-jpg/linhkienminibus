@@ -38,8 +38,12 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_KEY || "", {
 //     ten text not null,
 //     icon text default '🚐',
 //     mau text default '#7c3aed',
-//     thu_tu integer default 0
+//     thu_tu integer default 0,
+//     dong_xe text default 'minibus'  -- ✅ mới: "12m" | "citybus" | "minibus" — mỗi loại BOM
+//                                     --   mẫu chỉ hiển thị cho đúng tab dòng xe tương ứng
 //   );
+//   -- Nếu bảng đã có sẵn từ trước, chạy thêm dòng dưới để bổ sung cột mới:
+//   alter table bom_mau_loai add column if not exists dong_xe text default 'minibus';
 //   insert into bom_mau_loai (id,ten,icon,mau,thu_tu) values
 //     ('xh','XE KIM MAI 9','🚗','#1d4ed8',1),
 //     ('mb2','XE MINIBUS X9','🚐','#b45309',2)
@@ -2666,8 +2670,35 @@ export default function App(){
   const bmXlsRef = useRef();
   // ── Quản lý LOẠI BOM mẫu (thêm/xóa loại) ──
   const [bmLoaiModal, setBmLoaiModal] = useState(false);
-  const [bmLoaiForm,  setBmLoaiForm]  = useState({ten:"",icon:"🚐",mau:"#7c3aed"});
+  const [bmLoaiForm,  setBmLoaiForm]  = useState({ten:"",icon:"🚐",mau:"#7c3aed",dongXe:activeLine||"minibus"});
   const [bmLoaiDelConfirm, setBmLoaiDelConfirm] = useState(null); // id loại đang chờ xác nhận xóa
+  // ✅ Mới: file BOM mẫu đính kèm ngay lúc TẠO loại mới (để có sẵn dữ liệu, khỏi Nhập Excel lại lần 2)
+  const [bmLoaiFilePreview, setBmLoaiFilePreview] = useState([]); // rows đọc được từ file
+  const [bmLoaiFileErr,     setBmLoaiFileErr]     = useState("");
+  const [bmLoaiFileName,    setBmLoaiFileName]    = useState("");
+  const bmLoaiFileRef = useRef();
+  const handleBmLoaiFile=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    setBmLoaiFileErr("");setBmLoaiFilePreview([]);setBmLoaiFileName(file.name);
+    parseXlsFile(file,(rows,err)=>{
+      if(err){setBmLoaiFileErr(err);return;}
+      setBmLoaiFilePreview(rows);
+    });
+    e.target.value="";
+  };
+  // ✅ Mới: tab lọc DANH SÁCH loại BOM mẫu theo DÒNG XE (12M / CITYBUS / MINIBUS) — mỗi loại
+  // được tạo cho dòng xe nào thì chỉ hiện ra khi đang xem đúng dòng xe đó (bmDongXeFilter).
+  const [bmDongXeFilter, setBmDongXeFilter] = useState(activeLine||"minibus");
+  // Khi đổi tab dòng xe (12M/CITYBUS/MINIBUS), nếu loại BOM mẫu đang xem (bmTab) không thuộc
+  // dòng xe vừa chọn thì tự nhảy sang loại đầu tiên thuộc dòng xe đó (tránh hiển thị nhầm dữ liệu).
+  useEffect(()=>{
+    const visible = bomMauLoaiList.filter(l=>(l.dong_xe||activeLine||"minibus")===bmDongXeFilter);
+    if(!visible.some(l=>l.id===bmTab)){
+      setBmTab(visible[0]?.id||"");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[bmDongXeFilter, bomMauLoaiList]);
 
   // Helper: lấy/ghi danh sách mã của loại BOM mẫu đang chọn (bmTab), hỗ trợ cả truyền
   // mảng trực tiếp lẫn hàm cập nhật (updater) như setState thông thường.
@@ -3938,15 +3969,23 @@ export default function App(){
     const base=slugifyLoaiId(ten);
     let id=base,n=2;
     while(bomMauLoaiList.some(l=>l.id===id)){id=`${base}_${n++}`;}
-    const newLoai={id,ten,icon:bmLoaiForm.icon.trim()||"🚐",mau:bmLoaiForm.mau||"#7c3aed",thu_tu:bomMauLoaiList.length+1};
+    const dongXe=bmLoaiForm.dongXe||activeLine||"minibus";
+    const newLoai={id,ten,icon:bmLoaiForm.icon.trim()||"🚐",mau:bmLoaiForm.mau||"#7c3aed",thu_tu:bomMauLoaiList.length+1,dong_xe:dongXe};
+    // Nếu người dùng có đính kèm file (Excel/CSV) lúc tạo → nạp sẵn luôn các mã vật tư
+    const fileRows = bmLoaiFilePreview.length
+      ? bmLoaiFilePreview.map((v,i)=>({id:v.ma,ten:v.ten,dv:v.dv||"Cái",dm:v.dm||1,ng:v.ng||"",vt:v.vt||"",jig:v.jig||"",gc:v.gc||"",stt:i+1,_id:Date.now()+i}))
+      : [];
     setBomMauLoaiList(l=>[...l,newLoai]);
-    setBomMauByLoai(m=>({...m,[id]:[]}));
+    setBomMauByLoai(m=>({...m,[id]:fileRows}));
     setBmTab(id);
+    setBmDongXeFilter(dongXe); // nhảy sang đúng tab dòng xe vừa tạo để thấy ngay loại mới
     setBmLoaiModal(false);
-    setBmLoaiForm({ten:"",icon:"🚐",mau:"#7c3aed"});
+    setBmLoaiForm({ten:"",icon:"🚐",mau:"#7c3aed",dongXe:activeLine||"minibus"});
+    setBmLoaiFilePreview([]);setBmLoaiFileErr("");setBmLoaiFileName("");
     try{
       await dbUpsertBomMauLoai(newLoai);
-      flash(`✓ Đã thêm loại BOM mẫu "${ten}"`);
+      if(fileRows.length) await dbUpsertBomMauRows(id, fileRows);
+      flash(`✓ Đã thêm loại BOM mẫu "${ten}"${fileRows.length?` cùng ${fileRows.length} mã từ file`:""}`);
     }catch(e){
       console.error("addBomMauLoai:",e);
       alert("⚠️ Lưu loại BOM mẫu lên Supabase thất bại: "+e.message+" — loại vẫn hiển thị tạm trên máy bạn, hãy kiểm tra kết nối/RLS rồi thử lại.");
@@ -6665,9 +6704,22 @@ Bạn có chắc chắn không?`;
                 <div style={{fontSize:12,opacity:.7}}>Thêm · Sửa · Xóa mã vật tư trong BOM mẫu gốc</div>
               </div>
 
-              {/* Switch loại BOM Mẫu — danh sách ĐỘNG, tự thêm được */}
+              {/* ✅ Tab DÒNG XE — lọc danh sách loại BOM mẫu bên dưới: loại tạo cho dòng xe nào
+                  thì CHỈ hiện ra khi đang chọn đúng tab dòng xe đó. */}
+              <div style={{display:"flex",gap:6,marginBottom:10}}>
+                {[{id:"12m",lb:"12M"},{id:"citybus",lb:"CITYBUS"},{id:"minibus",lb:"MINIBUS"}].map(dx=>(
+                  <button key={dx.id} onClick={()=>setBmDongXeFilter(dx.id)}
+                    style={{flex:1,padding:"8px 4px",borderRadius:8,border:`2px solid ${bmDongXeFilter===dx.id?"#4338ca":"#e5e7eb"}`,
+                      background:bmDongXeFilter===dx.id?"#4338ca":"#fff",color:bmDongXeFilter===dx.id?"#fff":"#6b7280",
+                      fontWeight:800,fontSize:12,cursor:"pointer",transition:"all .15s"}}>
+                    {dx.lb}
+                  </button>
+                ))}
+              </div>
+
+              {/* Switch loại BOM Mẫu — danh sách ĐỘNG, tự thêm được, đã lọc theo dòng xe */}
               <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-                {bomMauLoaiList.map(l=>(
+                {bomMauLoaiList.filter(l=>(l.dong_xe||activeLine||"minibus")===bmDongXeFilter).map(l=>(
                   <div key={l.id} style={{position:"relative",flex:"1 1 120px",minWidth:120}}>
                     <button onClick={()=>{setBmTab(l.id);setBmSearch("");}}
                       style={{width:"100%",padding:"10px 8px",borderRadius:10,border:`2px solid ${bmTab===l.id?l.mau:"#e5e7eb"}`,
@@ -6684,7 +6736,7 @@ Bạn có chắc chắn không?`;
                     )}
                   </div>
                 ))}
-                <button onClick={()=>{setBmLoaiForm({ten:"",icon:"🚐",mau:"#7c3aed"});setBmLoaiModal(true);}}
+                <button onClick={()=>{setBmLoaiForm({ten:"",icon:"🚐",mau:"#7c3aed",dongXe:bmDongXeFilter});setBmLoaiFilePreview([]);setBmLoaiFileErr("");setBmLoaiFileName("");setBmLoaiModal(true);}}
                   style={{flex:"1 1 120px",minWidth:120,padding:"10px 8px",borderRadius:10,
                     border:"2px dashed #a5b4fc",background:"#f5f3ff",color:"#4338ca",
                     fontWeight:700,fontSize:13,cursor:"pointer"}}>
@@ -6844,6 +6896,20 @@ Bạn có chắc chắn không?`;
                         <input value={bmLoaiForm.ten} onChange={e=>setBmLoaiForm(f=>({...f,ten:e.target.value}))}
                           style={inpSt} placeholder="VD: XE BUS X10..." autoFocus/>
                       </div>
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Dòng xe *</label>
+                        <div style={{display:"flex",gap:6}}>
+                          {[{id:"12m",lb:"12M"},{id:"citybus",lb:"CITYBUS"},{id:"minibus",lb:"MINIBUS"}].map(dx=>(
+                            <button key={dx.id} type="button" onClick={()=>setBmLoaiForm(f=>({...f,dongXe:dx.id}))}
+                              style={{flex:1,padding:"7px 4px",borderRadius:8,border:`2px solid ${bmLoaiForm.dongXe===dx.id?"#4338ca":"#e5e7eb"}`,
+                                background:bmLoaiForm.dongXe===dx.id?"#4338ca":"#fff",color:bmLoaiForm.dongXe===dx.id?"#fff":"#6b7280",
+                                fontWeight:800,fontSize:12,cursor:"pointer",transition:"all .15s"}}>
+                              {dx.lb}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>Loại BOM mẫu này sẽ chỉ hiển thị cho đúng dòng xe được chọn.</div>
+                      </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                         <div>
                           <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Icon</label>
@@ -6863,6 +6929,17 @@ Bạn có chắc chắn không?`;
                       </div>
                       <div style={{fontSize:11,color:"#9ca3af"}}>
                         Mã loại (id) sẽ được tự tạo từ tên: <b>{slugifyLoaiId(bmLoaiForm.ten)||"…"}</b>
+                      </div>
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>File tạo BOM mẫu (tùy chọn)</label>
+                        <input ref={bmLoaiFileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleBmLoaiFile}/>
+                        <button type="button" onClick={()=>bmLoaiFileRef.current.click()}
+                          style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px dashed #a5b4fc",
+                            background:"#f5f3ff",color:"#4338ca",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"left"}}>
+                          📎 {bmLoaiFileName?bmLoaiFileName:"Chọn file Excel/CSV để nạp sẵn mã vật tư..."}
+                        </button>
+                        {bmLoaiFileErr&&<div style={{fontSize:11,color:"#dc2626",marginTop:4}}>⚠️ {bmLoaiFileErr}</div>}
+                        {!!bmLoaiFilePreview.length&&<div style={{fontSize:11,color:"#16a34a",marginTop:4}}>✓ Đọc được {bmLoaiFilePreview.length} mã vật tư — sẽ nạp ngay sau khi tạo</div>}
                       </div>
                     </div>
                     <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:18}}>
