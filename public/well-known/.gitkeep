@@ -1,1 +1,12 @@
-
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kimlongmotor.app",
+      "sha256_cert_fingerprints": [
+        "THAY_BẰNG_SHA256_TỪ_BUBBLEWRAP_SAU_KHI_BUILD"
+      ]
+    }
+  }
+]
