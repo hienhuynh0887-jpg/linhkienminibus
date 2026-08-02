@@ -1,12 +1,8 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.kimlongmotor.app",
-      "sha256_cert_fingerprints": [
-        "THAY_BẰNG_SHA256_TỪ_BUBBLEWRAP_HOẶC_PWABUILDER_SAU_KHI_BUILD"
-      ]
-    }
-  }
-]
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.kimlongmotor.app",
+        "sha256_cert_fingerprints": ["B6:11:06:B1:18:0D:DB:BB:97:89:9C:B1:77:D2:10:ED:BA:5B:A2:E2:B3:EF:D4:35:D6:56:6E:77:22:D7:AD:0F"]
+      }
+    }]
