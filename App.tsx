@@ -5010,19 +5010,19 @@ Bạn có chắc chắn không?`;
           ):(
           <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
             {/* ── Khối 1: Tiến Trình Giao Xe ── */}
-            <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a",display:"flex",flexDirection:"column"}}>
+            <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #000",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>🚌</span>
                 <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ GIAO XE</span>
               </div>
               <div style={{padding:16,display:"flex",flexDirection:"column",flex:1}}>
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <div onClick={()=>openGiaoXeModal(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #fde68a"}}>
+                  <div onClick={()=>openGiaoXeModal(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #000"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
                     <div style={{fontSize:9,fontWeight:700,color:"#fff",background:"#000",border:"1.5px solid #a3e635",borderRadius:6,padding:"2px 8px",marginTop:4,display:"inline-block"}}>✎ Giao xe</div>
                   </div>
-                  <div style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",border:"1px solid #fde68a"}}>
+                  <div style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",border:"1px solid #000"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe còn lại</div>
                   </div>
@@ -5066,14 +5066,14 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
             {/* ── Khối 2: Tiến độ nhận vật tư (THCK / CKD) ── */}
-            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #fde68a",display:"flex",flexDirection:"column"}}>
+            <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #000",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>📦</span>
                 <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
               </div>
               <div style={{padding:"16px 16px 4px",display:"flex",flexDirection:"column",flex:1}}>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#fffbeb","#fde68a"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                {[["THCK","🏭","#b45309","#fffbeb","#000"],["CKD","📦","#0369a1","#fffbeb","#000"]].map(([nguon,icon,mau,bgLight,bd])=>{
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
