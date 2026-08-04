@@ -5712,8 +5712,8 @@ Bạn có chắc chắn không?`;
                       {v.ng&&<span style={{background:"#ede9fe",color:"#6d28d9",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>{v.ng}</span>}
                       {v.vt&&<span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>{v.vt}</span>}
                       {v.jig&&<span style={{background:"#f1f5f9",color:"#475569",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>JIG: {v.jig}</span>}
-                      <span style={{background:"#f0fdf4",color:"#166534",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thDVT")}: {v.dv} · {t("lbDM1XE")}: {fmt(v.dm)}</span>
-                      <span style={{background:"#dcfce7",color:"#065f46",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thCanNhan")}: {fmt(v.dm*soXe)}</span>
+                      <span style={{color:"#000",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv} {t("lbDM1XE")}: {fmt(v.dm)}</span>
+                      <span style={{color:"#000",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thCanNhan")}: {fmt(v.dm*soXe)}</span>
                       {v.gc&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{v.gc}</span>}
                     </div>
                   </div>
