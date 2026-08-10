@@ -4355,7 +4355,11 @@ export default function App(){
         // tuPhieuThieu:true để khớp với ngữ cảnh hiển thị badge "Đã nhận X (còn thiếu Y)"
         // (cùng công thức đã fix cho trường hợp Xưởng Hàn duyệt thiếu SL), tránh hiện ngược
         // thành "Còn thiếu Y (đã có X)" như trước.
-        if(conLai>0) next[v.ma]={on:false,sl:conLai,chuaDu:true,tuPhieuThieu:true};
+        // ⚠️ FIX MỚI: KHÔNG set sl=conLai nữa (trước đây gán nhầm SL Ô "SL THỰC" = SL CÒN
+        // THIẾU, khiến ô nhập hiển thị đúng bằng số thiếu thay vì SL cần soạn). Bỏ trống sl
+        // để ô nhập tự rơi về mặc định slCN (SL cần) qua công thức `soan[v.ma]?.sl ?? slCN`
+        // ở màn Soạn Hàng — badge "⚠️ thiếu X" vẫn hiển thị riêng để báo phần còn thiếu.
+        if(conLai>0) next[v.ma]={on:false,chuaDu:true,tuPhieuThieu:true};
         else delete next[v.ma];
       });
       const updated={...s,[pid]:next};
