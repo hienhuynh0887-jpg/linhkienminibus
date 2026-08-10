@@ -46,7 +46,7 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_KEY || "", {
 //   alter table bom_mau_loai add column if not exists dong_xe text default 'minibus';
 //   insert into bom_mau_loai (id,ten,icon,mau,thu_tu) values
 //     ('xh','XE KIM MAI 9','🚗','#1d4ed8',1),
-//     ('mb2','XE MINIBUS X9','🚐','#3b82f6',2)
+//     ('mb2','XE MINIBUS X9','🚐','#b45309',2)
 //   on conflict (id) do nothing;
 //
 //   create table if not exists bom_mau (
@@ -72,7 +72,7 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_KEY || "", {
 //
 const BOM_MAU_LOAI_DEFAULT = [
   {id:"xh",  ten:"XE KIM MAI 9",   icon:"🚗", mau:"#1d4ed8", thu_tu:1},
-  {id:"mb2", ten:"XE MINIBUS X9",  icon:"🚐", mau:"#3b82f6", thu_tu:2},
+  {id:"mb2", ten:"XE MINIBUS X9",  icon:"🚐", mau:"#b45309", thu_tu:2},
 ];
 // (Đã bỏ BOM_MAU_SEED — không còn seed mặc định cho BOM mẫu; xem bomMauByLoai bên dưới.)
 // Chuyển tên loại BOM mẫu → id (slug) khi tạo loại mới, đảm bảo không trùng.
@@ -88,7 +88,7 @@ const slugifyLoaiId = (ten) => {
 // (Đã bỏ SEED — dự án khởi tạo với BOM rỗng, dữ liệu thật chỉ đến từ Supabase.)
 const PROJS_DEF = [
   {id:"proj_xh", ten:"XE KIM MAI 9", mo_ta:"BOM XE KIM MAI 9 ( Bản mới ) · Nhà Máy Bus", mau:"#1d4ed8", icon:"🚐", so_xe:1},
-  {id:"proj_mb2",ten:"XE MINIBUS X9",  mo_ta:"BOM XE MINIBUS X9 ( Bản mới ) · Nhà Máy Bus",  mau:"#3b82f6", icon:"🚐", so_xe:1},
+  {id:"proj_mb2",ten:"XE MINIBUS X9",  mo_ta:"BOM XE MINIBUS X9 ( Bản mới ) · Nhà Máy Bus",  mau:"#b45309", icon:"🚐", so_xe:1},
 ];
 const uid=()=>`id${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`;
 
@@ -100,7 +100,7 @@ const getProjectBgColor = (projId, projs) => {
   // Map màu chủ sang màu nền nhạt
   const colorMap = {
     "#1d4ed8": "#eff6ff", // Xanh đậm → Xanh nhạt (Kim Mai)
-    "#3b82f6": "#f0f4ff", // Cam đậm → Cam nhạt (MINI Bus)
+    "#b45309": "#fef3c7", // Cam đậm → Cam nhạt (MINI Bus)
   };
   return colorMap[proj.mau] || "#f9fafb";
 };
@@ -116,9 +116,9 @@ const USERS_DEF = [
   {id:"admin",  ten:"Quản trị viên", pw:"thck2024", role:"thck",     don_vi:"Nhà máy THCK", avatar:"🏭", mau:"#1d4ed8"},
   {id:"thck01", ten:"Nguyễn Văn An", pw:"thck01",   role:"thck",     don_vi:"Nhà máy THCK", avatar:"👤", mau:"#1d4ed8"},
   {id:"thck02", ten:"Trần Thị Bích", pw:"thck02",   role:"thck",     don_vi:"Nhà máy THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"xh01",   ten:"Lê Văn Cường",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#3b82f6"},
-  {id:"xh02",   ten:"Phạm Thị Dung", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#3b82f6"},
-  {id:"xh03",   ten:"Hoàng Văn Em",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#3b82f6"},
+  {id:"xh01",   ten:"Lê Văn Cường",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh02",   ten:"Phạm Thị Dung", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh03",   ten:"Hoàng Văn Em",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
   {id:"kho",    ten:"Quản lý Kho",   pw:"kho2024",  role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"📦", mau:"#0f766e"},
   {id:"kho01",  ten:"Trần Văn Hùng", pw:"kho01",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"kho02",  ten:"Nguyễn Thị Lan",pw:"kho02",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
@@ -135,7 +135,7 @@ const USERS_DEF = [
   // (donViBaseRole): "KHO ..." → kho (Soạn Hàng), "XH_..." → xuonghan (Duyệt/Nhận Hàng).
   {id:"kho_citybus01", ten:"NV Kho CityBus",  pw:"citybus01", role:"kho",      don_vi:"KHO CITYBUS", avatar:"📦", mau:"#0fe0a4"},
   {id:"kho_12m01",     ten:"NV Kho 12M",      pw:"kho12m01",  role:"kho",      don_vi:"KHO 12M",     avatar:"📦", mau:"#2f8fff"},
-  {id:"xh_minibus01",  ten:"NV Xưởng Minibus",pw:"xhmini01",  role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#2563eb"},
+  {id:"xh_minibus01",  ten:"NV Xưởng Minibus",pw:"xhmini01",  role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#ff9a1f"},
   {id:"xh_citybus01",  ten:"NV Xưởng CityBus",pw:"xhcity01",  role:"xuonghan", don_vi:"XH_CITYBUS",  avatar:"🚌", mau:"#0fe0a4"},
   {id:"xh_12_01",      ten:"NV Xưởng 12M",    pw:"xh12m01",   role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
 ];
@@ -345,16 +345,18 @@ const KL_LOGO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAA
 
 const KL_LOGIN_CSS = `
 .kl-select-login{
-  --bg:#ffffff;
-  --panel:#f9fafb;
-  --panel-2:#f3f4f6;
-  --line:#e5e7eb;
-  --text:#1f2937;
-  --muted:#6b7280;
-  --steel:#3b82f6;
-  --teal:#10b981;
-  --amber:#1d4ed8;
-  background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+  --bg:#0d1318;
+  --panel:#1c2831;
+  --panel-2:#22303a;
+  --line:#37474f;
+  --text:#f5f9fb;
+  --muted:#a6b6c0;
+  --steel:#2f8fff;
+  --teal:#0fe0a4;
+  --amber:#ff9a1f;
+  background:
+    radial-gradient(ellipse at top, #131c22 0%, var(--bg) 55%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 26px);
   color:var(--text);
   font-family:'Inter', sans-serif;
   min-height:100vh;
@@ -384,8 +386,8 @@ const KL_LOGIN_CSS = `
 .kl-select-login .brand-textbox{
   display:flex; flex-direction:column; justify-content:center;
   gap:3px;
-  background:#ffffff;
-  border:2px solid #1d4ed8;
+  background:#050b1c;
+  border:2px solid #f97316;
   border-radius:10px;
   padding:8px 18px;
   min-height:64px;
@@ -475,9 +477,9 @@ const KL_LOGIN_CSS = `
 }
 .kl-select-login .card{
   position:relative;
-  background:#ffffff;
-  border:1.5px solid #e5e7eb;
-  border-radius:16px;
+  background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border:1px solid var(--line);
+  border-radius:26px 26px 14px 14px;
   padding:30px 22px 26px;
   cursor:pointer;
   transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
@@ -488,7 +490,7 @@ const KL_LOGIN_CSS = `
   gap:18px;
   isolation:isolate;
   overflow:hidden;
-  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  box-shadow:0 10px 26px -18px rgba(0,0,0,0.6);
 }
 .kl-select-login .card::before{
   content:"";
@@ -580,12 +582,11 @@ const KL_LOGIN_CSS = `
 .kl-select-login .login-box{
   width:100%;
   max-width:380px;
-  background:#ffffff;
-  border:1.5px solid #e5e7eb;
-  border-radius:16px;
+  background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border:1px solid var(--line);
+  border-radius:18px;
   padding:38px 34px 34px;
   position:relative;
-  box-shadow:0 4px 16px rgba(0,0,0,0.06);
 }
 .kl-select-login .login-box::before{
   content:"";
@@ -594,7 +595,7 @@ const KL_LOGIN_CSS = `
   background:var(--accent, var(--steel));
 }
 .kl-select-login .back-btn{
-  background:#f0f4ff; border:1.5px solid #1d4ed8; border-radius:999px; color:#1d4ed8;
+  background:rgba(249,115,22,0.08); border:1.5px solid #f97316; border-radius:999px; color:#fff;
   font-family:'JetBrains Mono', monospace;
   font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
   display:inline-flex; align-items:center; gap:6px;
@@ -602,7 +603,7 @@ const KL_LOGIN_CSS = `
   cursor:pointer; margin-bottom:22px;
   transition:color .2s ease, opacity .2s ease, background .2s ease;
 }
-.kl-select-login .back-btn:hover{background:#dbeafe; opacity:.9;}
+.kl-select-login .back-btn:hover{background:rgba(249,115,22,0.18); opacity:.9;}
 .kl-select-login .login-head{display:flex; align-items:center; gap:14px; margin-bottom:26px;}
 .kl-select-login .login-head .icon-wrap{width:52px; height:52px;}
 .kl-select-login .login-head .icon-wrap svg{width:28px; height:28px;}
@@ -621,11 +622,11 @@ const KL_LOGIN_CSS = `
 }
 .kl-select-login .field input{
   width:100%;
-  background:#f9fafb;
-  border:1.5px solid #d1d5db;
+  background:#0f161c;
+  border:1px solid var(--line);
   border-radius:8px;
   padding:12px 13px;
-  color:#1f2937;
+  color:var(--text);
   font-family:'Inter', sans-serif;
   font-size:14px;
   outline:none;
@@ -783,11 +784,11 @@ const KL_LOGIN_CSS = `
 }
 .kl-select-login .gate-box .field input{
   width:100%;
-  background:#f9fafb;
-  border:1.5px solid #d1d5db;
+  background:#fffaf5;
+  border:1.5px solid #ffcf9e;
   border-radius:10px;
   padding:12px 13px;
-  color:#1f2937;
+  color:#1c1c1c;
   font-family:'Inter', sans-serif;
   font-size:14px; font-weight:500;
   outline:none;
@@ -822,8 +823,8 @@ const KL_LOGIN_CSS = `
   letter-spacing:.08em;
 }
 .kl-select-login .gate-err{
-  background:#f0f4ff; border:1px solid #93c5fd; border-radius:8px;
-  padding:9px 13px; font-size:12px; color:#1e40af; margin-bottom:14px;
+  background:#fee2e2; border:1px solid #fca5a5; border-radius:8px;
+  padding:9px 13px; font-size:12px; color:#991b1b; margin-bottom:14px;
 }
 @media (max-width:820px){
   .kl-select-login .gate-grid{grid-template-columns:1fr; max-width:440px; margin:0; min-height:100vh; border-radius:0; border:none;}
@@ -957,13 +958,13 @@ const DIRECT_ENTRY_BY_DON_VI = {
 const getDirectEntry = (don_vi) => DIRECT_ENTRY_BY_DON_VI[normalizeDonViKey(don_vi)] || null;
 
 // ── Màu đặc trưng của từng dòng xe (dùng cho vòng tròn icon) ──
-const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#2563eb"};
+const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#ff9a1f"};
 // ✅ Hàm dùng chung: vẽ 1 vòng tròn tô màu bao quanh icon chiếc xe — áp dụng cho MỌI
 // dòng xe (12M / City Bus / Mini Bus...) và có thể tái sử dụng ở bất kỳ đâu cần hiển thị
 // icon dòng xe (badge "Dòng xe:", thẻ dự án, danh sách chọn dòng xe...). Màu vòng tròn
 // tự động lấy theo lineId; nếu không tìm thấy dùng màu mặc định (cam).
 function VehicleIconCircle({lineId, size=22, icon="🚌", color}){
-  const mau = color || LINE_ICON_COLOR[lineId] || "#2563eb";
+  const mau = color || LINE_ICON_COLOR[lineId] || "#ff9a1f";
   return (
     <span style={{width:size,height:size,minWidth:size,borderRadius:"50%",background:mau,
       display:"inline-flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",flexShrink:0}}>
@@ -1362,7 +1363,7 @@ function LoginScreen({onLogin, resume, onLogout}){
         <div onClick={e=>{if(e.target===e.currentTarget){setShowCpw2(false);}}}
           style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:16}}>
           <div style={{background:"#fff",borderRadius:14,padding:22,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}}>
-            <div style={{fontWeight:800,fontSize:16,marginBottom:4,color:"#ffffff"}}>🔑 Đổi mật khẩu</div>
+            <div style={{fontWeight:800,fontSize:16,marginBottom:4,color:"#111827"}}>🔑 Đổi mật khẩu</div>
             <div style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Tài khoản: <b>{authedUser.ten||authedUser.id}</b></div>
             {[["cur","Mật khẩu hiện tại"],["next","Mật khẩu mới"],["confirm","Nhập lại mật khẩu mới"]].map(([key,label])=>(
               <div key={key} style={{marginBottom:12}}>
@@ -1382,7 +1383,7 @@ function LoginScreen({onLogin, resume, onLogout}){
                 </div>
               </div>
             ))}
-            {cpwErr2&&<div style={{background:"#f0f4ff",border:"1px solid #93c5fd",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#1e40af",marginBottom:12}}>⚠️ {cpwErr2}</div>}
+            {cpwErr2&&<div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {cpwErr2}</div>}
             {cpwOk2&&<div style={{background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#065f46",marginBottom:12}}>✅ {cpwOk2}</div>}
             <div style={{display:"flex",gap:8,marginTop:4}}>
               <button onClick={()=>setShowCpw2(false)}
@@ -1449,7 +1450,7 @@ function LoginScreen({onLogin, resume, onLogout}){
             )}
           </main>
           {err&&(
-            <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#93c5fd"}}>
+            <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5"}}>
               ⚠️ {err}
             </div>
           )}
@@ -1488,7 +1489,7 @@ function LoginScreen({onLogin, resume, onLogout}){
             </div>
           </main>
           {err&&(
-            <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#93c5fd"}}>
+            <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5"}}>
               ⚠️ {err}
             </div>
           )}
@@ -1513,7 +1514,7 @@ function SignaturePad({initial, onSave, onClose}){
     const ctx = cv.getContext("2d");
     ctx.fillStyle = "#fff";
     ctx.fillRect(0,0,cv.width,cv.height);
-    ctx.strokeStyle = "#ffffff";
+    ctx.strokeStyle = "#111827";
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -1591,7 +1592,7 @@ function AccordionCard({icon,title,subtitle,badge,badgeColor="#1d4ed8",open,onTo
       <div onClick={onToggle} style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:10,cursor:onToggle?"pointer":"default",background:"#f8fafc",userSelect:"none"}}>
         <span style={{fontSize:17,flexShrink:0}}>{icon}</span>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:13,color:"#f9fafb",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#1f2937",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
             <span>{title}</span>
             {badge!=null&&<span style={{background:badgeColor,color:"#fff",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{badge}</span>}
           </div>
@@ -1608,7 +1609,7 @@ const StatCard=({icon,label,value,color})=>(
   <div style={{background:"#fff",borderRadius:10,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",gap:10}}>
     <div style={{width:34,height:34,borderRadius:9,background:color+"1a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{icon}</div>
     <div style={{minWidth:0}}>
-      <div style={{fontSize:16,fontWeight:800,color:"#f9fafb",lineHeight:1.1}}>{value}</div>
+      <div style={{fontSize:16,fontWeight:800,color:"#1f2937",lineHeight:1.1}}>{value}</div>
       <div style={{fontSize:10.5,color:"#6b7280",whiteSpace:"nowrap"}}>{label}</div>
     </div>
   </div>
@@ -1861,7 +1862,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   // được từng đơn vị như mong muốn.
   // NAY: mỗi ĐƠN VỊ (don_vi) có bảng tài khoản RIÊNG của mình — áp dụng chung cho MỌI
   // đơn vị tùy chỉnh, kể cả các đơn vị thêm sau này, không cần sửa code thêm nữa.
-  const roleMeta={thck:{icon:"🏭",mau:"#1d4ed8"},xuonghan:{icon:"🚗",mau:"#3b82f6"},kho:{icon:"📦",mau:"#0f766e"},khth:{icon:"📋",mau:"#7c3aed"}};
+  const roleMeta={thck:{icon:"🏭",mau:"#1d4ed8"},xuonghan:{icon:"🚗",mau:"#b45309"},kho:{icon:"📦",mau:"#0f766e"},khth:{icon:"📋",mau:"#7c3aed"}};
   const baseRoleOf=dv=>dv==="Nhà máy THCK"?"thck":dv==="XƯỞNG HÀN"?"xuonghan":dv==="KHO VẬT TƯ"?"kho":dv==="Phòng KH-TH"?"khth":donViBaseRole(dv);
   // Đề phòng tài khoản nào đó có don_vi không khớp bất kỳ đơn vị nào đang biết (đơn vị
   // đã bị xoá/đổi tên...) — vẫn gom vào 1 nhóm riêng theo đúng tên đó để KHÔNG có tài
@@ -1929,8 +1930,8 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                       <span style={{fontSize:10,color:"#cbd5e1"}}>—</span>
                     ):(
                       <div style={{display:"inline-flex",gap:6}}>
-                        <button onClick={()=>renameCustomDept(dv)} style={{...btn,background:"#f0f4ff",color:"#92400e",padding:"4px 9px",fontSize:11}}>Sửa</button>
-                        <button onClick={()=>deleteCustomDept(dv)} style={{...btn,background:confirmDelDept===dv?"#1e40af":"#f0f4ff",color:confirmDelDept===dv?"#fff":"#1e40af",padding:"4px 9px",fontSize:11,fontWeight:confirmDelDept===dv?800:600}}>{confirmDelDept===dv?"Bấm lại để xoá":"Xoá"}</button>
+                        <button onClick={()=>renameCustomDept(dv)} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"4px 9px",fontSize:11}}>Sửa</button>
+                        <button onClick={()=>deleteCustomDept(dv)} style={{...btn,background:confirmDelDept===dv?"#991b1b":"#fee2e2",color:confirmDelDept===dv?"#fff":"#991b1b",padding:"4px 9px",fontSize:11,fontWeight:confirmDelDept===dv?800:600}}>{confirmDelDept===dv?"Bấm lại để xoá":"Xoá"}</button>
                       </div>
                     )}
                   </td>
@@ -1942,7 +1943,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}>
           <button onClick={()=>addCustomDept(false)} style={{...btn,background:"#eef2ff",color:"#4338ca",fontWeight:700,padding:"7px 14px"}}>➕ Thêm đơn vị</button>
-          {flash2&&<span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#ffffff":"#16a34a"}}>{flash2}</span>}
+          {flash2&&<span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#dc2626":"#16a34a"}}>{flash2}</span>}
         </div>
       </AccordionCard>
 
@@ -1993,10 +1994,10 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          <span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#ffffff":"#16a34a",minWidth:160}}>{flash2}</span>
+          <span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#dc2626":"#16a34a",minWidth:160}}>{flash2}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:8}}>
             {editing&&<button onClick={()=>{resetForm();setAddOpen(false);}} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 14px"}}>Hủy</button>}
-            {currentUser.id==="xh04"&&<button onClick={lockOtherXH} style={{...btn,background:"#ffffff",color:"#fff",padding:"7px 14px"}}>🔒 Khóa XH khác</button>}
+            {currentUser.id==="xh04"&&<button onClick={lockOtherXH} style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 14px"}}>🔒 Khóa XH khác</button>}
             <button onClick={save} style={{...btn,background:"#1d4ed8",color:"#fff",padding:"7px 18px",fontSize:13}}>{editing?"Lưu cập nhật":"Thêm tài khoản"}</button>
           </div>
         </div>
@@ -2031,8 +2032,8 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                           :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
                       </td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
-                      <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#f0f4ff",color:"#92400e"}}>Sửa</button></td>
-                      <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#f0f4ff",color:u.id===currentUser.id?"#9ca3af":"#1e40af"}}>Xóa</button></td>
+                      <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
+                      <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -2140,8 +2141,8 @@ const BAO_CAO_STYLE=`
   tr:nth-child(even){background:#f8fafc;}
   .badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;}
   .ok{background:#d1fae5;color:#065f46;}
-  .warn{background:#f0f4ff;color:#92400e;}
-  .err{background:#f0f4ff;color:#1e40af;}
+  .warn{background:#fef3c7;color:#92400e;}
+  .err{background:#fee2e2;color:#991b1b;}
   .footer{margin-top:14px;font-size:9px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:6px;}
   @media print{body{padding:8px;}}
 `;
@@ -2356,7 +2357,7 @@ function AnhModal({src,onClose}){
 }
 
 function Prog({p,done,h=8}){
-  const c=done?"#16a34a":p>60?"#1d4ed8":"#e5e7eb";
+  const c=done?"#16a34a":p>60?"#f59e0b":"#ef4444";
   return(
     <div style={{flex:1,height:h,background:"#e5e7eb",borderRadius:99,overflow:"hidden"}}>
       <div style={{width:`${p}%`,height:"100%",background:c,borderRadius:99,transition:"width .3s"}}/>
@@ -2382,7 +2383,7 @@ function SlStepper({value,onChange,warn}){
     setRaw(String(n));
     onChange(n);
   };
-  const bd=warn?"#1d4ed8":"#c7d2fe";
+  const bd=warn?"#f59e0b":"#c7d2fe";
   const bg=warn?"#fffbeb":"#f0f4ff";
   const cl=warn?"#92400e":"#1d4ed8";
   return(
@@ -4798,7 +4799,7 @@ Bạn có chắc chắn không?`;
                 <button onClick={()=>newProjFileRef.current.click()} style={{...btn,background:"#7c3aed",color:"#fff",padding:"7px 14px",fontSize:12,width:"100%"}}>
                   📂 Chọn file Excel / CSV
                 </button>
-                {newProjXlsErr&&<div style={{marginTop:8,background:"#f0f4ff",borderRadius:6,padding:"7px 10px",fontSize:11,color:"#1e40af"}}>⚠️ {newProjXlsErr}</div>}
+                {newProjXlsErr&&<div style={{marginTop:8,background:"#fee2e2",borderRadius:6,padding:"7px 10px",fontSize:11,color:"#991b1b"}}>⚠️ {newProjXlsErr}</div>}
                 {newProjXlsPreview.length>0&&(
                   <div style={{marginTop:8,fontSize:12,color:"#065f46",fontWeight:700}}>
                     ✓ Đọc được {newProjXlsPreview.length} mã vật tư — sẽ lưu lên Supabase khi tạo dự án
@@ -4824,7 +4825,7 @@ Bạn có chắc chắn không?`;
       <div>
         <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Màu sắc</label>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {["#1d4ed8","#16a34a","#ffffff","#3b82f6","#7c3aed","#0891b2","#f9fafb"].map(c=>(
+          {["#1d4ed8","#16a34a","#dc2626","#b45309","#7c3aed","#0891b2","#1f2937"].map(c=>(
             <div key={c} onClick={()=>setNPF(f=>({...f,mau:c}))}
               style={{width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",border:nPF.mau===c?"3px solid #000":"3px solid transparent"}}/>
           ))}
@@ -4929,7 +4930,7 @@ Bạn có chắc chắn không?`;
         return(
         <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"14px 14px 40px"}}>
           <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 18px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-            <ScreenTopBar onBack={goBackScreen} badgeBorderColor="#1d4ed8" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
+            <ScreenTopBar onBack={goBackScreen} badgeBorderColor="#f59e0b" activeLine={activeLine} onLogout={handleLogoutScreenDocLap}/>
             <div style={{fontSize:13,fontWeight:800,letterSpacing:.5}}>DANH MỤC CÁC DỰ ÁN ĐANG THỰC HIỆN</div>
           </div>
           {/* Danh sách dự án ĐANG THỰC HIỆN — dạng THẺ (mỗi dự án 1 dòng full-width).
@@ -4939,7 +4940,7 @@ Bạn có chắc chắn không?`;
               và chuyển sang màn "Đã thực hiện" (Giai đoạn 03). */}
           {projs.filter(p=>p.trang_thai!=="hoan_thanh").length>0&&(()=>{
             const projsSorted=[...projs].filter(p=>p.trang_thai!=="hoan_thanh").sort((a,b)=>String(b.id||"").localeCompare(String(a.id||"")));
-            const sttMau=["#e5e7eb","#1d4ed8","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#6366f1","#84cc16"];
+            const sttMau=["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#6366f1","#84cc16"];
             // ✅ Điều kiện để nút "Hoàn thành" sáng lên và thao tác được: dự án phải ĐỒNG THỜI
             // (1) đã GIAO HẾT xe (da_giao ≥ so_xe) và (2) đã NHẬN ĐỦ vật tư (mọi mã trong BOM
             // của dự án đó đã được xác nhận nhận đủ số lượng cần). Tính riêng cho TỪNG dự án p
@@ -5013,18 +5014,18 @@ Bạn có chắc chắn không?`;
             <div style={{flex:"1 1 300px",minWidth:280,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #9ca3af",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>🚌</span>
-                <span style={{fontWeight:800,fontSize:14,color:"#3b82f6"}}>TIẾN ĐỘ GIAO XE</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ GIAO XE</span>
               </div>
               <div style={{padding:16,display:"flex",flexDirection:"column",flex:1}}>
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
                   <div onClick={()=>openGiaoXeModal(pid)} style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",cursor:"pointer",border:"1px solid #9ca3af"}}>
                     <div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{fmt(daGiao)}</div>
-                    <div style={{fontSize:13,fontWeight:800,color:"#3b82f6",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
+                    <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe đã giao</div>
                     <div style={{fontSize:9,fontWeight:700,color:"#fff",background:"#000",border:"1.5px solid #a3e635",borderRadius:6,padding:"2px 8px",marginTop:4,display:"inline-block"}}>✎ Giao xe</div>
                   </div>
                   <div style={{flex:1,textAlign:"center",background:"#fffbeb",borderRadius:8,padding:"10px 6px",border:"1px solid #9ca3af"}}>
-                    <div style={{fontWeight:800,fontSize:22,color:"#ffffff"}}>{fmt(conLai)}</div>
-                    <div style={{fontSize:13,fontWeight:800,color:"#3b82f6",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe còn lại</div>
+                    <div style={{fontWeight:800,fontSize:22,color:"#dc2626"}}>{fmt(conLai)}</div>
+                    <div style={{fontSize:13,fontWeight:800,color:"#b45309",background:"#fffbeb",borderRadius:6,padding:"3px 6px",marginTop:4}}>SL xe còn lại</div>
                   </div>
                 </div>
                 <div style={{marginTop:"auto"}}>
@@ -5046,7 +5047,7 @@ Bạn có chắc chắn không?`;
                   <div style={{marginTop:10,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
                     <div style={{overflowX:"auto"}}>
                     <div style={{minWidth:520}}>
-                    <div style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",background:"#ffffff",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                    <div style={{display:"grid",gridTemplateColumns:cols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                       <span>STT</span><span>Dòng xe</span><span>Sop</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
                     </div>
                     <div style={{maxHeight:575,overflowY:"auto"}}>
@@ -5069,11 +5070,11 @@ Bạn có chắc chắn không?`;
             <div style={{flex:"1 1 420px",minWidth:320,background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",border:"1.5px solid #9ca3af",display:"flex",flexDirection:"column"}}>
               <div style={{padding:"14px 16px",background:"#fffbeb",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>📦</span>
-                <span style={{fontWeight:800,fontSize:14,color:"#3b82f6"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#b45309"}}>TIẾN ĐỘ NHẬN VẬT TƯ</span>
               </div>
               <div style={{padding:"16px 16px 4px",display:"flex",flexDirection:"column",flex:1}}>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["THCK","🏭","#3b82f6","#fffbeb","#9ca3af"],["CKD","📦","#0369a1","#fffbeb","#9ca3af"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                {[["THCK","🏭","#b45309","#fffbeb","#9ca3af"],["CKD","📦","#0369a1","#fffbeb","#9ca3af"]].map(([nguon,icon,mau,bgLight,bd])=>{
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
@@ -5093,8 +5094,8 @@ Bạn có chắc chắn không?`;
                           <span style={{color:"#6b7280"}}>SL đã nhận</span><b style={{color:"#16a34a",textDecoration:"underline"}}>{fmt(maDaNhanNg)}</b>
                         </div>
                         <div onClick={()=>setTqVtOpen(s=>s.nguon===nguon&&s.field==="thieu"?{nguon:"",field:""}:{nguon,field:"thieu"})}
-                          style={{display:"flex",justifyContent:"space-between",fontSize:11,cursor:"pointer",padding:"3px 4px",borderRadius:6,background:tqVtOpen.nguon===nguon&&tqVtOpen.field==="thieu"?"#f0f4ff":"transparent"}}>
-                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#ffffff":"#16a34a",textDecoration:"underline"}}>{fmt(maConThieuNg)}</b>
+                          style={{display:"flex",justifyContent:"space-between",fontSize:11,cursor:"pointer",padding:"3px 4px",borderRadius:6,background:tqVtOpen.nguon===nguon&&tqVtOpen.field==="thieu"?"#fef2f2":"transparent"}}>
+                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a",textDecoration:"underline"}}>{fmt(maConThieuNg)}</b>
                         </div>
                       </div>
                     </div>
@@ -5133,7 +5134,7 @@ Bạn có chắc chắn không?`;
                         chữ bị bẻ xuống dòng từng ký tự một (rất khó đọc). */}
                     <div style={{overflowX:"auto"}}>
                     <div style={{minWidth:610}}>
-                    <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#ffffff",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                    <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                       <span>STT</span><span>Mã</span><span>Tên vật tư</span><span>Định mức</span><span>Vị trí</span><span>Nguồn gốc</span><span style={{textAlign:"right"}}>SL</span>
                     </div>
                     <div style={{maxHeight:tqDangChiaSe?"none":592,overflowY:tqDangChiaSe?"visible":"auto"}}>
@@ -5143,12 +5144,12 @@ Bạn có chắc chắn không?`;
                         <div key={v.id||v.ma} style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"7px 10px",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
                           <span style={{fontSize:10,color:"#94a3b8"}}>{i+1}</span>
                           <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3,wordBreak:"break-word"}}>{v.ma}</span>
-                          <span style={{fontSize:12,color:"#f9fafb",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
+                          <span style={{fontSize:12,color:"#1f2937",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
                           <span style={{fontSize:10.5,color:"#374151"}}>{fmt(v.dm)}</span>
                           <span style={{fontSize:10.5,color:"#374151",wordBreak:"break-word"}}>{v.vt||"—"}</span>
                           <span style={{fontSize:10.5,color:"#374151",wordBreak:"break-word"}}>{v.ng||"—"}</span>
                           {tqVtOpen.field==="thieu"?(
-                            <span style={{fontSize:10,fontWeight:800,color:"#ffffff",background:"#f0f4ff",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.ct)}</span>
+                            <span style={{fontSize:10,fontWeight:800,color:"#dc2626",background:"#fee2e2",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.ct)}</span>
                           ):(
                             <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.dn)}</span>
                           )}
@@ -5173,7 +5174,7 @@ Bạn có chắc chắn không?`;
                           <td class="l">${v.vt||""}</td>
                           <td>${fmt(v.cn)}</td>
                           <td style="color:#065f46;font-weight:700">${fmt(v.dn)}</td>
-                          <td style="color:${v.ct>0?"#ffffff":"#16a34a"}">${fmt(v.ct)}</td>
+                          <td style="color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                         </tr>`).join("");
                         const daNhanNg=itemsNg.filter(v=>v.done).length;
                         await xuatPDF(`<h2>📋 Chi tiết vật tư ${tqVtOpen.nguon} — ${tqVtOpen.field==="thieu"?"Còn thiếu":"Đã nhận"} (${rows.length} mã)</h2>
@@ -5228,7 +5229,7 @@ Bạn có chắc chắn không?`;
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}
               onClick={e=>{if(e.target===e.currentTarget)setGxModalPid(null);}}>
               <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-                <div style={{fontWeight:800,fontSize:15,color:"#3b82f6"}}>🚌 BẢNG TIẾN ĐỘ GIAO XE</div>
+                <div style={{fontWeight:800,fontSize:15,color:"#b45309"}}>🚌 BẢNG TIẾN ĐỘ GIAO XE</div>
                 <div style={{fontSize:11,color:"#6b7280",marginBottom:14}}>{p2?`${p2.icon||"🚐"} ${p2.ten}`:""}</div>
 
                 <div style={{borderTop:"1.5px dashed #e5e7eb",margin:"0 0 14px"}}/>
@@ -5250,7 +5251,7 @@ Bạn có chắc chắn không?`;
                     {gxForm.sop&&!availableSop.includes(gxForm.sop)&&<option value={gxForm.sop}>{gxForm.sop}</option>}
                   </select>
                   {allSop.length===0&&<div style={{fontSize:10,color:"#9ca3af",marginTop:3}}>Dự án chưa khai báo khoảng Sop.</div>}
-                  {allSop.length>0&&availableSop.length===0&&<div style={{fontSize:10,color:"#ffffff",marginTop:3}}>⚠️ Đã hết Sop khả dụng.</div>}
+                  {allSop.length>0&&availableSop.length===0&&<div style={{fontSize:10,color:"#dc2626",marginTop:3}}>⚠️ Đã hết Sop khả dụng.</div>}
                 </div>
 
                 <div style={{marginBottom:12}}>
@@ -5355,7 +5356,7 @@ Bạn có chắc chắn không?`;
             }
             return out;
           };
-          const thBold={fontSize:9,fontWeight:800,color:"#fff",textTransform:"uppercase",padding:"7px 9px",background:"#ffffff",textAlign:"center",whiteSpace:"nowrap"};
+          const thBold={fontSize:9,fontWeight:800,color:"#fff",textTransform:"uppercase",padding:"7px 9px",background:"#111827",textAlign:"center",whiteSpace:"nowrap"};
           const td={fontSize:12,color:"#374151",padding:"7px 9px",borderTop:"1px solid #f1f5f9",textAlign:"center"};
           const clickTd={...td,cursor:"pointer",textDecoration:"underline",textDecorationStyle:"dotted",fontWeight:800};
           const dt=dtOpenDaTH&&doneList.find(p=>p.id===dtOpenDaTH.pid)?dtOpenDaTH:null;
@@ -5377,7 +5378,7 @@ Bạn có chắc chắn không?`;
                       <th style={{...thBold,width:34}} rowSpan={2}>STT</th>
                       <th style={thBold} rowSpan={2}>Tên dự án</th>
                       <th style={thBold} colSpan={5}>Nội dung dự án</th>
-                      <th style={{...thBold,background:"#3b82f6"}} colSpan={3}>THCK</th>
+                      <th style={{...thBold,background:"#b45309"}} colSpan={3}>THCK</th>
                       <th style={{...thBold,background:"#0369a1"}} colSpan={3}>CKD</th>
                     </tr>
                     <tr>
@@ -5386,9 +5387,9 @@ Bạn có chắc chắn không?`;
                       <th style={thBold}>Ngày bắt đầu</th>
                       <th style={thBold}>Ngày kết thúc</th>
                       <th style={thBold}>SL xe</th>
-                      <th style={{...thBold,background:"#3b82f6"}}>Tổng mã</th>
-                      <th style={{...thBold,background:"#3b82f6"}}>Đã giao</th>
-                      <th style={{...thBold,background:"#3b82f6"}}>Đã nhận</th>
+                      <th style={{...thBold,background:"#b45309"}}>Tổng mã</th>
+                      <th style={{...thBold,background:"#b45309"}}>Đã giao</th>
+                      <th style={{...thBold,background:"#b45309"}}>Đã nhận</th>
                       <th style={{...thBold,background:"#0369a1"}}>Tổng mã</th>
                       <th style={{...thBold,background:"#0369a1"}}>Đã giao</th>
                       <th style={{...thBold,background:"#0369a1"}}>Đã nhận</th>
@@ -5400,18 +5401,18 @@ Bạn có chắc chắn không?`;
                       return(
                       <tr key={p.id} style={{background:idx%2?"#f9fafb":"#fff"}}>
                         <td style={td}>{idx+1}</td>
-                        <td style={{...td,fontWeight:700,color:"#f9fafb",textAlign:"left"}}>{p.ten}</td>
+                        <td style={{...td,fontWeight:700,color:"#1f2937",textAlign:"left"}}>{p.ten}</td>
                         <td style={td}>{sopRange(p)}</td>
                         <td style={td}>{p.mo_ta||p.ten}</td>
                         <td style={td}>{p.ngay_khoi_tao||"—"}</td>
                         <td style={{...td,fontWeight:700,color:"#0f766e"}}>{p.ngay_hoan_thanh||"—"}</td>
-                        <td style={{...clickTd,background:"#ffffff",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
+                        <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"xe")} title="Xem chi tiết giao xe">{p.so_xe||1}</td>
                         <td style={{...td,background:"#374151",color:"#fff",fontWeight:800}}>{st.THCK.tongMa}</td>
-                        <td style={{...clickTd,background:"#ffffff",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"giao","THCK")} title="Xem chi tiết đã giao THCK">{st.THCK.daGiao}</td>
+                        <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"giao","THCK")} title="Xem chi tiết đã giao THCK">{st.THCK.daGiao}</td>
                         <td style={{...clickTd,background:"#374151",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"nhan","THCK")} title="Xem chi tiết đã nhận THCK">{st.THCK.daNhan}</td>
-                        <td style={{...td,background:"#ffffff",color:"#fff",fontWeight:800}}>{st.CKD.tongMa}</td>
+                        <td style={{...td,background:"#111827",color:"#fff",fontWeight:800}}>{st.CKD.tongMa}</td>
                         <td style={{...clickTd,background:"#374151",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"giao","CKD")} title="Xem chi tiết đã giao CKD">{st.CKD.daGiao}</td>
-                        <td style={{...clickTd,background:"#ffffff",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"nhan","CKD")} title="Xem chi tiết đã nhận CKD">{st.CKD.daNhan}</td>
+                        <td style={{...clickTd,background:"#111827",color:"#fff",fontWeight:800}} onClick={()=>toggleDt(p.id,"nhan","CKD")} title="Xem chi tiết đã nhận CKD">{st.CKD.daNhan}</td>
                       </tr>
                       );
                     })}
@@ -5436,7 +5437,7 @@ Bạn có chắc chắn không?`;
                   return(
                   <div style={{overflowX:"auto"}}>
                     <div style={{minWidth:520}}>
-                      <div style={{display:"grid",gridTemplateColumns:xeCols,gap:4,padding:"6px 8px",background:"#ffffff",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                      <div style={{display:"grid",gridTemplateColumns:xeCols,gap:4,padding:"6px 8px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                         <span>Stt</span><span>Sop</span><span>Dòng xe</span><span>SL xe</span><span>Nhân sự giao</span><span>Ngày giao</span><span>Giờ giao</span>
                       </div>
                       <div style={{maxHeight:296,overflowY:"auto"}}>
@@ -5456,7 +5457,7 @@ Bạn có chắc chắn không?`;
                   return(
                   <div style={{overflowX:"auto"}}>
                     <div style={{minWidth:420}}>
-                      <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#ffffff",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                      <div style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"6px 10px",background:"#111827",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
                         <span>Mã</span><span>Tên vật tư</span><span style={{textAlign:"right"}}>SL</span>
                       </div>
                       <div style={{maxHeight:296,overflowY:"auto"}}>
@@ -5465,7 +5466,7 @@ Bạn có chắc chắn không?`;
                         ):items.map((v,i)=>(
                           <div key={v.id||v.ma} style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"7px 10px",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
                             <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3,wordBreak:"break-word"}}>{v.ma}</span>
-                            <span style={{fontSize:12,color:"#f9fafb",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
+                            <span style={{fontSize:12,color:"#1f2937",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
                             <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(dt.kind==="giao"?v.dnGui:v.dnXN)}</span>
                           </div>
                         ))}
@@ -5498,7 +5499,7 @@ Bạn có chắc chắn không?`;
     }
     return tabs;
   })();
-  const mauRole   = isTHCK ? "#1d4ed8" : isKHO ? "#0f766e" : isKHTH ? "#7c3aed" : "#3b82f6";
+  const mauRole   = isTHCK ? "#1d4ed8" : isKHO ? "#0f766e" : isKHTH ? "#7c3aed" : "#b45309";
 
   return(
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
@@ -5520,7 +5521,7 @@ Bạn có chắc chắn không?`;
             </div>
           </div>
           {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap",flexShrink:0}}>{msg}</span>}
-          {dbErr&&<span style={{fontSize:10,color:"#1e40af",background:"#f0f4ff",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}} title={dbErr}>⚠️</span>}
+          {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}} title={dbErr}>⚠️</span>}
         </div>
 
         <div style={{borderTop:"1px solid #eef1f7"}}/>
@@ -5565,7 +5566,7 @@ Bạn có chắc chắn không?`;
               <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:p.id===pid?`${p.mau||"#2563eb"}14`:"#fff",borderBottom:"1px solid #f1f5f9"}}>
                 <span onClick={()=>{sw(p.id);setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
                   <span style={{fontSize:16}}>{p.icon}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:p.id===pid?(p.mau||"#2563eb"):"#f9fafb",lineHeight:1.3}}>{p.ten}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:p.id===pid?(p.mau||"#2563eb"):"#1f2937",lineHeight:1.3}}>{p.ten}</span>
                 </span>
                 {p.id===pid&&<span style={{fontSize:11,color:p.mau||"#2563eb",flexShrink:0}}>●</span>}
                 <span onClick={(e)=>{e.stopPropagation();editProjName(p.id,p.ten);}} title="Sửa tên dự án" style={{fontSize:13,padding:"2px 4px",flexShrink:0,opacity:.55}}>✏️</span>
@@ -5586,7 +5587,7 @@ Bạn có chắc chắn không?`;
               <div key={l.id} onClick={()=>{setActiveLine(l.id);try{localStorage.setItem("activeLine",l.id);}catch{}setLinePickerOpen(false);}}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:l.id===activeLine?"#eaf2ff":"#fff",borderBottom:"1px solid #f1f5f9"}}>
                 <VehicleIconCircle lineId={l.id} size={20}/>
-                <span style={{fontSize:13,fontWeight:700,color:l.id===activeLine?"#2563eb":"#f9fafb"}}>{l.title}</span>
+                <span style={{fontSize:13,fontWeight:700,color:l.id===activeLine?"#2563eb":"#1f2937"}}>{l.title}</span>
                 {l.id===activeLine&&<span style={{marginLeft:"auto",fontSize:11,color:"#2563eb"}}>●</span>}
               </div>
             ))}
@@ -5596,14 +5597,14 @@ Bạn có chắc chắn không?`;
 
       {/* ⚠️ CẢNH BÁO MẤT KẾT NỐI SERVER — hiển thị to, rõ để không nhầm tưởng "mất dữ liệu" */}
       {dbErr&&(
-        <div style={{background:"#f0f4ff",borderBottom:"2px solid #ffffff",padding:"10px 16px",display:"flex",alignItems:"flex-start",gap:10}}>
+        <div style={{background:"#fef2f2",borderBottom:"2px solid #dc2626",padding:"10px 16px",display:"flex",alignItems:"flex-start",gap:10}}>
           <span style={{fontSize:20,lineHeight:1}}>⚠️</span>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:800,fontSize:13,color:"#1e40af"}}>Không kết nối được server — dữ liệu đang hiển thị có thể KHÔNG phải dữ liệu thật</div>
+            <div style={{fontWeight:800,fontSize:13,color:"#991b1b"}}>Không kết nối được server — dữ liệu đang hiển thị có thể KHÔNG phải dữ liệu thật</div>
             <div style={{fontSize:12,color:"#7f1d1d",marginTop:2}}>{dbErr}</div>
-            <div style={{fontSize:11,color:"#1e40af",marginTop:4,opacity:.85}}>Dữ liệu thật của bạn trên Supabase KHÔNG bị mất — thử tải lại trang (F5); nếu vẫn lỗi, kiểm tra biến môi trường trên Vercel rồi deploy lại.</div>
+            <div style={{fontSize:11,color:"#991b1b",marginTop:4,opacity:.85}}>Dữ liệu thật của bạn trên Supabase KHÔNG bị mất — thử tải lại trang (F5); nếu vẫn lỗi, kiểm tra biến môi trường trên Vercel rồi deploy lại.</div>
           </div>
-          <button onClick={()=>window.location.reload()} style={{...btn,background:"#ffffff",color:"#fff",padding:"6px 14px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>🔄 Tải lại</button>
+          <button onClick={()=>window.location.reload()} style={{...btn,background:"#dc2626",color:"#fff",padding:"6px 14px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>🔄 Tải lại</button>
         </div>
       )}
 
@@ -5675,7 +5676,7 @@ Bạn có chắc chắn không?`;
               {[
                 {v:fmt(soXe), l:"Xe", icon:"🚌", c:"#2563eb", badge:soXe>0?"Đủ":null, badgeColor:"#e2e8f0", badgeText:"#475569", onClick:isKHTH?undefined:editSoXe},
                 {v:fmt(bom.length), l:"Mã vật tư", icon:"🏷️", c:"#16a34a", badge:null},
-                {v:fmt(phList.length), l:"Phiếu", icon:"📄", c:"#1d4ed8", badge:phList.filter(p=>p.tt!=="Đã xác nhận").length>0?"Chờ":null, badgeColor:"#f0f4ff", badgeText:"#3b82f6"},
+                {v:fmt(phList.length), l:"Phiếu", icon:"📄", c:"#f59e0b", badge:phList.filter(p=>p.tt!=="Đã xác nhận").length>0?"Chờ":null, badgeColor:"#fef3c7", badgeText:"#b45309"},
                 {v:fmt(ls.length), l:"Giao dịch", icon:"🔄", c:"#7c3aed", badge:null},
               ].map((s,i)=>(
                 <div key={i} onClick={s.onClick} style={{background:"#fff",border:"1px solid #e4e9f2",borderLeft:`4px solid ${s.c}`,borderRadius:12,padding:"14px 14px",cursor:s.onClick?"pointer":"default"}}>
@@ -5756,7 +5757,7 @@ Bạn có chắc chắn không?`;
                 />
                 {isXH&&(
                   <button onClick={xoaToanBoBom} title="Xoá toàn bộ vật tư của dự án này"
-                    style={{border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,padding:"6px 13px",display:"flex",alignItems:"center",gap:5,background:"#f0f4ff",color:"#ffffff"}}>
+                    style={{border:"1px solid #fecaca",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,padding:"6px 13px",display:"flex",alignItems:"center",gap:5,background:"#fef2f2",color:"#dc2626"}}>
                     <span>🗑️</span> Xoá Bom
                   </button>
                 )}
@@ -5800,8 +5801,8 @@ Bạn có chắc chắn không?`;
                       : <span style={{color:"#d1d5db",fontSize:16}}>🖼</span>}
                     {!isKHTH&&(
                     <div style={{display:"flex",gap:5}}>
-                      <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#f0f4ff",color:"#92400e",padding:"5px 9px",fontSize:12}}>✏️</button>
-                      <button onClick={()=>del(v)} style={{...btn,background:"#f0f4ff",color:"#1e40af",padding:"5px 9px",fontSize:12}}>🗑️</button>
+                      <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"5px 9px",fontSize:12}}>✏️</button>
+                      <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"5px 9px",fontSize:12}}>🗑️</button>
                     </div>
                     )}
                   </div>
@@ -5862,7 +5863,7 @@ Bạn có chắc chắn không?`;
                   <div style={{flex:1}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
                       <span style={{fontWeight:700,fontSize:15}}>{t("titleSoan")} — {proj.icon} {proj.ten}</span>
-                      <span style={{background:"#f0f4ff",color:"#92400e",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}>🚌 {soXe} xe</span>
+                      <span style={{background:"#fef3c7",color:"#92400e",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}>🚌 {soXe} xe</span>
                       {soMaDaDuyet>0&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}>✅ Đã duyệt đủ: {soMaDaDuyet} mã (ẩn)</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -5874,8 +5875,8 @@ Bạn có chắc chắn không?`;
                       {[
                         ["Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
                         ["✅ Đã soạn",daSoan.length,"#16a34a","#f0fdf4"],
-                        ["⏳ Chưa soạn",chuaSoan.length,"#ffffff","#f0f4ff"],
-                        ["⚠️ Thiếu SL",soanThieuSet.size,"#3b82f6","#fffbeb"],
+                        ["⏳ Chưa soạn",chuaSoan.length,"#dc2626","#fef2f2"],
+                        ["⚠️ Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
                       ].map(([l,v,c,bg])=>(
                         <div key={l} style={{background:bg,borderRadius:8,padding:"6px 12px",minWidth:76,textAlign:"center"}}>
                           <div style={{fontWeight:800,fontSize:16,color:c}}>{v}</div>
@@ -5892,9 +5893,9 @@ Bạn có chắc chắn không?`;
                         ...(soanThieuSet.size>0?[["thieu",`⚠️ Thiếu SL (${soanThieuSet.size})`]]:[]),
                       ].map(([k,l])=>(
                         <button key={k} onClick={()=>setSoanFilter(k)}
-                          style={{border:`1.5px solid ${soanFilter===k?(k==="thieu"?"#1d4ed8":"#1d4ed8"):"#e5e7eb"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
+                          style={{border:`1.5px solid ${soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#e5e7eb"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
                             padding:"4px 12px",fontSize:11,fontWeight:700,
-                            background:soanFilter===k?(k==="thieu"?"#1d4ed8":"#1d4ed8"):"#f9fafb",
+                            background:soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#f9fafb",
                             color:soanFilter===k?"#fff":"#374151"}}>
                           {l}
                         </button>
@@ -5945,7 +5946,7 @@ Bạn có chắc chắn không?`;
                     />
                     
                     <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
-                      style={{...btn,background:xong?"#16a34a":"#1d4ed8",color:"#fff",padding:"7px 18px",fontSize:13,fontWeight:700,opacity:bom.length===0?.5:1}}>
+                      style={{...btn,background:xong?"#16a34a":"#f59e0b",color:"#fff",padding:"7px 18px",fontSize:13,fontWeight:700,opacity:bom.length===0?.5:1}}>
                       {xong?"✅ Gửi XƯỞNG HÀN":`📤 Gửi đơn (${daSoan.length}/${bom.length})`}
                     </button>
                   </div>
@@ -6005,9 +6006,9 @@ Bạn có chắc chắn không?`;
                       const canhBao=!!thV?.giaoThieu&&conThieu>0&&daGiaoXHDuyet>0;
                       return(
                         <div key={v.ma} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderBottom:i<filteredItems.length-1?"1px solid #f1f5f9":"none",background:canhBao?"#fffbeb":on?"#f0fdf4":"transparent",borderLeft:canhBao?"3px solid #fcd34d":"3px solid transparent"}}>
-                          <div onClick={()=>togSoan(v.ma,slCN)} style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?"#16a34a":canhBao?"#1d4ed8":"#d1d5db"}`,background:on?"#16a34a":canhBao?"#f0f4ff":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+                          <div onClick={()=>togSoan(v.ma,slCN)} style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?"#16a34a":canhBao?"#f59e0b":"#d1d5db"}`,background:on?"#16a34a":canhBao?"#fef3c7":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
                             {on&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
-                            {!on&&canhBao&&<span style={{color:"#1d4ed8",fontSize:12,fontWeight:700}}>…</span>}
+                            {!on&&canhBao&&<span style={{color:"#f59e0b",fontSize:12,fontWeight:700}}>…</span>}
                           </div>
                           {v.anh?<img src={v.anh} alt="" onClick={()=>setAnhPv(v.anh)} style={{width:28,height:28,objectFit:"cover",borderRadius:6,border:"1px solid #e5e7eb",cursor:"zoom-in",flexShrink:0}}/>
                             :<div style={{width:28,height:28,borderRadius:6,background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",color:"#d1d5db",flexShrink:0,fontSize:12}}>🖼</div>}
@@ -6019,14 +6020,14 @@ Bạn có chắc chắn không?`;
                             <div style={{fontSize:10,color:"#6b7280",marginTop:1,display:"flex",gap:8,flexWrap:"nowrap",overflow:"hidden",whiteSpace:"nowrap"}}>
                               <span style={{flexShrink:0}}>VT: <b>{v.vt||"—"}</b></span>
                               <span style={{color:"#065f46",fontWeight:700,flexShrink:0}}>Cần: {fmt(slCN)} {v.dv}</span>
-                              {canhBao&&<span style={{color:"#3b82f6",fontWeight:700,background:"#f0f4ff",borderRadius:4,padding:"0 5px",flexShrink:1,overflow:"hidden",textOverflow:"ellipsis"}}>⚠️ Đã giao: {fmt(daGiaoXHDuyet)} {v.dv} (thiếu {fmt(conThieu)})</span>}
+                              {canhBao&&<span style={{color:"#b45309",fontWeight:700,background:"#fef3c7",borderRadius:4,padding:"0 5px",flexShrink:1,overflow:"hidden",textOverflow:"ellipsis"}}>⚠️ Đã giao: {fmt(daGiaoXHDuyet)} {v.dv} (thiếu {fmt(conThieu)})</span>}
                             </div>
                           </div>
                           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
                             <label style={{fontSize:8,color:"#9ca3af",fontWeight:700}}>SL THỰC</label>
                             <SlStepper value={slV} warn={canhBao||slV!==slCN} onChange={n=>setSlSoan(v.ma,n,slCN)}/>
                             {canhBao&&<span style={{fontSize:8,color:"#7cb342",fontWeight:800,textAlign:"center"}}>thiếu {fmt(conThieu)}</span>}
-                            {!canhBao&&slV!==slCN&&<span style={{fontSize:8,color:"#1d4ed8"}}>≠ KH</span>}
+                            {!canhBao&&slV!==slCN&&<span style={{fontSize:8,color:"#f59e0b"}}>≠ KH</span>}
                           </div>
                           <div style={{width:20,height:20,borderRadius:"50%",background:on?"#d1fae5":"#f1f5f9",color:on?"#065f46":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,flexShrink:0}}>{v.stt}</div>
                         </div>
@@ -6066,11 +6067,11 @@ Bạn có chắc chắn không?`;
           const daXN=xhDaXNShowAll?daXNAll:daXNAll.slice(0,8);
           return(
             <div>
-              <div style={{background:"linear-gradient(135deg,#431407,#3b82f6)",borderRadius:12,padding:"16px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}>
+              <div style={{background:"linear-gradient(135deg,#431407,#b45309)",borderRadius:12,padding:"16px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}>
                 <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{t("titleDuyet")}</div>
                 <div style={{fontSize:12,opacity:.8}}>{proj.icon} {proj.ten} · Đơn từ Nhà máy THCK gửi · {choXN.length} chờ duyệt · {daXNAll.length} đã duyệt</div>
                 <div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
-                  {[["Chờ duyệt",choXN.length,"#93c5fd"],["Đã duyệt",daXNAll.length,"#6ee7b7"],["Tổng đơn",allPh.length,"#fff"]].map(([l,v,c])=>(
+                  {[["Chờ duyệt",choXN.length,"#fca5a5"],["Đã duyệt",daXNAll.length,"#6ee7b7"],["Tổng đơn",allPh.length,"#fff"]].map(([l,v,c])=>(
                     <div key={l} style={{textAlign:"center",background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px"}}>
                       <div style={{fontWeight:700,fontSize:18,color:c}}>{v}</div>
                       <div style={{fontSize:10,opacity:.8}}>{l}</div>
@@ -6117,7 +6118,7 @@ Bạn có chắc chắn không?`;
 
               {choXN.length>0&&(
                 <div style={{marginBottom:16}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#ffffff",marginBottom:8}}>⏳ Chờ duyệt ({choXN.length})</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#dc2626",marginBottom:8}}>⏳ Chờ duyệt ({choXN.length})</div>
                   {[...choXN].reverse().slice(0,showChoXN).map(ph=>{
                     const projName=projs.find(p=>p.id===ph.projId)?.ten||ph.projId;
                     const projBg = getProjectBgColor(ph.projId, projs);
@@ -6134,7 +6135,7 @@ Bạn có chắc chắn không?`;
                             {ph.gc&&<div style={{fontSize:11,color:"#92400e",marginTop:2}}>💬 {ph.gc}</div>}
                           </div>
                           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                            <button onClick={()=>huyDuyet(ph.id,ph.projId)} style={{...btn,background:"#fff",color:"#ffffff",border:"1.5px solid #ffffff",padding:"8px 14px",fontSize:13,fontWeight:700}}>
+                            <button onClick={()=>huyDuyet(ph.id,ph.projId)} style={{...btn,background:"#fff",color:"#dc2626",border:"1.5px solid #dc2626",padding:"8px 14px",fontSize:13,fontWeight:700}}>
                               ✕ Hủy duyệt đơn
                             </button>
                             <button onClick={()=>xacNhan(ph.id,ph.projId)} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 18px",fontSize:13,fontWeight:700}}>
@@ -6158,26 +6159,26 @@ Bạn có chắc chắn không?`;
                                 return(
                                 <tr key={c.id} style={{borderBottom:"1px solid #f1f5f9",background:c.ok?(c.sl_thieu>0?"#fffbeb":"#f0fdf4"):(c.sl>0?(i%2===0?"#fff":"#f9fafb"):(i%2===0?"#fff":"#fafafa"))}}>
                                   <td style={{padding:"7px 10px",color:"#9ca3af",fontSize:11}}>{c.stt}</td>
-                                  <td style={{padding:"7px 10px",fontWeight:700,color:"#3b82f6",fontFamily:"monospace",fontSize:11}}>{c.ma}</td>
+                                  <td style={{padding:"7px 10px",fontWeight:700,color:"#b45309",fontFamily:"monospace",fontSize:11}}>{c.ma}</td>
                                   <td style={{padding:"7px 10px",fontSize:12,maxWidth:180,textAlign:"left"}}>{c.ten}</td>
                                   <td style={{padding:"7px 10px",color:"#6b7280",textAlign:"center"}}>{c.dv}</td>
                                   <td style={{padding:"7px 10px",textAlign:"center",fontWeight:700,color:c.sl>0?"#065f46":"#9ca3af"}}>{c.sl>0?fmt(c.sl):"—"}</td>
                                   <td style={{padding:"7px 10px",textAlign:"center"}}>
                                     {c.ok
-                                      ?<span style={{fontWeight:700,color:c.sl_thieu>0?"#1d4ed8":"#1d4ed8"}}>{fmt(c.sl_thuc_nhan??c.sl)}</span>
+                                      ?<span style={{fontWeight:700,color:c.sl_thieu>0?"#f59e0b":"#1d4ed8"}}>{fmt(c.sl_thuc_nhan??c.sl)}</span>
                                       :<input type="number" min={0} max={c.sl}
                                           value={slThucVal}
                                           onChange={e=>setSlThucEdit(s=>({...s,[c.id]:parseInt(e.target.value)||0}))}
-                                          style={{width:60,padding:"3px 6px",border:`1.5px solid ${slThieu>0?"#1d4ed8":"#c7d2fe"}`,borderRadius:5,fontSize:12,textAlign:"center",background:slThieu>0?"#fffbeb":"#f0f4ff"}}/>
+                                          style={{width:60,padding:"3px 6px",border:`1.5px solid ${slThieu>0?"#f59e0b":"#c7d2fe"}`,borderRadius:5,fontSize:12,textAlign:"center",background:slThieu>0?"#fffbeb":"#f0f4ff"}}/>
                                     }
                                   </td>
                                   <td style={{padding:"7px 10px"}}>
                                     {c.ok
                                       ?(c.sl_thieu>0
-                                        ?<span style={{background:"#f0f4ff",color:"#92400e",borderRadius:10,padding:"2px 8px",fontSize:10,fontWeight:700}}>⚠️ Thiếu {fmt(c.sl_thieu)} → Soạn lại</span>
+                                        ?<span style={{background:"#fef3c7",color:"#92400e",borderRadius:10,padding:"2px 8px",fontSize:10,fontWeight:700}}>⚠️ Thiếu {fmt(c.sl_thieu)} → Soạn lại</span>
                                         :<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"2px 8px",fontSize:10,fontWeight:700}}>✅ Đã nhận đủ</span>)
                                       :(slThieu>0
-                                        ?<span style={{background:"#f0f4ff",color:"#92400e",borderRadius:10,padding:"2px 8px",fontSize:10}}>⚠️ Sẽ thiếu {fmt(slThieu)}</span>
+                                        ?<span style={{background:"#fef3c7",color:"#92400e",borderRadius:10,padding:"2px 8px",fontSize:10}}>⚠️ Sẽ thiếu {fmt(slThieu)}</span>
                                         :<span style={{background:"#f1f5f9",color:"#6b7280",borderRadius:10,padding:"2px 8px",fontSize:10}}>Chờ duyệt</span>)
                                     }
                                   </td>
@@ -6270,7 +6271,7 @@ Bạn có chắc chắn không?`;
                     <div style={{fontSize:12,opacity:.8,marginTop:3}}>{proj.icon} {proj.ten} · 🚌 {soXe} xe · {phList.length} phiếu</div>
                   </div>
                   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                    {[[`${t("progDaNhanNhan")} ✅`,maDone,"#6ee7b7"],[`${t("progThieuNhan")} ⚠️`,bom.length-maDone,"#93c5fd"],[t("progTongNhan"),bom.length,"#fff"]].map(([l,v,c])=>(
+                    {[[`${t("progDaNhanNhan")} ✅`,maDone,"#6ee7b7"],[`${t("progThieuNhan")} ⚠️`,bom.length-maDone,"#fca5a5"],[t("progTongNhan"),bom.length,"#fff"]].map(([l,v,c])=>(
                       <div key={l} style={{textAlign:"center",background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px"}}>
                         <div style={{fontWeight:700,fontSize:18,color:c}}>{v}</div>
                         <div style={{fontSize:10,opacity:.8}}>{l}</div>
@@ -6285,7 +6286,7 @@ Bạn có chắc chắn không?`;
                 <div style={{display:"flex",gap:20,marginTop:8,fontSize:12,opacity:.85,flexWrap:"wrap"}}>
                   <span>{t("progCan")}: <b>{fmt(totCN)}</b></span>
                   <span>{t("progDaNhan")}: <b style={{color:"#6ee7b7"}}>{fmt(totDN)}</b></span>
-                  <span>{t("progConThieu")}: <b style={{color:"#93c5fd"}}>{fmt(totCT)}</b></span>
+                  <span>{t("progConThieu")}: <b style={{color:"#fca5a5"}}>{fmt(totCT)}</b></span>
                 </div>
               </div>
               <div style={{background:"#fff",borderRadius:10,padding:"14px 16px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
@@ -6293,7 +6294,7 @@ Bạn có chắc chắn không?`;
                   <div style={{flex:1}}>
                     <input placeholder={t("searchPlaceholderMaPGN")} value={searchMa} onChange={e=>setSearchMa(e.target.value.toUpperCase())} style={{...inp,width:"100%"}}/>
                   </div>
-                  {searchMa&&<button onClick={()=>setSearchMa("")} style={{...btn,background:"#f0f4ff",color:"#ffffff",padding:"6px 12px",fontSize:12}}>{t("btnXoaTim")}</button>}
+                  {searchMa&&<button onClick={()=>setSearchMa("")} style={{...btn,background:"#fee2e2",color:"#dc2626",padding:"6px 12px",fontSize:12}}>{t("btnXoaTim")}</button>}
                 </div>
                 {searchMa&&(()=>{
                   const q=searchMa.toUpperCase();
@@ -6317,7 +6318,7 @@ Bạn có chắc chắn không?`;
                             <div style={{textAlign:"center"}}>{fmt(found.cn)}</div>
                             <div style={{textAlign:"center",color:"#16a34a"}}>{fmt(found.dn)}</div>
                             <div style={{textAlign:"center",color:"#1d4ed8"}}>{found.p}%</div>
-                            <div style={{textAlign:"center",color:found.done?"#16a34a":"#ffffff"}}>{found.done?t("trangThaiDu"):t("trangThaiThieu")}</div>
+                            <div style={{textAlign:"center",color:found.done?"#16a34a":"#dc2626"}}>{found.done?t("trangThaiDu"):t("trangThaiThieu")}</div>
                           </div>
                           {phChiTiet.length>0?(
                             <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #e5e7eb"}}>
@@ -6368,7 +6369,7 @@ Bạn có chắc chắn không?`;
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                           <span style={{fontWeight:700,fontSize:14}}>📄 {ph.sp}</span>
-                          <Tag bg={ph.tt==="Đã xác nhận"?"#d1fae5":"#f0f4ff"} c={ph.tt==="Đã xác nhận"?"#065f46":"#92400e"} ch={ph.tt}/>
+                          <Tag bg={ph.tt==="Đã xác nhận"?"#d1fae5":"#fef3c7"} c={ph.tt==="Đã xác nhận"?"#065f46":"#92400e"} ch={ph.tt}/>
                           <span style={{fontSize:11,color:"#9ca3af"}}>📅 {ph.ngay}</span>
                           <span style={{fontSize:11,color:"#6b7280"}}>📦 {ph.tong} mã</span>
                           {ph.nguoi_soan&&<span style={{fontSize:11,color:"#7c3aed",fontWeight:600}}>👤 {ph.nguoi_soan}</span>}
@@ -6403,7 +6404,7 @@ Bạn có chắc chắn không?`;
                   {DMP.map(d=><option key={d}>{d}</option>)}
                 </select>
                 <div style={{display:"flex",gap:4}}>
-                  {[["all","Tất cả","#6b7280"],["thieu",`⚠️ Còn thiếu (${bom.length-maDone})`,"#ffffff"],["du",`✅ Đã nhận (${maDone})`,"#16a34a"]].map(([v,l,c])=>(
+                  {[["all","Tất cả","#6b7280"],["thieu",`⚠️ Còn thiếu (${bom.length-maDone})`,"#dc2626"],["du",`✅ Đã nhận (${maDone})`,"#16a34a"]].map(([v,l,c])=>(
                     <button key={v} onClick={()=>setPgnSO(v)} style={{...btn,background:pgnSO===v?c:"#f3f4f6",color:pgnSO===v?"#fff":"#374151",padding:"5px 12px",fontSize:11}}>{l}</button>
                   ))}
                 </div>
@@ -6428,7 +6429,7 @@ Bạn có chắc chắn không?`;
                         <td style="text-align:center">${v.dv}</td>
                         <td style="text-align:center">${fmt(v.cn)}</td>
                         <td style="text-align:center;color:#065f46;font-weight:700">${fmt(v.dn)}</td>
-                        <td style="text-align:center;color:${v.done?"#16a34a":"#ffffff"};font-weight:700">${v.done?"✅":fmt(v.ct)}</td>
+                        <td style="text-align:center;color:${v.done?"#16a34a":"#dc2626"};font-weight:700">${v.done?"✅":fmt(v.ct)}</td>
                         <td style="text-align:center">${v.p}%</td>
                         <td>${v.ng||""}</td>
                         <td><span class="badge ${v.done?"ok":v.chuaSoan?"":"warn"}">${v.done?"✅ Đã nhận":v.chuaSoan?"📭 Chưa soạn":"⚠️ Thiếu"}</span></td>
@@ -6436,7 +6437,7 @@ Bạn có chắc chắn không?`;
                       xuatPDF(`<h2>${t("rpPgn")}</h2>
                         <p class="sub">${proj.icon} ${proj.ten} · ${soXe} xe · ${phList.length} phiếu · ${f2.length} mã</p>
                         <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thDaNhan")}</th><th>${t("thConThieu")}</th><th>%</th><th>${t("thNguonGoc")}</th><th>${t("thTrangThai")}</th></tr></thead><tbody>${rows}</tbody>
-                        <tfoot><tr style="background:#f8fafc;font-weight:700"><td colspan="4">Tổng (${f2.length} mã)</td><td style="text-align:center">${fmt(f2.reduce((s,v)=>s+v.cn,0))}</td><td style="text-align:center;color:#065f46">${fmt(f2.reduce((s,v)=>s+v.dn,0))}</td><td style="text-align:center;color:#ffffff">${fmt(f2.reduce((s,v)=>s+v.ct,0))}</td><td colspan="3"></td></tr></tfoot>
+                        <tfoot><tr style="background:#f8fafc;font-weight:700"><td colspan="4">Tổng (${f2.length} mã)</td><td style="text-align:center">${fmt(f2.reduce((s,v)=>s+v.cn,0))}</td><td style="text-align:center;color:#065f46">${fmt(f2.reduce((s,v)=>s+v.dn,0))}</td><td style="text-align:center;color:#dc2626">${fmt(f2.reduce((s,v)=>s+v.ct,0))}</td><td colspan="3"></td></tr></tfoot>
                         </table>`,`PhieuGN_${proj.ten}`);
                     }}
                   />
@@ -6474,7 +6475,7 @@ Bạn có chắc chắn không?`;
                             <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv}</span>
                             <span style={{background:"#f1f5f9",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10}}>{t("thCan")}: {fmt(v.cn)}</span>
                             <span style={{background:v.dn>0?"#d1fae5":"#f1f5f9",color:v.dn>0?"#065f46":"#9ca3af",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDaNhan")}: {fmt(v.dn)}</span>
-                            {v.vuot>0&&<span style={{background:"#f0f4ff",color:"#3b82f6",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
+                            {v.vuot>0&&<span style={{background:"#fef3c7",color:"#b45309",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>+{fmt(v.vuot)} vượt</span>}
                             <span style={{background:v.done?"#dcfce7":v.choDuyet?"#e0f2fe":"#fff7ed",color:v.done?"#16a34a":v.choDuyet?"#0369a1":"#ea580c",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{v.done?"✅ Đủ":v.choDuyet?"🕓 Đã giao đủ — chờ duyệt":`${t("thConThieu")}: ${fmt(v.ct)}`}</span>
                           </div>
                         </div>
@@ -6492,7 +6493,7 @@ Bạn có chắc chắn không?`;
                       <span style={{display:"flex",gap:16,fontSize:11,flexWrap:"wrap"}}>
                         <span>{t("progCan")}: <b>{fmt(f2.reduce((s,v)=>s+v.cn,0))}</b></span>
                         <span style={{color:"#065f46"}}>{t("thDaNhan")}: <b>{fmt(f2.reduce((s,v)=>s+v.dn,0))}</b></span>
-                        <span style={{color:"#ffffff"}}>{t("thConThieu")}: <b>{fmt(f2.reduce((s,v)=>s+v.ct,0))}</b></span>
+                        <span style={{color:"#dc2626"}}>{t("thConThieu")}: <b>{fmt(f2.reduce((s,v)=>s+v.ct,0))}</b></span>
                       </span>
                     </div>
                   )}
@@ -6534,12 +6535,12 @@ Bạn có chắc chắn không?`;
               <div style={{background:"#fff",borderRadius:10,padding:"14px 18px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Tiến độ theo Vị trí</div>
                 <button onClick={()=>setBcViTriChiTiet(x=>!x)}
-                  style={{...btn,background:"#ffffff",color:"#fff",padding:"7px 16px",fontSize:12,fontWeight:700,marginBottom:bcViTriChiTiet?14:0}}>
+                  style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 16px",fontSize:12,fontWeight:700,marginBottom:bcViTriChiTiet?14:0}}>
                   {bcViTriChiTiet?"▲ Ẩn chi tiết":"▼ Xem chi tiết"}
                 </button>
                 {bcViTriChiTiet&&(
                 <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
-                  {[["THCK","🏭","#3b82f6"],["CKD","📦","#0369a1"]].map(([nguon,icon,mau])=>(
+                  {[["THCK","🏭","#b45309"],["CKD","📦","#0369a1"]].map(([nguon,icon,mau])=>(
                     <div key={nguon} style={{flex:"1 1 300px",minWidth:260}}>
                       <div style={{fontWeight:700,fontSize:12,marginBottom:10,color:mau}}>{icon} {nguon}</div>
                       {(()=>{
@@ -6577,7 +6578,7 @@ Bạn có chắc chắn không?`;
                 <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>📋 Chi tiết vật tư theo nguồn</span>
               </div>
               <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:14}}>
-                {[["THCK","🏭","#3b82f6","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
+                {[["THCK","🏭","#b45309","#fffbeb","#fde68a"],["CKD","📦","#0369a1","#eff6ff","#bae6fd"]].map(([nguon,icon,mau,bgLight,bd])=>{
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
@@ -6603,10 +6604,10 @@ Bạn có chắc chắn không?`;
                             <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Đã nhận</div>
                             <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>{filterMode==="done"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
                           </div>
-                          <div onClick={()=>chonLoc("thieu")} style={{flex:1,textAlign:"center",background:filterMode==="thieu"?"#f0f4ff":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="thieu"?"1.5px solid #ffffff":"1.5px solid transparent"}}>
-                            <div style={{fontWeight:800,fontSize:18,color:maConThieuNg>0?"#ffffff":"#16a34a"}}>{maConThieuNg}</div>
+                          <div onClick={()=>chonLoc("thieu")} style={{flex:1,textAlign:"center",background:filterMode==="thieu"?"#fee2e2":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="thieu"?"1.5px solid #dc2626":"1.5px solid transparent"}}>
+                            <div style={{fontWeight:800,fontSize:18,color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{maConThieuNg}</div>
                             <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Còn thiếu</div>
-                            <div style={{fontSize:9,fontWeight:700,color:"#ffffff",marginTop:2}}>{filterMode==="thieu"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
+                            <div style={{fontSize:9,fontWeight:700,color:"#dc2626",marginTop:2}}>{filterMode==="thieu"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
                           </div>
                         </div>
                         <div style={{display:"flex",justifyContent:"flex-end"}}>
@@ -6636,7 +6637,7 @@ Bạn có chắc chắn không?`;
                                 <td class="l">${v.vt||""}</td>
                                 <td>${fmt(v.cn)}</td>
                                 <td style="color:#065f46;font-weight:700">${fmt(v.dn)}</td>
-                                <td style="color:${v.ct>0?"#ffffff":"#16a34a"}">${fmt(v.ct)}</td>
+                                <td style="color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                               </tr>`).join("");
                               xuatPDF(`<h2>📋 Chi tiết vật tư ${nguon} — ${nhanXuat}</h2>
                                 <p class="sub">${proj.icon} ${proj.ten} · ${tongMa} mã · Đã nhận ${maDaNhanNg} · Còn thiếu ${maConThieuNg}</p>
@@ -6650,7 +6651,7 @@ Bạn có chắc chắn không?`;
                       </div>
                       {filterMode&&(
                         <div style={{padding:10,display:"flex",flexDirection:"column",gap:8}}>
-                          <div style={{fontSize:11,fontWeight:700,color:filterMode==="done"?"#16a34a":"#ffffff",padding:"2px 4px"}}>
+                          <div style={{fontSize:11,fontWeight:700,color:filterMode==="done"?"#16a34a":"#dc2626",padding:"2px 4px"}}>
                             {filterMode==="done"?`✅ Danh sách Đã nhận (${itemsFiltered.length} mã)`:`📉 Danh sách Còn thiếu (${itemsFiltered.length} mã)`}
                           </div>
                           {itemsFiltered.length===0?(
@@ -6663,13 +6664,13 @@ Bạn có chắc chắn không?`;
                               <div key={dm} style={{border:`1px solid ${dDn?"#bbf7d0":"#e5e7eb"}`,borderRadius:8,overflow:"hidden"}}>
                                 <div onClick={()=>togDm(nguon+"__"+dm)} style={{padding:"8px 12px",background:dDn?"#f0fdf4":"#f8fafc",borderBottom:isO?"1px solid #e5e7eb":"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",flexWrap:"wrap"}}>
                                   <span>{isO?"▾":"▸"}</span>
-                                  <span style={{fontWeight:700,fontSize:12,color:dDn?"#065f46":"#f9fafb"}}>{dm}</span>
+                                  <span style={{fontWeight:700,fontSize:12,color:dDn?"#065f46":"#1f2937"}}>{dm}</span>
                                   {dDn&&<span>✅</span>}
                                   <span style={{fontSize:10,color:"#6b7280"}}>{items.length} mã</span>
                                   <div style={{flex:1}}/>
                                   <span style={{fontSize:10,color:"#6b7280"}}>Cần: <b>{fmt(dC)}</b></span>
                                   <span style={{fontSize:10,color:"#065f46"}}>Nhận: <b>{fmt(dD)}</b></span>
-                                  <span style={{fontSize:10,color:dDn?"#16a34a":"#ffffff"}}>Thiếu: <b>{fmt(dT)}</b></span>
+                                  <span style={{fontSize:10,color:dDn?"#16a34a":"#dc2626"}}>Thiếu: <b>{fmt(dT)}</b></span>
                                 </div>
                                 {isO&&(
                                   <div style={{padding:8,display:"flex",flexDirection:"column",gap:5}}>
@@ -6808,7 +6809,7 @@ Bạn có chắc chắn không?`;
                     {bomMauLoaiList.length>1&&(
                       <button title="Xóa loại BOM mẫu này" onClick={()=>setBmLoaiDelConfirm(l.id)}
                         style={{position:"absolute",top:-6,right:-6,width:20,height:20,borderRadius:"50%",
-                          border:"none",background:"#ffffff",color:"#fff",fontSize:11,lineHeight:"20px",
+                          border:"none",background:"#dc2626",color:"#fff",fontSize:11,lineHeight:"20px",
                           cursor:"pointer",padding:0}}>✕</button>
                     )}
                   </div>
@@ -6871,7 +6872,7 @@ Bạn có chắc chắn không?`;
                         <button onClick={()=>openEdit(r,realIdx)}
                           style={{...btnSt,background:"#dbeafe",color:"#1d4ed8",padding:"5px 10px"}}>✏️</button>
                         <button onClick={()=>setBmConfirm(realIdx)}
-                          style={{...btnSt,background:"#f0f4ff",color:"#ffffff",padding:"5px 10px"}}>🗑️</button>
+                          style={{...btnSt,background:"#fee2e2",color:"#dc2626",padding:"5px 10px"}}>🗑️</button>
                       </div>
                     </div>
                   );
@@ -6942,9 +6943,9 @@ Bạn có chắc chắn không?`;
                     alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}}>
                     <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:360,
                       boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-                      <div style={{fontWeight:800,fontSize:15,marginBottom:8,color:"#ffffff"}}>🗑️ Xác nhận xóa</div>
+                      <div style={{fontWeight:800,fontSize:15,marginBottom:8,color:"#dc2626"}}>🗑️ Xác nhận xóa</div>
                       <div style={{fontSize:13,color:"#374151",marginBottom:6}}>Bạn muốn xóa mã:</div>
-                      <div style={{background:"#f0f4ff",border:"1px solid #fecaca",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
+                      <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
                         <div style={{fontWeight:700,color:"#1e40af"}}>{r?.id}</div>
                         <div style={{fontSize:12,color:"#374151",marginTop:2}}>{r?.ten}</div>
                       </div>
@@ -6952,7 +6953,7 @@ Bạn có chắc chắn không?`;
                         <button onClick={()=>setBmConfirm(null)}
                           style={{...btnSt,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>Hủy</button>
                         <button onClick={()=>doDelete(bmConfirm)}
-                          style={{...btnSt,background:"#ffffff",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>Xóa</button>
+                          style={{...btnSt,background:"#dc2626",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>Xóa</button>
                       </div>
                     </div>
                   </div>
@@ -6996,7 +6997,7 @@ Bạn có chắc chắn không?`;
                         <div>
                           <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Màu sắc</label>
                           <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:6}}>
-                            {["#1d4ed8","#16a34a","#ffffff","#3b82f6","#7c3aed","#0891b2","#f9fafb"].map(c=>(
+                            {["#1d4ed8","#16a34a","#dc2626","#b45309","#7c3aed","#0891b2","#1f2937"].map(c=>(
                               <div key={c} onClick={()=>setBmLoaiForm(f=>({...f,mau:c}))}
                                 style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",
                                   border:bmLoaiForm.mau===c?"3px solid #000":"3px solid transparent"}}/>
@@ -7015,7 +7016,7 @@ Bạn có chắc chắn không?`;
                             background:"#f5f3ff",color:"#4338ca",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"left"}}>
                           📎 {bmLoaiFileName?bmLoaiFileName:"Chọn file Excel/CSV để nạp sẵn mã vật tư..."}
                         </button>
-                        {bmLoaiFileErr&&<div style={{fontSize:11,color:"#ffffff",marginTop:4}}>⚠️ {bmLoaiFileErr}</div>}
+                        {bmLoaiFileErr&&<div style={{fontSize:11,color:"#dc2626",marginTop:4}}>⚠️ {bmLoaiFileErr}</div>}
                         {!!bmLoaiFilePreview.length&&<div style={{fontSize:11,color:"#16a34a",marginTop:4}}>✓ Đọc được {bmLoaiFilePreview.length} mã vật tư — sẽ nạp ngay sau khi tạo</div>}
                       </div>
                     </div>
@@ -7040,7 +7041,7 @@ Bạn có chắc chắn không?`;
                     alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}}>
                     <div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:380,
                       boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
-                      <div style={{fontWeight:800,fontSize:15,marginBottom:8,color:"#ffffff"}}>🗑️ Xóa loại BOM mẫu</div>
+                      <div style={{fontWeight:800,fontSize:15,marginBottom:8,color:"#dc2626"}}>🗑️ Xóa loại BOM mẫu</div>
                       <div style={{fontSize:13,color:"#374151",marginBottom:12}}>
                         Xóa loại <b>{l?.icon} {l?.ten}</b> sẽ xóa toàn bộ <b>{soMa}</b> mã vật tư thuộc loại này. Hành động này không thể hoàn tác.
                       </div>
@@ -7048,7 +7049,7 @@ Bạn có chắc chắn không?`;
                         <button onClick={()=>setBmLoaiDelConfirm(null)}
                           style={{...btnSt,background:"#f3f4f6",color:"#374151",padding:"8px 16px",fontSize:13}}>Hủy</button>
                         <button onClick={()=>deleteBomMauLoai(bmLoaiDelConfirm)}
-                          style={{...btnSt,background:"#ffffff",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>Xóa loại này</button>
+                          style={{...btnSt,background:"#dc2626",color:"#fff",padding:"8px 20px",fontSize:13,fontWeight:700}}>Xóa loại này</button>
                       </div>
                     </div>
                   </div>
@@ -7100,7 +7101,7 @@ Bạn có chắc chắn không?`;
                       <div>
                         <input ref={fRef} type="file" accept="image/*" style={{display:"none"}} onChange={hdAnh}/>
                         <button onClick={()=>fRef.current.click()} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"6px 14px"}}>{cur.anh?"🔄 Đổi":"📷 Chọn ảnh"}</button>
-                        {cur.anh&&<button onClick={()=>setCur(c=>({...c,anh:""}))} style={{...btn,background:"#f0f4ff",color:"#1e40af",padding:"6px 10px",marginLeft:6}}>Xóa</button>}
+                        {cur.anh&&<button onClick={()=>setCur(c=>({...c,anh:""}))} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"6px 10px",marginLeft:6}}>Xóa</button>}
                         <div style={{fontSize:10,color:"#9ca3af",marginTop:4}}>JPG, PNG · Max 5MB</div>
                       </div>
                     </div>
@@ -7130,7 +7131,7 @@ Bạn có chắc chắn không?`;
                 </div>
                 <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                   <button onClick={()=>setModal(null)} style={{...btn,background:"#f3f4f6",color:"#374151",padding:"7px 16px"}}>Hủy</button>
-                  <button onClick={doIO} style={{...btn,background:modal==="nhap"?"#16a34a":"#ffffff",color:"#fff",padding:"7px 16px"}}>{modal==="nhap"?"Xác nhận nhập":"Xác nhận xuất"}</button>
+                  <button onClick={doIO} style={{...btn,background:modal==="nhap"?"#16a34a":"#dc2626",color:"#fff",padding:"7px 16px"}}>{modal==="nhap"?"Xác nhận nhập":"Xác nhận xuất"}</button>
                 </div>
               </div>
             )}
@@ -7202,7 +7203,7 @@ Bạn có chắc chắn không?`;
                         <td style={{padding:"6px 10px",color:"#6b7280"}}>{it.dv}</td>
                         <td style={{padding:"6px 10px",fontWeight:700,color:"#16a34a"}}>{fmt(it.sl)}</td>
                         <td style={{padding:"6px 10px"}}>
-                          <button onClick={()=>setPhIt(ps=>ps.filter((_,j)=>j!==i))} style={{...btn,background:"#f0f4ff",color:"#1e40af",padding:"2px 8px",fontSize:11}}>✕</button>
+                          <button onClick={()=>setPhIt(ps=>ps.filter((_,j)=>j!==i))} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"2px 8px",fontSize:11}}>✕</button>
                         </td>
                       </tr>
                     ))}
@@ -7252,9 +7253,9 @@ Bạn có chắc chắn không?`;
               </div>
             ):(
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14,background:"#f8fafc",borderRadius:8,padding:"12px 16px",fontSize:12}}>
-                <div><span style={{color:"#6b7280"}}>Bên giao:</span> <b style={{color:"#ffffff"}}>{freshVP.bg}</b></div>
+                <div><span style={{color:"#6b7280"}}>Bên giao:</span> <b style={{color:"#dc2626"}}>{freshVP.bg}</b></div>
                 <div><span style={{color:"#6b7280"}}>Bên nhận:</span> <b style={{color:"#1d4ed8"}}>{freshVP.bn}</b></div>
-                <div><span style={{color:"#6b7280"}}>Trạng thái:</span> <Tag bg={freshVP.tt==="Đã xác nhận"?"#d1fae5":"#f0f4ff"} c={freshVP.tt==="Đã xác nhận"?"#065f46":"#92400e"} ch={freshVP.tt}/></div>
+                <div><span style={{color:"#6b7280"}}>Trạng thái:</span> <Tag bg={freshVP.tt==="Đã xác nhận"?"#d1fae5":"#fef3c7"} c={freshVP.tt==="Đã xác nhận"?"#065f46":"#92400e"} ch={freshVP.tt}/></div>
                 {freshVP.gc&&<div><span style={{color:"#6b7280"}}>Ghi chú:</span> {freshVP.gc}</div>}
                 {freshVP.nguoi_soan&&<div><span style={{color:"#6b7280"}}>Người soạn:</span> <b style={{color:"#7c3aed"}}>👤 {freshVP.nguoi_soan}</b>{freshVP.don_vi_soan&&<span style={{color:"#9ca3af",fontSize:11}}> · {freshVP.don_vi_soan}</span>}</div>}
               </div>
@@ -7264,7 +7265,7 @@ Bạn có chắc chắn không?`;
             <div style={{overflowX:"auto",marginBottom:14}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#f8fafc",borderBottom:"2px solid #e5e7eb"}}>
-                  {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoLuong"),editPh?"":isXH?t("thSLThucNhan"):"",editPh?"":t("thSLThieu"),editPh?t("thXoa"):t("thDuyet"),editPh?null:t("thNguoiDuyet")].filter(h=>h!==null&&h!=="").map(h=><th key={h} style={{padding:"8px 10px",textAlign:[t("thSoLuong"),t("thSLThucNhan"),t("thSLThieu")].includes(h)?"right":"left",fontWeight:700,color:h===t("thSLThucNhan")?"#1d4ed8":h===t("thSLThieu")?"#ffffff":"#374151",whiteSpace:"nowrap"}}>{h}</th>)}
+                  {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoLuong"),editPh?"":isXH?t("thSLThucNhan"):"",editPh?"":t("thSLThieu"),editPh?t("thXoa"):t("thDuyet"),editPh?null:t("thNguoiDuyet")].filter(h=>h!==null&&h!=="").map(h=><th key={h} style={{padding:"8px 10px",textAlign:[t("thSoLuong"),t("thSLThucNhan"),t("thSLThieu")].includes(h)?"right":"left",fontWeight:700,color:h===t("thSLThucNhan")?"#1d4ed8":h===t("thSLThieu")?"#dc2626":"#374151",whiteSpace:"nowrap"}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {(editPh?editPh.ct:freshVP.ct||[]).map((c,i)=>(
@@ -7293,7 +7294,7 @@ Bạn có chắc chắn không?`;
                       )}
                       {/* SL thiếu */}
                       {!editPh&&(
-                        <td style={{padding:"7px 10px",textAlign:"right",fontWeight:700,color:"#ffffff"}}>
+                        <td style={{padding:"7px 10px",textAlign:"right",fontWeight:700,color:"#dc2626"}}>
                           {(()=>{
                             const slThuc=c.ok?(c.sl_thuc_nhan??c.sl):(slThucEdit[c.id]!==undefined?slThucEdit[c.id]:(c.sl_thuc_nhan??c.sl));
                             const thieu=Math.max(0,(c.sl||0)-slThuc);
@@ -7303,12 +7304,12 @@ Bạn có chắc chắn không?`;
                       )}
                       <td style={{padding:"7px 10px",textAlign:"center"}}>
                         {editPh
-                          ?<button onClick={()=>setEditPh(p=>({...p,ct:p.ct.filter((_,j)=>j!==i)}))} style={{...btn,background:"#f0f4ff",color:"#1e40af",padding:"3px 9px",fontSize:11}}>✕</button>
+                          ?<button onClick={()=>setEditPh(p=>({...p,ct:p.ct.filter((_,j)=>j!==i)}))} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"3px 9px",fontSize:11}}>✕</button>
                           :c.ok
                             ?(c.sl_thieu>0
                               ?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                                  <span style={{color:"#1d4ed8",fontSize:13}}>⚠️</span>
-                                  <span style={{background:"#f0f4ff",color:"#92400e",borderRadius:6,padding:"2px 6px",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>Thiếu {fmt(c.sl_thieu)} → Soạn lại</span>
+                                  <span style={{color:"#f59e0b",fontSize:13}}>⚠️</span>
+                                  <span style={{background:"#fef3c7",color:"#92400e",borderRadius:6,padding:"2px 6px",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>Thiếu {fmt(c.sl_thieu)} → Soạn lại</span>
                                 </div>
                               :<span style={{color:"#16a34a",fontSize:16}}>✅</span>)
                             :isXH?<button onClick={()=>{
@@ -7328,7 +7329,7 @@ Bạn có chắc chắn không?`;
                     <td style={{padding:"8px 10px",fontWeight:700,textAlign:"center"}}>{editPh?editPh.ct.length:freshVP.tong} chủng loại</td>
                     <td style={{padding:"8px 10px",fontWeight:700,color:"#16a34a",textAlign:"right"}}>{fmt((editPh?editPh.ct:freshVP.ct||[]).reduce((s,c)=>s+c.sl,0))}</td>
                     {!editPh&&isXH&&<td style={{padding:"8px 10px",fontWeight:700,color:"#1d4ed8",textAlign:"right"}}>{fmt((freshVP.ct||[]).reduce((s,c)=>s+(c.sl_thuc_nhan??c.sl),0))}</td>}
-                    {!editPh&&<td style={{padding:"8px 10px",fontWeight:700,color:"#ffffff",textAlign:"right"}}>{(()=>{const t=(freshVP.ct||[]).reduce((s,c)=>s+Math.max(0,(c.sl||0)-(c.sl_thuc_nhan??c.sl)),0);return t>0?`⚠️ ${fmt(t)}`:"—";})()}</td>}
+                    {!editPh&&<td style={{padding:"8px 10px",fontWeight:700,color:"#dc2626",textAlign:"right"}}>{(()=>{const t=(freshVP.ct||[]).reduce((s,c)=>s+Math.max(0,(c.sl||0)-(c.sl_thuc_nhan??c.sl)),0);return t>0?`⚠️ ${fmt(t)}`:"—";})()}</td>}
                     <td style={{padding:"8px 10px",textAlign:"center",fontSize:11,color:"#6b7280"}}>{editPh?"":((freshVP.ct||[]).filter(c=>c.ok).length+"/"+(freshVP.ct||[]).length+" duyệt")}</td>
                   </tr>
                 </tfoot>
@@ -7355,7 +7356,7 @@ Bạn có chắc chắn không?`;
               const dd=ct.filter(c=>c.ok).length;
               const all=ct.length>0&&dd===ct.length;
               return(
-                <div style={{background:all?"#f0fdf4":"#fffbeb",border:`2px solid ${all?"#16a34a":"#1d4ed8"}`,borderRadius:10,padding:"14px 18px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+                <div style={{background:all?"#f0fdf4":"#fffbeb",border:`2px solid ${all?"#16a34a":"#f59e0b"}`,borderRadius:10,padding:"14px 18px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:13,color:all?"#065f46":"#92400e"}}>{all?"✅ XƯỞNG HÀN đã duyệt toàn bộ":`⏳ Còn ${ct.length-dd} mã chưa duyệt`}</div>
                     <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Bên nhận: <b style={{color:"#1d4ed8"}}>XƯỞNG HÀN</b> · {dd}/{ct.length} đã duyệt</div>
@@ -7391,7 +7392,7 @@ Bạn có chắc chắn không?`;
                             ?<button onClick={()=>setShowSignPad(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"4px 12px",fontSize:11,fontWeight:700,marginBottom:4}}>✍️ Ký ngay</button>
                             :null)}
                       </div>
-                      <div style={{borderTop:"1px solid #d1d5db",paddingTop:6,fontSize:12,fontWeight:700,color:c.ten?"#ffffff":"#d1d5db"}}>{c.ten||"—"}</div>
+                      <div style={{borderTop:"1px solid #d1d5db",paddingTop:6,fontSize:12,fontWeight:700,color:c.ten?"#111827":"#d1d5db"}}>{c.ten||"—"}</div>
                       <div style={{fontSize:10,color:"#9ca3af"}}>(Ký, ghi rõ họ tên)</div>
                     </div>
                   ))}
@@ -7417,7 +7418,7 @@ Bạn có chắc chắn không?`;
                   }} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"8px 16px",fontSize:13,fontWeight:700,opacity:dangChiaSe?0.6:1,cursor:dangChiaSe?"not-allowed":"pointer"}}>
                     {dangChiaSe?"⏳ Đang tạo ảnh...":"📤 Chia sẻ"}
                   </button>
-                  {(isTHCK||isKHO)&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>setEditPh({...freshVP,ct:[...(freshVP.ct||[])]})} style={{...btn,background:"#1d4ed8",color:"#fff",padding:"8px 16px",fontSize:13}}>✏️ Sửa phiếu</button>}
+                  {(isTHCK||isKHO)&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>setEditPh({...freshVP,ct:[...(freshVP.ct||[])]})} style={{...btn,background:"#f59e0b",color:"#fff",padding:"8px 16px",fontSize:13}}>✏️ Sửa phiếu</button>}
                   {isXH&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>{xacNhan(freshVP.id);setViewPh(null);}} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 16px",fontSize:13}}>✓ Xác nhận</button>}
                   <button onClick={()=>{setViewPh(null);setEditPh(null);setSlThucEdit({});}} style={{...btn,background:"#2563eb",color:"#fff",padding:"8px 16px",fontSize:13}}>Đóng</button>
                 </>
@@ -7442,7 +7443,7 @@ Bạn có chắc chắn không?`;
             <button onClick={()=>xlsRef.current.click()} style={{...btn,background:"#065f46",color:"#fff",padding:"9px 18px",fontSize:13,marginBottom:12,width:"100%"}}>
               📂 Chọn file Excel (.xlsx / .xls / .csv)
             </button>
-            {xlsErr&&<div style={{background:"#f0f4ff",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#1e40af",marginBottom:12}}>⚠️ {xlsErr}</div>}
+            {xlsErr&&<div style={{background:"#fee2e2",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {xlsErr}</div>}
             {xlsPreview.length>0&&(
               <div>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:"#065f46"}}>✓ Đọc được {xlsPreview.length} mã vật tư</div>
@@ -7475,7 +7476,7 @@ Bạn có chắc chắn không?`;
                       ? `⚠️ THAY THẾ sẽ XÓA VĨNH VIỄN ${soMaCu} mã đang có và thay bằng ${xlsPreview.length} mã từ Excel.\n\nCác mã KHÔNG có trong file Excel này sẽ MẤT HẲN (kể cả trạng thái đã nhận, ảnh...).\n\nBạn có chắc chắn muốn tiếp tục?`
                       : `Thay thế toàn bộ BOM bằng ${xlsPreview.length} mã từ Excel?`;
                     if(window.confirm(canhBao))doXlsImport("thay");
-                  }} style={{...btn,background:"#ffffff",color:"#fff",padding:"7px 16px"}}>🔄 Thay thế</button>
+                  }} style={{...btn,background:"#dc2626",color:"#fff",padding:"7px 16px"}}>🔄 Thay thế</button>
                 </div>
               </div>
             )}
@@ -7497,7 +7498,7 @@ Bạn có chắc chắn không?`;
             <button onClick={()=>bmXlsRef.current.click()} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#7c3aed",color:"#fff",padding:"9px 18px",fontSize:13,marginBottom:12,width:"100%"}}>
               📂 Chọn file Excel (.xlsx / .xls / .csv)
             </button>
-            {bmXlsErr&&<div style={{background:"#f0f4ff",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#1e40af",marginBottom:12}}>⚠️ {bmXlsErr}</div>}
+            {bmXlsErr&&<div style={{background:"#fee2e2",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {bmXlsErr}</div>}
             {bmXlsPreview.length>0&&(
               <div>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:"#065f46"}}>✓ Đọc được {bmXlsPreview.length} mã vật tư</div>
@@ -7524,7 +7525,7 @@ Bạn có chắc chắn không?`;
                 <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
                   <button onClick={()=>{setBmShowImport(false);setBmXlsPreview([]);setBmXlsErr("");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#f3f4f6",color:"#374151",padding:"7px 14px",fontSize:13}}>Hủy</button>
                   <button onClick={()=>{if(window.confirm(`Thêm ${bmXlsPreview.length} mã mới vào BOM Mẫu hiện tại? (mã trùng sẽ tự bỏ qua)`))doBmImport("them");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#16a34a",color:"#fff",padding:"7px 16px",fontSize:13}}>➕ Thêm vào</button>
-                  <button onClick={()=>{if(window.confirm(`Thay thế TOÀN BỘ BOM Mẫu (${bmTab==="xh"?"KIM MAI 9":"MINIBUS X9"}) bằng ${bmXlsPreview.length} mã từ Excel?`))doBmImport("thay");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#ffffff",color:"#fff",padding:"7px 16px",fontSize:13}}>🔄 Thay thế</button>
+                  <button onClick={()=>{if(window.confirm(`Thay thế TOÀN BỘ BOM Mẫu (${bmTab==="xh"?"KIM MAI 9":"MINIBUS X9"}) bằng ${bmXlsPreview.length} mã từ Excel?`))doBmImport("thay");}} style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,background:"#dc2626",color:"#fff",padding:"7px 16px",fontSize:13}}>🔄 Thay thế</button>
                 </div>
               </div>
             )}
@@ -7559,7 +7560,7 @@ Bạn có chắc chắn không?`;
 
             <div style={{marginBottom:20}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:8}}>Cách import</label>
-              {[{v:"them",l:"➕ Thêm vào (bỏ qua mã đã có)",c:"#16a34a"},{v:"thay",l:"🔄 Thay thế toàn bộ danh sách",c:"#ffffff"}].map(o=>(
+              {[{v:"them",l:"➕ Thêm vào (bỏ qua mã đã có)",c:"#16a34a"},{v:"thay",l:"🔄 Thay thế toàn bộ danh sách",c:"#dc2626"}].map(o=>(
                 <div key={o.v} onClick={()=>setImportMode(o.v)}
                   style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:8,border:`2px solid ${importMode===o.v?o.c:"#e5e7eb"}`,background:importMode===o.v?"#f8fafc":"#fff",cursor:"pointer",marginBottom:8}}>
                   <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${o.c}`,background:importMode===o.v?o.c:"transparent",flexShrink:0}}/>
@@ -7567,7 +7568,7 @@ Bạn có chắc chắn không?`;
                 </div>
               ))}
               {importMode==="thay"&&bom.length>0&&(
-                <div style={{background:"#f0f4ff",border:"1px solid #1d4ed8",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#92400e"}}>
+                <div style={{background:"#fef3c7",border:"1px solid #f59e0b",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#92400e"}}>
                   ⚠️ Sẽ xóa toàn bộ {bom.length} mã hiện có và thay bằng BOM mới
                 </div>
               )}
@@ -7578,7 +7579,7 @@ Bạn có chắc chắn không?`;
               <button onClick={()=>{
                 if(importMode==="thay"&&bom.length>0&&!window.confirm(`⚠️ THAY THẾ sẽ XÓA VĨNH VIỄN ${bom.length} mã đang có trong dự án này.\n\nCác mã không có trong BOM Mẫu vừa chọn sẽ MẤT HẲN (kể cả trạng thái đã nhận, ảnh...).\n\nBạn có chắc chắn muốn tiếp tục?`))return;
                 doImport();
-              }} style={{...btn,background:importMode==="thay"?"#ffffff":"#16a34a",color:"#fff",padding:"8px 18px",fontSize:13,fontWeight:700}}>
+              }} style={{...btn,background:importMode==="thay"?"#dc2626":"#16a34a",color:"#fff",padding:"8px 18px",fontSize:13,fontWeight:700}}>
                 {importMode==="them"?"➕ Thêm vào dự án":"🔄 Thay thế"}
               </button>
             </div>
@@ -7604,7 +7605,7 @@ Bạn có chắc chắn không?`;
               onDrop={e=>{e.preventDefault();e.currentTarget.style.borderColor="#d1d5db";e.currentTarget.style.background="#f9fafb";const f=e.dataTransfer.files[0];if(f){handleUpdateNgFile({target:{files:[f]},currentTarget:{value:""}});}}}
             >
               <div style={{fontSize:24,marginBottom:8}}>📁</div>
-              <div style={{fontWeight:600,color:"#f9fafb",marginBottom:4}}>
+              <div style={{fontWeight:600,color:"#1f2937",marginBottom:4}}>
                 {updateNgFile?updateNgFile.name:"Chọn hoặc kéo file vào đây"}
               </div>
               <div style={{fontSize:11,color:"#6b7280"}}>Excel (.xlsx, .xls) hoặc CSV</div>
@@ -7612,7 +7613,7 @@ Bạn có chắc chắn không?`;
 
             <input ref={updateNgFileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleUpdateNgFile}/>
 
-            {updateNgErr&&<div style={{background:"#f0f4ff",border:"1px solid #93c5fd",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#1e40af",marginBottom:12}}>⚠️ {updateNgErr}</div>}
+            {updateNgErr&&<div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {updateNgErr}</div>}
             {updateNgMsg&&<div style={{background:updateNgMsg.includes("✓")?"#d1fae5":"#dbeafe",border:`1px solid ${updateNgMsg.includes("✓")?"#6ee7b7":"#93c5fd"}`,borderRadius:8,padding:"8px 12px",fontSize:12,color:updateNgMsg.includes("✓")?"#065f46":"#1e40af",marginBottom:12}}>
               {updateNgMsg.includes("✓")?"✅":"ℹ️"} {updateNgMsg}
             </div>}
@@ -7648,7 +7649,7 @@ Bạn có chắc chắn không?`;
                   style={{width:"100%",padding:"9px 12px",border:"1.5px solid #c7d2fe",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff"}}/>
               </div>
             ))}
-            {cpwErr&&<div style={{background:"#f0f4ff",border:"1px solid #93c5fd",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#1e40af",marginBottom:12}}>⚠️ {cpwErr}</div>}
+            {cpwErr&&<div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#991b1b",marginBottom:12}}>⚠️ {cpwErr}</div>}
             {cpwOk&&<div style={{background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#065f46",marginBottom:12}}>✅ {cpwOk}</div>}
             <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
               <button onClick={()=>{setShowChangePw(false);setCpwForm({cur:"",next:"",confirm:""});setCpwErr("");setCpwOk("");}}
