@@ -4260,9 +4260,13 @@ export default function App(){
     }
   };
 
-  const togSoan=(ma,slCN)=>setSoanDB(s=>{
+  const togSoan=(ma,slCN,defaultSl)=>setSoanDB(s=>{
     const c=(s[pid]||{})[ma];
-    const curSl=c?.sl??slCN;
+    // ✅ FIX: Nếu mã chưa có SL lưu (c?.sl undefined), lấy theo defaultSl (giá trị ĐANG
+    // hiển thị trên ô nhập — có thể là SL còn thiếu nếu mã đã giao một phần) thay vì luôn
+    // luôn rơi về SL cần (slCN). Nếu defaultSl không được truyền vào thì fallback về slCN
+    // như hành vi cũ, đảm bảo tương thích các nơi gọi khác.
+    const curSl=c?.sl??(defaultSl??slCN);
     if(c?.on){
       // Đang tick → bỏ tick
       return{...s,[pid]:{...(s[pid]||{}),[ma]:{on:false,sl:curSl}}};
@@ -4289,7 +4293,17 @@ export default function App(){
   const rstSoan=()=>{if(!window.confirm("Reset checklist soạn hàng? Dữ liệu đã tick sẽ bị xóa."))return;setSoanDB(s=>{const n={...s,[pid]:{}};try{localStorage.setItem("soanDB",JSON.stringify(n));}catch{}return n;});flash("✓ Reset");};
   const togGrp=(items,all)=>setSoanDB(s=>{
     const c=s[pid]||{};const p={};
-    items.forEach(v=>{p[v.ma]={on:!all,sl:c[v.ma]?.sl??(v.dm*soXe)};});
+    items.forEach(v=>{
+      const slCN=v.dm*soXe;
+      // ✅ FIX: đồng bộ với logic ở từng dòng vật tư — nếu mã đã giao một phần (canhBao),
+      // mặc định SL = SL còn thiếu (conThieu) thay vì luôn luôn = SL cần (slCN).
+      const thV=thByMa[v.ma];
+      const canNhan=thV?.cn??slCN;
+      const daGiaoXHDuyet=thV?.dnXN||0;
+      const conThieu=Math.max(0,canNhan-daGiaoXHDuyet);
+      const canhBao=!!thV?.giaoThieu&&conThieu>0&&daGiaoXHDuyet>0;
+      p[v.ma]={on:!all,sl:c[v.ma]?.sl??(canhBao?conThieu:slCN)};
+    });
     return{...s,[pid]:{...c,...p}};
   });
 
@@ -6197,7 +6211,6 @@ Bạn có chắc chắn không?`;
                     {!isCollapsed&&filteredItems.map((v,i)=>{
                       const on=soan[v.ma]?.on||false;
                       const slCN=v.dm*soXe;
-                      const slV=soan[v.ma]?.sl??slCN; // SL THỰC người dùng nhập/chuẩn bị gửi — chỉ dùng cho ô nhập, KHÔNG dùng để tính "còn thiếu"
                       // ⭐ CÔNG THỨC DUY NHẤT tính "Còn thiếu": Cần nhận − Đã giao cho Xưởng Hàn và ĐÃ ĐƯỢC DUYỆT
                       // (lấy trực tiếp từ th/thByMa — dữ liệu gốc từ phiếu đã duyệt, không phụ thuộc vào
                       // trạng thái nhập tay ở Soạn Hàng nên không còn bị đảo ngược/nhầm lẫn như trước).
@@ -6208,9 +6221,15 @@ Bạn có chắc chắn không?`;
                       // ⚠️ Chỉ cảnh báo khi mã ĐÃ TỪNG GIAO một phần (đã giao XH duyệt > 0) nhưng vẫn thiếu SL.
                       // Mã "chưa soạn" (chưa có phiếu) HOẶC "đã giao XH duyệt = 0" đều KHÔNG hiện badge này.
                       const canhBao=!!thV?.giaoThieu&&conThieu>0&&daGiaoXHDuyet>0;
+                      // ✅ FIX: Ô "SL THỰC" mặc định (khi người dùng CHƯA từng nhập tay — không có
+                      // trong soanDB) = SL CÒN THIẾU (conThieu) nếu mã đã giao một phần (canhBao),
+                      // để người soạn chỉ cần soạn nốt phần thiếu thay vì phải tự sửa từ SL cần (75)
+                      // xuống SL thiếu (2) mỗi lần. Nếu mã chưa giao gì hoặc đã nhập tay trước đó thì
+                      // vẫn giữ nguyên hành vi cũ (mặc định SL cần / giá trị đã lưu).
+                      const slV=soan[v.ma]?.sl??(canhBao?conThieu:slCN); // SL THỰC người dùng nhập/chuẩn bị gửi — chỉ dùng cho ô nhập, KHÔNG dùng để tính "còn thiếu"
                       return(
                         <div key={v.ma} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderBottom:i<filteredItems.length-1?"1px solid #f1f5f9":"none",background:canhBao?"#fffbeb":on?"#f0fdf4":"transparent",borderLeft:canhBao?"3px solid #fcd34d":"3px solid transparent"}}>
-                          <div onClick={()=>togSoan(v.ma,slCN)} style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?"#16a34a":canhBao?"#f59e0b":"#d1d5db"}`,background:on?"#16a34a":canhBao?"#fef3c7":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+                          <div onClick={()=>togSoan(v.ma,slCN,slV)} style={{width:20,height:20,borderRadius:6,border:`2px solid ${on?"#16a34a":canhBao?"#f59e0b":"#d1d5db"}`,background:on?"#16a34a":canhBao?"#fef3c7":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
                             {on&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
                             {!on&&canhBao&&<span style={{color:"#f59e0b",fontSize:12,fontWeight:700}}>…</span>}
                           </div>
