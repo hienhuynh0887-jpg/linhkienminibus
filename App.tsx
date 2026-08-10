@@ -5853,28 +5853,55 @@ Bạn có chắc chắn không?`;
         const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
         return(
           <div style={{background:"#fff",borderBottom:"1px solid #e4e9f2",padding:"0 10px 14px"}}>
-            {/* Dòng xe / Dự án */}
+            {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗ */}
             <div style={{display:"flex",gap:10,marginBottom:12}}>
-              <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e4e9f2",borderRadius:12,padding:"9px 12px",cursor:linesPickable.length>1?"pointer":"default"}}>
-                <div style={{fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:.5}}>DÒNG XE</div>
-                <div style={{fontSize:15,fontWeight:800,color:"#0f172a",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                  {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"} {linesPickable.length>1&&<span style={{color:"#94a3b8",fontWeight:700}}>▾</span>}
+              {/* DÒNG XE */}
+              <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"14px 12px",cursor:linesPickable.length>1?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+                <div style={{fontSize:9.5,fontWeight:900,color:"#9ca3af",letterSpacing:.7,textTransform:"uppercase"}}>Dòng Xe</div>
+                <div style={{fontSize:16,fontWeight:900,color:"#1f2937",marginTop:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.2}}>
+                  {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}
+                  {linesPickable.length>1&&<span style={{marginLeft:4,color:"#d1d5db",fontWeight:700}}>▾</span>}
                 </div>
               </div>
-              <div onClick={()=>setProjPickerOpen(true)} style={{flex:1,minWidth:0,background:`${mauRole}14`,border:`1.5px solid ${mauRole}`,borderRadius:12,padding:"9px 12px",cursor:"pointer"}}>
-                <div style={{fontSize:10,fontWeight:800,color:mauRole,letterSpacing:.5}}>DỰ ÁN</div>
-                <div style={{fontSize:15,fontWeight:800,color:mauRole,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                  {proj.ten} <span style={{fontWeight:700}}>▾</span>
+              
+              {/* DỰ ÁN — nổi bật hơn với hình xe */}
+              <div onClick={()=>setProjPickerOpen(true)} style={{flex:1,minWidth:0,background:"#f0fdf4",border:"1.5px solid #10b981",borderRadius:12,padding:"12px",cursor:"pointer",position:"relative",overflow:"hidden",boxShadow:"0 2px 8px rgba(16,185,129,0.1)"}}>
+                <div style={{position:"relative",zIndex:2}}>
+                  <div style={{fontSize:9.5,fontWeight:900,color:"#10b981",letterSpacing:.7,textTransform:"uppercase"}}>Dự Án</div>
+                  <div style={{fontSize:15,fontWeight:900,color:"#059669",marginTop:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.2}}>
+                    {proj.ten} <span style={{fontWeight:700}}>▾</span>
+                  </div>
                 </div>
+                {/* Hình xe buýt vô hình ở phía sau */}
+                <div style={{position:"absolute",right:-10,bottom:-15,fontSize:80,opacity:0.08,pointerEvents:"none",transform:"scaleX(-1)"}}>🚌</div>
               </div>
             </div>
 
-            {/* Trạng thái dự án */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:"#fff",border:"1px solid #e4e9f2",borderLeft:`4px solid ${mauRole}`,borderRadius:12,padding:"14px 14px",marginBottom:12}}>
-              <div style={{fontSize:14,fontWeight:800,color:"#0f172a",lineHeight:1.35}}>
-                {proj.ten} <span style={{color:"#94a3b8",fontWeight:600}}>·</span> {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
+            {/* ╔════ Trạng thái dự án — thẻ chính với thông tin chi tiết ════╗ */}
+            <div style={{display:"flex",alignItems:"stretch",gap:10,marginBottom:12}}>
+              {/* Phần chữ */}
+              <div style={{flex:1,background:"#fff",border:"1px solid #e5e7eb",borderLeft:`5px solid #0f766e`,borderRadius:12,padding:"14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:900,color:"#78716c",textTransform:"uppercase",letterSpacing:.5,marginBottom:3}}>Tiến Độ Dự Án</div>
+                    <div style={{fontSize:15,fontWeight:900,color:"#0f172a"}}>
+                      {proj.ten} · {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:56,height:56,borderRadius:10,background:"#f0fdf4",border:"2.5px solid #10b981",flexShrink:0}}>
+                    <div style={{fontSize:24,fontWeight:900,color:"#16a34a"}}>{pctGiao}%</div>
+                  </div>
+                </div>
+                {/* Thanh tiến độ */}
+                <div style={{width:"100%",height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${pctGiao}%`,background:"linear-gradient(90deg, #0f766e 0%, #10b981 100%)",transition:"width 0.3s ease"}}></div>
+                </div>
               </div>
-              <div style={{fontSize:17,fontWeight:800,color:"#16a34a",flexShrink:0}}>{pctGiao}%</div>
+              
+              {/* Phần hình xe */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",background:"#f0fdf4",border:"1px solid #d1fae5",borderRadius:12,padding:"10px",minWidth:100,flexShrink:0}}>
+                <div style={{fontSize:65,opacity:0.5,lineHeight:1}}>🚌</div>
+              </div>
             </div>
 
             {/* Thêm xe / Xoá dự án — CHỈ hiển thị cho 3 đơn vị được phân công nhiệm vụ này:
@@ -5889,7 +5916,7 @@ Bạn có chắc chắn không?`;
             )}
 
             {/* Tổng quan dự án */}
-            <div style={{fontSize:11.5,fontWeight:800,color:"#94a3b8",letterSpacing:.6,marginBottom:10}}>TỔNG QUAN DỰ ÁN</div>
+            <div style={{fontSize:11,fontWeight:900,color:"#9ca3af",letterSpacing:.7,textTransform:"uppercase",marginBottom:12}}>Tổng Quan Dự Án</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[
                 {v:fmt(soXe), l:"Xe", icon:"🚌", c:"#2563eb", badge:soXe>0?"Đủ":null, badgeColor:"#e2e8f0", badgeText:"#475569", onClick:isKHTH?undefined:editSoXe},
@@ -5897,13 +5924,13 @@ Bạn có chắc chắn không?`;
                 {v:fmt(phList.length), l:"Phiếu", icon:"📄", c:"#f59e0b", badge:phList.filter(p=>p.tt!=="Đã xác nhận").length>0?"Chờ":null, badgeColor:"#fef3c7", badgeText:"#b45309"},
                 {v:fmt(ls.length), l:"Giao dịch", icon:"🔄", c:"#7c3aed", badge:null},
               ].map((s,i)=>(
-                <div key={i} onClick={s.onClick} style={{background:"#fff",border:"1px solid #e4e9f2",borderLeft:`4px solid ${s.c}`,borderRadius:12,padding:"14px 14px",cursor:s.onClick?"pointer":"default"}}>
-                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
-                    <div style={{fontSize:24,fontWeight:800,color:"#0f172a",lineHeight:1}}>{s.v}</div>
-                    {s.badge&&<span style={{fontSize:10,fontWeight:800,color:s.badgeText||"#16a34a",background:s.badgeColor||"#dcfce7",borderRadius:20,padding:"2px 8px"}}>{s.badge}</span>}
+                <div key={i} onClick={s.onClick} style={{background:"#fff",border:"1px solid #e5e7eb",borderLeft:`5px solid ${s.c}`,borderRadius:12,padding:"14px",cursor:s.onClick?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",transition:"all 0.2s ease"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10}}>
+                    <div style={{fontSize:28,fontWeight:900,color:"#0f172a",lineHeight:1}}>{s.v}</div>
+                    {s.badge&&<span style={{fontSize:10,fontWeight:800,color:s.badgeText||"#16a34a",background:s.badgeColor||"#dcfce7",borderRadius:20,padding:"3px 8px",flexShrink:0}}>{s.badge}</span>}
                   </div>
-                  <div style={{display:"flex",alignItems:"center",gap:5,marginTop:8,fontSize:12.5,fontWeight:700,color:"#64748b"}}>
-                    <span>{s.icon}</span><span>{s.l}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,fontWeight:700,color:"#64748b"}}>
+                    <span style={{fontSize:16}}>{s.icon}</span><span>{s.l}</span>
                   </div>
                 </div>
               ))}
@@ -6076,98 +6103,116 @@ Bạn có chắc chắn không?`;
           const toggleGrp=(k)=>setSoanCollapsed(s=>({...s,[k]:!s[k]}));
           return(
             <div>
-              <div style={{background:"#fff",borderRadius:12,padding:"16px 20px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-                  <div style={{flex:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
-                      <span style={{fontWeight:700,fontSize:15}}>{t("titleSoan")} — {proj.icon} {proj.ten}</span>
-                      <span style={{background:"#fef3c7",color:"#92400e",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}>🚌 {soXe} xe</span>
-                      {soMaDaDuyet>0&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}>✅ Đã duyệt đủ: {soMaDaDuyet} mã (ẩn)</span>}
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <Prog p={pct} done={xong} h={10}/>
-                      <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:60}}>{daSoan.length}/{bom.length} ({pct}%)</span>
-                    </div>
-                    {/* ── Thẻ thống kê nhanh ── */}
-                    <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
-                      {[
-                        ["Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
-                        ["✅ Đã soạn",daSoan.length,"#16a34a","#f0fdf4"],
-                        ["⏳ Chưa soạn",chuaSoan.length,"#dc2626","#fef2f2"],
-                        ["⚠️ Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
-                      ].map(([l,v,c,bg])=>(
-                        <div key={l} style={{background:bg,borderRadius:8,padding:"6px 12px",minWidth:76,textAlign:"center"}}>
-                          <div style={{fontWeight:800,fontSize:16,color:c}}>{v}</div>
-                          <div style={{fontSize:9,color:c,fontWeight:600,opacity:.85}}>{l}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* ── Bộ lọc nhanh ── */}
-                    <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                      {[
-                        ["all",`Tất cả (${bomHienThiGoc.length})`],
-                        ["chua",`⏳ Chưa soạn (${bomHienThiGoc.length-daSoanHienGoc})`],
-                        ["da",`✅ Đã soạn (${daSoanHienGoc})`],
-                        ...(soanThieuSet.size>0?[["thieu",`⚠️ Thiếu SL (${soanThieuSet.size})`]]:[]),
-                      ].map(([k,l])=>(
-                        <button key={k} onClick={()=>setSoanFilter(k)}
-                          style={{border:`1.5px solid ${soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#e5e7eb"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
-                            padding:"4px 12px",fontSize:11,fontWeight:700,
-                            background:soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#f9fafb",
-                            color:soanFilter===k?"#fff":"#374151"}}>
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                    {bomHienThi.length<bom.length&&<div style={{fontSize:11,color:"#6b7280",marginTop:6,fontStyle:"italic"}}>Đang hiển thị {bomHienThi.length}/{bom.length} mã{soanFilter==="all"?` — ẩn ${bom.length-bomHienThi.length} mã đã duyệt đủ`:""}</div>}
+              {/* ── Banner tiêu đề xanh ── */}
+              <div style={{background:"linear-gradient(135deg,#1e3a8a,#1d4ed8)",borderRadius:16,padding:"18px 20px",marginBottom:14,boxShadow:"0 4px 16px rgba(29,78,216,0.28)",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:50,height:50,borderRadius:"50%",background:"rgba(255,255,255,0.14)",border:"2px solid rgba(255,255,255,0.4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📋</div>
+                <div style={{fontWeight:800,fontSize:16,color:"#fff",lineHeight:1.35}}>{t("titleSoan")} — {proj.icon} {proj.ten}</div>
+              </div>
+
+              {/* ── Thẻ số xe + đã duyệt đủ ── */}
+              <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+                <div style={{flex:"1 1 130px",background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:24}}>🚐</span>
+                  <div><span style={{fontWeight:800,fontSize:22,color:"#1d4ed8"}}>{soXe}</span> <span style={{fontSize:13,color:"#6b7280",fontWeight:700}}>xe</span></div>
+                </div>
+                {soMaDaDuyet>0&&(
+                  <div style={{flex:"1 1 200px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{width:26,height:26,borderRadius:"50%",background:"#16a34a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>✓</span>
+                    <div style={{fontSize:12,color:"#065f46",fontWeight:700,lineHeight:1.3}}>Đã duyệt đủ:<br/><span style={{fontSize:15}}>{soMaDaDuyet} mã (ẩn)</span></div>
                   </div>
-                  <div style={{display:"flex",gap:8}}>
-                    <ExportBar
-                      shareTitle={`${t("titleSoan")} — ${proj.ten}`}
-                      shareText={`Soạn hàng ${proj.ten}: ${daSoan.length}/${bom.length} mã đã soạn (${pct}%)`}
-                      onExcel={()=>{
-                        const daSoan2=bom.filter(v=>soan[v.ma]?.on);
-                        const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
-                        xuatExcel([
-                          ...daSoan2.map(v=>({
-                            "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
-                            "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
-                            "SL thực soạn":soan[v.ma]?.sl??v.dm*soXe,
-                            "Trạng thái":"✓ Đã soạn","Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
-                          })),
-                          ...chuaSoan2.map(v=>({
-                            "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
-                            "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
-                            "SL thực soạn":0,"Trạng thái":"⏳ Chưa soạn",
-                            "Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
-                          }))
-                        ],`SoanHang_${proj.ten.replace(/\s/g,"_")}`,`Soạn hàng — ${proj.ten}`);
-                      }}
-                      onPDF={()=>{
-                        const daSoan2=bom.filter(v=>soan[v.ma]?.on);
-                        const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
-                        const mkRow=(v,ok)=>`<tr>
-                          <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
-                          <td style="text-align:center">${v.dv}</td>
-                          <td style="text-align:center">${fmt(v.dm*soXe)}</td>
-                          <td style="text-align:center;font-weight:700">${ok?fmt(soan[v.ma]?.sl??v.dm*soXe):"—"}</td>
-                          <td>${v.ng}</td>
-                          <td>${v.jig||""}</td>
-                          <td><span class="badge ${ok?"ok":"warn"}">${ok?"✓ Đã soạn":"⏳ Chưa soạn"}</span></td>
-                        </tr>`;
-                        xuatPDF(`<h2>${t("rpSoan")}</h2>
-                          <p class="sub">${proj.icon} ${proj.ten} · ${daSoan2.length}/${bom.length} mã đã soạn · ${soXe} xe</p>
-                          <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thSoSoan")}</th><th>${t("thNguonGoc")}</th><th>JIG</th><th>${t("thTrangThai")}</th></tr></thead><tbody>
-                          ${[...daSoan2.map(v=>mkRow(v,true)),...chuaSoan2.map(v=>mkRow(v,false))].join("")}
-                          </tbody></table>`,`SoanHang_${proj.ten}`);
-                      }}
-                    />
-                    
-                    <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
-                      style={{...btn,background:xong?"#16a34a":"#f59e0b",color:"#fff",padding:"7px 18px",fontSize:13,fontWeight:700,opacity:bom.length===0?.5:1}}>
-                      {xong?"✅ Gửi XƯỞNG HÀN":`📤 Gửi đơn (${daSoan.length}/${bom.length})`}
+                )}
+              </div>
+
+              {/* ── Card tiến độ soạn hàng ── */}
+              <div style={{background:"#fff",borderRadius:14,padding:"16px 18px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
+                <div style={{fontWeight:800,fontSize:12,color:"#374151",letterSpacing:.4,marginBottom:12}}>TIẾN ĐỘ SOẠN HÀNG</div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                  <Prog p={pct} done={xong} h={10}/>
+                  <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:80,textAlign:"right",flexShrink:0}}>{daSoan.length}/{bom.length} ({pct}%)</span>
+                </div>
+                {/* ── Thẻ thống kê nhanh (lưới 2x2) ── */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {[
+                    ["📄","Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
+                    ["✅","Đã soạn",daSoan.length,"#16a34a","#f0fdf4"],
+                    ["⏳","Chưa soạn",chuaSoan.length,"#dc2626","#fef2f2"],
+                    ["⚠️","Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
+                  ].map(([ic,l,v,c,bg])=>(
+                    <div key={l} style={{background:bg,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{width:34,height:34,borderRadius:"50%",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,0.12)"}}>{ic}</span>
+                      <div><div style={{fontWeight:800,fontSize:18,color:c,lineHeight:1.1}}>{v}</div><div style={{fontSize:10,color:c,fontWeight:600,opacity:.85}}>{l}</div></div>
+                    </div>
+                  ))}
+                </div>
+                {/* ── Bộ lọc nhanh ── */}
+                <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
+                  {[
+                    ["all",`Tất cả (${bomHienThiGoc.length})`],
+                    ["chua",`⏳ Chưa soạn (${bomHienThiGoc.length-daSoanHienGoc})`],
+                    ["da",`✅ Đã soạn (${daSoanHienGoc})`],
+                    ...(soanThieuSet.size>0?[["thieu",`⚠️ Thiếu SL (${soanThieuSet.size})`]]:[]),
+                  ].map(([k,l])=>(
+                    <button key={k} onClick={()=>setSoanFilter(k)}
+                      style={{border:`1.5px solid ${soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#e5e7eb"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
+                        padding:"6px 14px",fontSize:11,fontWeight:700,
+                        background:soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#f9fafb",
+                        color:soanFilter===k?"#fff":"#374151"}}>
+                      {l}
                     </button>
+                  ))}
+                </div>
+                {bomHienThi.length<bom.length&&(
+                  <div style={{marginTop:12,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:"9px 12px",fontSize:11,color:"#1e40af",display:"flex",gap:6,alignItems:"center"}}>
+                    <span>ℹ️</span>
+                    <span>Đang hiển thị {bomHienThi.length}/{bom.length} mã{soanFilter==="all"?` — ẩn ${bom.length-bomHienThi.length} mã đã duyệt đủ`:""}</span>
                   </div>
+                )}
+                {/* ── Hàng nút hành động ── */}
+                <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>
+                  <ExportBar
+                    shareTitle={`${t("titleSoan")} — ${proj.ten}`}
+                    shareText={`Soạn hàng ${proj.ten}: ${daSoan.length}/${bom.length} mã đã soạn (${pct}%)`}
+                    onExcel={()=>{
+                      const daSoan2=bom.filter(v=>soan[v.ma]?.on);
+                      const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
+                      xuatExcel([
+                        ...daSoan2.map(v=>({
+                          "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
+                          "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
+                          "SL thực soạn":soan[v.ma]?.sl??v.dm*soXe,
+                          "Trạng thái":"✓ Đã soạn","Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
+                        })),
+                        ...chuaSoan2.map(v=>({
+                          "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
+                          "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
+                          "SL thực soạn":0,"Trạng thái":"⏳ Chưa soạn",
+                          "Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
+                        }))
+                      ],`SoanHang_${proj.ten.replace(/\s/g,"_")}`,`Soạn hàng — ${proj.ten}`);
+                    }}
+                    onPDF={()=>{
+                      const daSoan2=bom.filter(v=>soan[v.ma]?.on);
+                      const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
+                      const mkRow=(v,ok)=>`<tr>
+                        <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
+                        <td style="text-align:center">${v.dv}</td>
+                        <td style="text-align:center">${fmt(v.dm*soXe)}</td>
+                        <td style="text-align:center;font-weight:700">${ok?fmt(soan[v.ma]?.sl??v.dm*soXe):"—"}</td>
+                        <td>${v.ng}</td>
+                        <td>${v.jig||""}</td>
+                        <td><span class="badge ${ok?"ok":"warn"}">${ok?"✓ Đã soạn":"⏳ Chưa soạn"}</span></td>
+                      </tr>`;
+                      xuatPDF(`<h2>${t("rpSoan")}</h2>
+                        <p class="sub">${proj.icon} ${proj.ten} · ${daSoan2.length}/${bom.length} mã đã soạn · ${soXe} xe</p>
+                        <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thSoSoan")}</th><th>${t("thNguonGoc")}</th><th>JIG</th><th>${t("thTrangThai")}</th></tr></thead><tbody>
+                        ${[...daSoan2.map(v=>mkRow(v,true)),...chuaSoan2.map(v=>mkRow(v,false))].join("")}
+                        </tbody></table>`,`SoanHang_${proj.ten}`);
+                    }}
+                  />
+                  <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
+                    style={{...btn,flex:1,background:xong?"#16a34a":"#f59e0b",color:"#fff",padding:"9px 18px",fontSize:13,fontWeight:700,opacity:bom.length===0?.5:1,minWidth:150,justifyContent:"center"}}>
+                    {xong?"✅ Gửi XƯỞNG HÀN":`📤 Gửi đơn (${daSoan.length}/${bom.length})`}
+                  </button>
                 </div>
               </div>
               <div style={{background:"#fff",borderRadius:10,padding:"10px 16px",marginBottom:nhomKeys.length>1?8:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
