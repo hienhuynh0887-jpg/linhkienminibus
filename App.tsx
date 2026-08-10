@@ -2522,6 +2522,7 @@ export default function App(){
   const [dbErr,    setDbErr]    = useState("");
   const [projs,    setProjs]    = useState([]);
   const [projPickerOpen, setProjPickerOpen] = useState(false);
+  const [linePickerOpen, setLinePickerOpen] = useState(false);
   const [bomDB,    setBomDB]    = useState(initBom);
   const [lsDB,     setLsDB]     = useState({});
   const [phDB,     setPhDB]     = useState({});
@@ -5504,108 +5505,95 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
     <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f0f4f8",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"}}>
 
-      {/* HEADER */}
+      {/* HEADER — thẻ trắng bo góc: logo + tên app + hàng icon (giống ảnh thiết kế) */}
       <div style={{background:"#ffffff",borderBottom:"1px solid #e4e9f2",position:"relative",color:"#132247"}}>
         <div style={{position:"relative",zIndex:1}}>
-        {/* Top bar */}
-        <div style={{padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #eef1f7"}}>
-          {/* Logo + title */}
-          <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1}}>
-            <div style={{width:34,height:34,borderRadius:10,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,color:"#fff"}}>
-              {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":"🚗"}
-            </div>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#132247"}}>{t("brandTitle")}</div>
-              <div style={{fontSize:10,fontWeight:700,color:mauRole,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4}}>{isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}</div>
+
+        {/* Brand row */}
+        <div style={{padding:"16px 16px 14px",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:46,height:46,borderRadius:13,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,color:"#fff"}}>
+            {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":"🚗"}
+          </div>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#0f172a"}}>{t("brandTitle")}</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#2563eb",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
+              {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
             </div>
           </div>
-          {/* User + logout */}
-          <div className="soan-noscroll" style={{display:"flex",alignItems:"flex-start",gap:5,flexWrap:"nowrap",justifyContent:"flex-end",overflowX:"auto",scrollbarWidth:"none",msOverflowStyle:"none",maxWidth:"100%"}}>
-            <style>{`.soan-noscroll::-webkit-scrollbar{display:none}`}</style>
-            {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",alignSelf:"center",flexShrink:0,whiteSpace:"nowrap"}}>{msg}</span>}
-            {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",alignSelf:"center",flexShrink:0}} title={dbErr}>⚠️ {dbErr}</span>}
-            {/* ✅ 4 nút tròn kích thước bằng nhau, mỗi nút 1 màu nền riêng — Ngôn ngữ / Đổi MK / Tạo chữ ký / Tài khoản. Thu nhỏ để KHÔNG bị xuống dòng, cùng nằm 1 hàng. */}
-            <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:40,flexShrink:0}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:"#eaf2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0,border:"1px solid #d7e6ff"}}>🌐</div>
-              <div style={{fontSize:8,fontWeight:700,textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>
-                <span style={{color:lang==="vi"?"#0068ff":"#9aa5bd"}}>VI</span>
-                <span style={{color:"#9aa5bd"}}>/</span>
-                <span style={{color:lang==="zh"?"#0068ff":"#9aa5bd"}}>中</span>
-              </div>
-            </div>
-            <div onClick={()=>setShowChangePw(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:40,flexShrink:0}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:"#f1ebff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,border:"1px solid #e4d8ff"}}>🔑</div>
-              <div style={{fontSize:8,fontWeight:700,color:"#6b7897",textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>Đổi MK</div>
-            </div>
-            <div onClick={()=>setShowSignPad(true)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:40,flexShrink:0}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:"#fff3e2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,border:"1px solid #ffe2bb"}}>✍️</div>
-              <div style={{fontSize:8,fontWeight:700,color:"#6b7897",textAlign:"center",lineHeight:1.15,whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</div>
-            </div>
-            <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
-              title="Đăng xuất" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",width:44,flexShrink:0}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:"#ffe3ef",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,border:"1px solid #ffc7de"}}>{user.avatar}</div>
-              <div style={{fontSize:8,fontWeight:700,color:"#6b7897",textAlign:"center",lineHeight:1.15,maxWidth:44,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.ten}</div>
-            </div>
-          </div>
+          {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap",flexShrink:0}}>{msg}</span>}
+          {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}} title={dbErr}>⚠️</span>}
         </div>
 
-        {/* Project bar */}
-        <div style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          {/* Dòng xe đang hoạt động — giúp phân biệt rõ đang ở City Bus hay Mini Bus (dữ liệu độc lập) */}
-          <div title="Dòng xe đang hoạt động" style={{display:"flex",alignItems:"center",gap:4,background:"#f4f7fb",border:"1px solid #e4e9f2",borderRadius:8,padding:"4px 8px",flex:"0 0 auto"}}>
-            <span style={{fontSize:10,color:"#6b7897",whiteSpace:"nowrap"}}>Dòng xe:</span>
-            <span style={{fontSize:12,fontWeight:700,color:"#132247",whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</span>
-          </div>
-          {/* Project select */}
-          <div style={{position:"relative",flex:"0 0 auto"}}>
-            <div onClick={()=>setProjPickerOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,background:"#eaf2ff",border:`1px solid ${mauRole}`,borderRadius:8,padding:"4px 10px",cursor:"pointer"}}>
-              <span style={{fontSize:11,color:mauRole,whiteSpace:"nowrap"}}>Dự án:</span>
-              <span style={{fontSize:13}}>{proj.icon}</span>
-              <span style={{fontSize:12,fontWeight:700,color:mauRole,maxWidth:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{proj.ten}</span>
-              <span style={{fontSize:10,color:mauRole}}>▾</span>
-            </div>
-            {projPickerOpen&&(
-              <>
-                <div onClick={()=>setProjPickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
-                <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,background:"#fff",borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,0.18)",minWidth:200,maxWidth:260,zIndex:41,overflow:"hidden"}}>
-                  {[...projs].reverse().map(p=>(
-                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",background:p.id===pid?`${p.mau||"#2563eb"}14`:"#fff",borderBottom:"1px solid #f1f5f9"}}>
-                      <span onClick={()=>{sw(p.id);setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
-                        <span style={{fontSize:15}}>{p.icon}</span>
-                        <span style={{fontSize:12,fontWeight:600,color:p.id===pid?(p.mau||"#2563eb"):"#1f2937",lineHeight:1.3}}>{p.ten}</span>
-                      </span>
-                      {p.id===pid&&<span style={{fontSize:11,color:p.mau||"#2563eb",flexShrink:0}}>●</span>}
-                      <span onClick={(e)=>{e.stopPropagation();editProjName(p.id,p.ten);}} title="Sửa tên dự án" style={{fontSize:13,padding:"2px 4px",flexShrink:0,opacity:.55}}>✏️</span>
-                      <span onClick={(e)=>{e.stopPropagation();editProjMoTa(p.id,p.mo_ta);}} title="Sửa Dòng xe" style={{fontSize:12,padding:"2px 4px",flexShrink:0,opacity:.55}}>🚌</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-          {/* Actions */}
-          <button onClick={()=>setNewP(true)} style={{...btn,background:mauRole,color:"#fff",border:"none",padding:"5px 11px",fontSize:12}}>＋ Thêm</button>
-          {projs.length>1&&<button onClick={()=>delProj(pid)} style={{...btn,background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",padding:"5px 10px",fontSize:11}}>🗑</button>}
-          {/* Stats — 4 ô đồng bộ: 15 xe / Mã VT / Phiếu / GD */}
-          <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[[fmt(soXe),"xe",true,"#0068ff"],[fmt(bom.length),"Mã VT",false,"#16a34a"],[fmt(phList.length),"Phiếu",false,"#f59e0b"],[fmt(ls.length),"GD",false,"#7c6bfa"]].map(([v,l,isXe,sc])=>(
-              <div key={l} onClick={isXe?editSoXe:undefined} style={{textAlign:"center",background:"#fff",border:"1px solid #e4e9f2",borderLeft:`3px solid ${sc}`,padding:"4px 10px",borderRadius:8,minWidth:44,cursor:isXe?"pointer":"default"}}>
-                <div style={{fontWeight:800,fontSize:13,color:"#132247",lineHeight:1}}>{isXe?`🚌 ${v}`:v}</div>
-                <div style={{opacity:.7,fontSize:9,marginTop:2,color:"#6b7897"}}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <div style={{borderTop:"1px solid #eef1f7"}}/>
 
-        {/* Role strip */}
-        <div style={{padding:"5px 16px 10px",display:"flex",alignItems:"center",gap:8}}>
-          <span style={{background:isTHCK?"#eaf2ff":isKHO?"#e6fbf8":isKHTH?"#f1ebff":"#fff3e2",border:`1px solid ${mauRole}33`,borderRadius:20,padding:"2px 12px",fontSize:10,fontWeight:700,color:mauRole,letterSpacing:.3}}>
-            {isTHCK?`🏭 ${t("roleTHCK")}`:isKHO?`📦 ${t("roleKHO")}`:isKHTH?`📋 ${user.don_vi||t("roleKHTH")}`:`🚗 ${t("roleXH")}`}
-          </span>
-          <span style={{fontSize:10,color:"#9aa5bd"}}>{isTHCK||isKHO?t("subTHCK_KHO"):isKHTH?t("subKHTH"):t("subXH")}</span>
+        {/* Icon row — 4 mục: Ngôn ngữ / Đổi MK / Chữ ký / Tài khoản (icon phẳng, ngăn cách bằng vạch mảnh) */}
+        <div style={{display:"flex"}}>
+          <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
+            <span style={{fontSize:19}}>🌐</span>
+            <span style={{fontSize:10.5,fontWeight:700,whiteSpace:"nowrap"}}>
+              <span style={{color:lang==="vi"?"#2563eb":"#9aa5bd"}}>VI</span>
+              <span style={{color:"#9aa5bd"}}> / </span>
+              <span style={{color:lang==="zh"?"#2563eb":"#9aa5bd"}}>中</span>
+            </span>
+          </div>
+          <div onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
+            <span style={{fontSize:19}}>🔑</span>
+            <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>Đổi MK</span>
+          </div>
+          <div onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
+            <span style={{fontSize:19}}>✏️</span>
+            <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</span>
+          </div>
+          <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
+            title="Đăng xuất" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer"}}>
+            <span style={{fontSize:19}}>{user.avatar||"🏢"}</span>
+            <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap",maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis"}}>{user.ten}</span>
+          </div>
         </div>
         </div>{/* /zIndex:1 wrapper */}
       </div>
+
+      {/* Modal chọn Dự án (được mở từ ô "DỰ ÁN" trong dashboard bên dưới) */}
+      {projPickerOpen&&(
+        <>
+          <div onClick={()=>setProjPickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
+          <div style={{position:"fixed",left:16,right:16,top:"18%",background:"#fff",borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,0.25)",maxWidth:340,margin:"0 auto",zIndex:41,overflow:"hidden",maxHeight:"60vh",overflowY:"auto"}}>
+            <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DỰ ÁN</div>
+            {[...projs].reverse().map(p=>(
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:p.id===pid?`${p.mau||"#2563eb"}14`:"#fff",borderBottom:"1px solid #f1f5f9"}}>
+                <span onClick={()=>{sw(p.id);setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+                  <span style={{fontSize:16}}>{p.icon}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:p.id===pid?(p.mau||"#2563eb"):"#1f2937",lineHeight:1.3}}>{p.ten}</span>
+                </span>
+                {p.id===pid&&<span style={{fontSize:11,color:p.mau||"#2563eb",flexShrink:0}}>●</span>}
+                <span onClick={(e)=>{e.stopPropagation();editProjName(p.id,p.ten);}} title="Sửa tên dự án" style={{fontSize:13,padding:"2px 4px",flexShrink:0,opacity:.55}}>✏️</span>
+                <span onClick={(e)=>{e.stopPropagation();editProjMoTa(p.id,p.mo_ta);}} title="Sửa Dòng xe" style={{fontSize:12,padding:"2px 4px",flexShrink:0,opacity:.55}}>🚌</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Modal chọn Dòng xe (được mở từ ô "DÒNG XE" trong dashboard bên dưới) */}
+      {linePickerOpen&&(
+        <>
+          <div onClick={()=>setLinePickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
+          <div style={{position:"fixed",left:16,right:16,top:"18%",background:"#fff",borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,0.25)",maxWidth:340,margin:"0 auto",zIndex:41,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DÒNG XE</div>
+            {KL_LINES.map(l=>(
+              <div key={l.id} onClick={()=>{setActiveLine(l.id);try{localStorage.setItem("activeLine",l.id);}catch{}setLinePickerOpen(false);}}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:l.id===activeLine?"#eaf2ff":"#fff",borderBottom:"1px solid #f1f5f9"}}>
+                <VehicleIconCircle lineId={l.id} size={20}/>
+                <span style={{fontSize:13,fontWeight:700,color:l.id===activeLine?"#2563eb":"#1f2937"}}>{l.title}</span>
+                {l.id===activeLine&&<span style={{marginLeft:"auto",fontSize:11,color:"#2563eb"}}>●</span>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ⚠️ CẢNH BÁO MẤT KẾT NỐI SERVER — hiển thị to, rõ để không nhầm tưởng "mất dữ liệu" */}
       {dbErr&&(
@@ -5620,27 +5608,115 @@ Bạn có chắc chắn không?`;
         </div>
       )}
 
-      {/* TABS */}
-      <div style={{background:"#ffffff",borderBottom:"1px solid #e4e9f2",padding:"0 18px",display:"flex",gap:2,overflowX:"auto"}}>
-        {TABS_NOW.map(([k])=>{
-          const active=tab===k;
-          const c=k==="soan"?mauRole:k==="bc"?"#7c3aed":k==="users"?"#6b7280":mauRole;
-          const label=t(`tab_${k}`);
-          return(
-            <button key={k} onClick={()=>setTab(k)} style={{...btn,background:"none",borderRadius:0,fontWeight:700,
-              color:active?c:"#8a94ad",textTransform:"uppercase",borderBottom:active?`2.5px solid ${c}`:"2.5px solid transparent",
-              padding:"10px 13px",fontSize:13,whiteSpace:"nowrap"}}>
-              {k==="soan"&&soaned>0?`${label} (${soaned}/${bom.length})`:label}
-            </button>
-          );
-        })}
-      </div>
+      {/* TABS — thanh viên nang bo tròn, tab đang chọn nổi trắng (giống ảnh thiết kế) */}
+      {(()=>{
+        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
+        return(
+          <div style={{background:"#ffffff",borderBottom:"1px solid #e4e9f2",padding:"10px 16px 14px"}}>
+            <div style={{display:"flex",gap:4,background:"#eef1f6",borderRadius:12,padding:4,overflowX:"auto"}}>
+              {TABS_NOW.map(([k])=>{
+                const active=tab===k;
+                const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`);
+                return(
+                  <button key={k} onClick={()=>setTab(k)} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
+                    flex:"1 0 auto",minWidth:76,borderRadius:9,fontWeight:800,textAlign:"center",
+                    color:active?"#2563eb":"#8a94ad",background:active?"#ffffff":"transparent",
+                    boxShadow:active?"0 1px 5px rgba(15,23,42,0.14)":"none",
+                    padding:"9px 8px",fontSize:12.5,whiteSpace:"nowrap"}}>
+                    {k==="soan"&&soaned>0?`${label} (${soaned}/${bom.length})`:label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
-      <div style={{padding:"12px 10px",boxSizing:"border-box",width:"100%"}}>
+      {/* BOTTOM NAV — thanh điều hướng dưới cùng, gương với 4 tab chính (giống ảnh thiết kế) */}
+      {isXH&&(()=>{
+        const NAV_ITEMS=[["ds","🚗","Xưởng hàn","#2563eb"],["soan","✅","Kiểm tra","#16a34a"],["duyet","✅","Xác nhận","#0d9488"],["bom_mau","📋","Quản lý BOM","#d97706"]];
+        return(
+          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#fff",borderTop:"1px solid #e4e9f2",boxShadow:"0 -2px 12px rgba(15,23,42,0.06)",display:"flex"}}>
+            {NAV_ITEMS.map(([k,icon,label,c])=>{
+              const active=tab===k;
+              return(
+                <button key={k} onClick={()=>setTab(k)} style={{flex:1,border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",
+                  display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"10px 2px 8px",
+                  borderTop:active?`2.5px solid ${c}`:"2.5px solid transparent"}}>
+                  <span style={{fontSize:19,filter:active?"none":"grayscale(65%)",opacity:active?1:.55}}>{icon}</span>
+                  <span style={{fontSize:10.5,fontWeight:800,color:active?c:"#94a3b8"}}>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      <div style={{padding:"12px 10px",boxSizing:"border-box",width:"100%",paddingBottom:isXH?76:12}}>
 
         {/* ── DANH SÁCH BOM ── */}
         {tab==="ds"&&(
           <div>
+            {/* ── DASHBOARD TỔNG QUAN (giống ảnh thiết kế) — chỉ hiển thị cho Xưởng hàn ── */}
+            {isXH&&(()=>{
+              const daGiao=Math.min((ls||[]).filter(r=>r.loai==="Giao xe").reduce((s,r)=>s+(Number(r.sl)||0),0),soXe);
+              const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
+              return(
+                <div style={{marginBottom:16}}>
+                  {/* Dòng xe / Dự án */}
+                  <div style={{display:"flex",gap:10,marginBottom:12}}>
+                    <div onClick={()=>setLinePickerOpen(true)} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e4e9f2",borderRadius:12,padding:"9px 12px",cursor:"pointer"}}>
+                      <div style={{fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:.5}}>DÒNG XE</div>
+                      <div style={{fontSize:15,fontWeight:800,color:"#0f172a",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                        {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"} <span style={{color:"#94a3b8",fontWeight:700}}>▾</span>
+                      </div>
+                    </div>
+                    <div onClick={()=>setProjPickerOpen(true)} style={{flex:1,minWidth:0,background:"#eaf2ff",border:"1.5px solid #2563eb",borderRadius:12,padding:"9px 12px",cursor:"pointer"}}>
+                      <div style={{fontSize:10,fontWeight:800,color:"#2563eb",letterSpacing:.5}}>DỰ ÁN</div>
+                      <div style={{fontSize:15,fontWeight:800,color:"#2563eb",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                        {proj.ten} <span style={{fontWeight:700}}>▾</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Trạng thái dự án */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:"#fff",border:"1px solid #e4e9f2",borderLeft:"4px solid #2563eb",borderRadius:12,padding:"14px 14px",marginBottom:12}}>
+                    <div style={{fontSize:14,fontWeight:800,color:"#0f172a",lineHeight:1.35}}>
+                      {proj.ten} <span style={{color:"#94a3b8",fontWeight:600}}>·</span> {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
+                    </div>
+                    <div style={{fontSize:17,fontWeight:800,color:"#16a34a",flexShrink:0}}>{pctGiao}%</div>
+                  </div>
+
+                  {/* Thêm xe / Xoá dự án */}
+                  <div style={{display:"flex",gap:10,marginBottom:20}}>
+                    <button onClick={()=>setNewP(true)} style={{flex:1,border:"none",cursor:"pointer",fontFamily:"inherit",background:"#2563eb",color:"#fff",borderRadius:12,padding:"13px 0",fontSize:15,fontWeight:800}}>＋ Thêm xe mới</button>
+                    {projs.length>1&&<button onClick={()=>delProj(pid)} title="Xoá dự án" style={{border:"1px solid #e4e9f2",cursor:"pointer",fontFamily:"inherit",background:"#fff",color:"#64748b",borderRadius:12,padding:"0 18px",fontSize:18}}>🗑️</button>}
+                  </div>
+
+                  {/* Tổng quan dự án */}
+                  <div style={{fontSize:11.5,fontWeight:800,color:"#94a3b8",letterSpacing:.6,marginBottom:10}}>TỔNG QUAN DỰ ÁN</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {[
+                      {v:fmt(soXe), l:"Xe", icon:"🚌", c:"#2563eb", badge:soXe>0?"Đủ":null, badgeColor:"#e2e8f0", badgeText:"#475569", onClick:editSoXe},
+                      {v:fmt(bom.length), l:"Mã vật tư", icon:"🏷️", c:"#16a34a", badge:null},
+                      {v:fmt(phList.length), l:"Phiếu", icon:"📄", c:"#f59e0b", badge:phList.filter(p=>p.tt!=="Đã xác nhận").length>0?"Chờ":null, badgeColor:"#fef3c7", badgeText:"#b45309"},
+                      {v:fmt(ls.length), l:"Giao dịch", icon:"🔄", c:"#7c3aed", badge:null},
+                    ].map((s,i)=>(
+                      <div key={i} onClick={s.onClick} style={{background:"#fff",border:"1px solid #e4e9f2",borderLeft:`4px solid ${s.c}`,borderRadius:12,padding:"14px 14px",cursor:s.onClick?"pointer":"default"}}>
+                        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                          <div style={{fontSize:24,fontWeight:800,color:"#0f172a",lineHeight:1}}>{s.v}</div>
+                          {s.badge&&<span style={{fontSize:10,fontWeight:800,color:s.badgeText||"#16a34a",background:s.badgeColor||"#dcfce7",borderRadius:20,padding:"2px 8px"}}>{s.badge}</span>}
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginTop:8,fontSize:12.5,fontWeight:700,color:"#64748b"}}>
+                          <span>{s.icon}</span><span>{s.l}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
               <input placeholder="🔍 STT, mã, tên, vị trí..." value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,flex:"1 1 200px",minWidth:150}}/>
               <select value={fdm} onChange={e=>setFdm(e.target.value)} style={{...inp,flex:"1 1 140px",minWidth:120}}>
