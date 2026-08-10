@@ -159,6 +159,17 @@ const TABS_KHO      = TABS_ALL.filter(([k])=>!["duyet","bom_mau","users"].includ
 // KHTH: chỉ xem — bỏ hẳn các tab thao tác (Soạn Hàng, Duyệt Đơn, BOM Mẫu, Người dùng)
 const TABS_KHTH     = TABS_ALL.filter(([k])=>!["soan","duyet","bom_mau","users"].includes(k));
 
+// ✅ Danh sách khoá (key) của các bộ tab theo từng VAI TRÒ — dùng làm "mặc định" cho
+// bảng "Phân quyền chức năng theo đơn vị" (xem TAB_QUYEN_DEFAULT bên dưới) khi 1 đơn vị
+// chưa được admin cấu hình riêng.
+const TABS_THCK_KEYS     = TABS_THCK.map(([k])=>k);
+const TABS_XUONGHAN_KEYS = TABS_XUONGHAN.map(([k])=>k);
+const TABS_KHO_KEYS      = TABS_KHO.map(([k])=>k);
+const TABS_KHTH_KEYS     = TABS_KHTH.map(([k])=>k);
+// Bộ khoá mặc định theo vai trò — dùng khi 1 đơn vị (kể cả đơn vị tự thêm sau này) chưa
+// có dòng riêng trong bảng "quyen_chuc_nang" trên Supabase.
+const TAB_KEYS_BY_ROLE = {thck:TABS_THCK_KEYS, xuonghan:TABS_XUONGHAN_KEYS, kho:TABS_KHO_KEYS, khth:TABS_KHTH_KEYS};
+
 // ─── Từ điển đa ngôn ngữ TOÀN APP (dùng qua LangCtx) ────────────────
 const APP_I18N = {
   // Tabs
@@ -1019,6 +1030,70 @@ const LINE_QUYEN_DEFAULT = {
   "Ban LĐNM":     ["minibus","citybus","12m"],
 };
 
+// ═══════════════════════════════════════════════════════════════
+//  PHÂN QUYỀN CHỨC NĂNG (TAB) THEO ĐƠN VỊ
+// ═══════════════════════════════════════════════════════════════
+// ✅ Trước đây: bộ TAB (Soạn Hàng / Nhận Hàng / Phiếu GN / Báo cáo / BOM Mẫu / Người dùng)
+// hiển thị cho 1 tài khoản chỉ phụ thuộc VAI TRÒ (thck/kho/xuonghan/khth) — nghĩa là MỌI
+// đơn vị cùng vai trò (VD "KHO VẬT TƯ" và "KHO CITYBUS" cùng vai trò "kho") đều thấy Y
+// HỆT nhau bộ chức năng, dù dòng xe phụ trách khác nhau. Nay thêm 1 lớp phân quyền RIÊNG
+// THEO TỪNG ĐƠN VỊ (độc lập với dòng xe) để Admin có thể giới hạn đúng nhiệm vụ đã phân
+// công cho từng đơn vị (VD: "XH_MINIBUS" chỉ cần "✅ Nhận Hàng" cho dòng Mini Bus, không
+// cần thấy "🗂️ BOM Mẫu" hay "📋 Soạn Hàng" của các đơn vị khác).
+// Mặc định (khi chưa cấu hình riêng) LUÔN giữ nguyên hành vi cũ — lấy theo vai trò —
+// nên KHÔNG có đơn vị nào bị mất chức năng đột ngột khi vừa nâng cấp.
+// ⚠️ SQL cần chạy 1 lần trên Supabase (SQL Editor) để lưu phân quyền lâu dài:
+//   create table if not exists quyen_chuc_nang (
+//     don_vi text primary key,
+//     chuc_nang jsonb not null default '[]'::jsonb
+//   );
+const TAB_META = [
+  {id:"ds",      label:"📦 Vật tư"},
+  {id:"soan",    label:"📋 Soạn Hàng / Kiểm tra"},
+  {id:"duyet",   label:"✅ Nhận Hàng / Xác nhận"},
+  {id:"pgn",     label:"📄 Phiếu GN"},
+  {id:"bc",      label:"📈 Báo Cáo"},
+  {id:"bom_mau", label:"🗂️ BOM Mẫu"},
+  {id:"users",   label:"👥 Người dùng"},
+];
+// Xác định vai trò GỐC của 1 tên đơn vị theo quy ước đặt tên (dùng để suy ra bộ tab mặc
+// định cho đơn vị chưa có dòng riêng trong bảng phân quyền chức năng).
+const baseRoleOfDonViName = (dv) => {
+  if(dv==="Nhà máy THCK") return "thck";
+  if(dv==="XƯỞNG HÀN")    return "xuonghan";
+  if(dv==="KHO VẬT TƯ")   return "kho";
+  if(dv==="Phòng KH-TH")  return "khth";
+  if(/^KHO/i.test(dv||"")) return "kho";
+  if(/^XH[_\s-]/i.test(dv||"")) return "xuonghan";
+  return "khth";
+};
+// Bộ chức năng MẶC ĐỊNH cho từng đơn vị có sẵn — khớp 100% hành vi cũ trước khi có bảng
+// phân quyền riêng (đơn vị chuyên trách 1 dòng xe vẫn giữ nguyên trọn bộ chức năng theo
+// vai trò của mình — Admin có thể vào "👥 Người dùng" → "🎛️ Phân quyền chức năng theo đơn
+// vị" để bớt/thêm cho đúng nhiệm vụ thực tế đã phân công).
+const TAB_QUYEN_DEFAULT = {
+  "Nhà máy THCK": TABS_THCK_KEYS,
+  "XƯỞNG HÀN":    TABS_XUONGHAN_KEYS,
+  "KHO VẬT TƯ":   TABS_KHO_KEYS,
+  "Phòng KH-TH":  TABS_KHTH_KEYS,
+  "KHO CITYBUS":  TABS_KHO_KEYS,
+  "KHO 12M":      TABS_KHO_KEYS,
+  "XH_MINIBUS":   TABS_XUONGHAN_KEYS,
+  "XH_CITYBUS":   TABS_XUONGHAN_KEYS,
+  "XH_12":        TABS_XUONGHAN_KEYS,
+  "Phòng KT":     TABS_KHTH_KEYS,
+  "Ban CN":       TABS_KHTH_KEYS,
+  "Ban LĐNM":     TABS_KHTH_KEYS,
+};
+// Lấy bộ chức năng áp dụng cho 1 đơn vị: ưu tiên bảng đã cấu hình (tabQuyen, có thể đã
+// được Admin chỉnh tay hoặc tải từ Supabase) → nếu chưa có, dùng TAB_QUYEN_DEFAULT → nếu
+// vẫn chưa có (đơn vị hoàn toàn mới), suy ra theo quy ước tên đơn vị (baseRoleOfDonViName).
+const getTabKeysForDonVi = (tabQuyen, dv) => {
+  if(tabQuyen && Array.isArray(tabQuyen[dv])) return tabQuyen[dv];
+  if(Array.isArray(TAB_QUYEN_DEFAULT[dv])) return TAB_QUYEN_DEFAULT[dv];
+  return TAB_KEYS_BY_ROLE[baseRoleOfDonViName(dv)] || TABS_KHTH_KEYS;
+};
+
 // ─── Trạng thái dự án — 3 thẻ thư mục sau khi chọn dòng xe ───
 // ⚠️ "inprogress" (Đang thực hiện) dẫn thẳng vào hệ thống quản lý vật tư (web chính).
 // "new" (Khởi tạo Dự án) cũng dẫn vào hệ thống nhưng tự động mở sẵn modal "🆕 Thêm dự án mới"
@@ -1615,13 +1690,14 @@ const StatCard=({icon,label,value,color})=>(
   </div>
 );
 
-function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe}){
+function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe, tabQuyen, setTabQuyen, dbUpsertQuyenChucNang}){
   const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
   // ── State cho giao diện gọn (accordion) + tìm kiếm ──
   const [permOpen,setPermOpen]     = useState(false);   // khối "Phân quyền dòng xe" — mặc định gấp lại
+  const [permOpen2,setPermOpen2]   = useState(false);   // khối "Phân quyền chức năng" — mặc định gấp lại
   const [addOpen,setAddOpen]       = useState(false);   // khối "Thêm tài khoản mới" — mặc định gấp lại
   const [search,setSearch]         = useState("");       // tìm theo ID / họ tên / đơn vị
   const [collapsedGroups,setCollapsedGroups]=useState(()=>new Set()); // các đơn vị (có tài khoản) đang bị gấp lại
@@ -1753,6 +1829,9 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     const oldLines=lineQuyen[oldName]||[];
     setLineQuyen(q=>{const {[oldName]:_,...rest}=q;return {...rest,[newName]:oldLines};});
     dbUpsertQuyenDongXe&&dbUpsertQuyenDongXe(newName,oldLines);
+    const oldTabs=getTabKeysForDonVi(tabQuyen,oldName);
+    setTabQuyen(q=>{const {[oldName]:_,...rest}=q;return {...rest,[newName]:oldTabs};});
+    dbUpsertQuyenChucNang&&dbUpsertQuyenChucNang(newName,oldTabs);
     users.filter(u=>u.don_vi===oldName).forEach(u=>{
       const updatedUser={...u,don_vi:newName};
       setUsers(us=>us.map(x=>x.id===u.id?updatedUser:x));
@@ -1779,12 +1858,14 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     setConfirmDelDept(null);
     const prevDepts=customDepts;
     const prevLineQuyen=lineQuyen;
+    const prevTabQuyen=tabQuyen;
     setCustomDepts(l=>{
       const updated=l.filter(d=>d!==name);
       try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
       return updated;
     });
     setLineQuyen(q=>{const {[name]:_,...rest}=q;return rest;});
+    setTabQuyen(q=>{const {[name]:_,...rest}=q;return rest;});
     try{
       const {error}=await supabase.from("custom_depts").delete().eq("ten",name);
       if(error)throw error;
@@ -1793,6 +1874,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       // Xoá trên máy chủ thất bại — hoàn tác lại trên giao diện để không bị lệch dữ liệu
       setCustomDepts(prevDepts);
       setLineQuyen(prevLineQuyen);
+      setTabQuyen(prevTabQuyen);
       fl(`⚠️ Xoá "${name}" thất bại (${e.message||"lỗi không rõ"}). Vui lòng thử lại.`);
     }
   };
@@ -1853,6 +1935,16 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     const next=cur.includes(lineId)?cur.filter(x=>x!==lineId):[...cur,lineId];
     setLineQuyen(q=>({...q,[donVi]:next}));
     dbUpsertQuyenDongXe&&dbUpsertQuyenDongXe(donVi,next);
+  };
+
+  // ── Phân quyền CHỨC NĂNG (tab) theo đơn vị — độc lập với phân quyền dòng xe ở trên.
+  // Quyết định đơn vị đó thấy đúng NHIỆM VỤ nào (Soạn Hàng / Nhận Hàng / Phiếu GN / Báo
+  // cáo / BOM Mẫu / Người dùng), tách biệt với việc đơn vị đó xem dữ liệu DÒNG XE nào.
+  const toggleTabQuyen=(donVi,tabId)=>{
+    const cur=getTabKeysForDonVi(tabQuyen,donVi);
+    const next=cur.includes(tabId)?cur.filter(x=>x!==tabId):[...cur,tabId];
+    setTabQuyen(q=>({...q,[donVi]:next}));
+    dbUpsertQuyenChucNang&&dbUpsertQuyenChucNang(donVi,next);
   };
 
   // ✅ TRƯỚC ĐÂY: chỉ gom tài khoản theo 4 VAI TRÒ (thck/xuonghan/kho/khth) — nghĩa là
@@ -1944,6 +2036,38 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
         <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}>
           <button onClick={()=>addCustomDept(false)} style={{...btn,background:"#eef2ff",color:"#4338ca",fontWeight:700,padding:"7px 14px"}}>➕ Thêm đơn vị</button>
           {flash2&&<span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#dc2626":"#16a34a"}}>{flash2}</span>}
+        </div>
+      </AccordionCard>
+
+      {/* ── PHÂN QUYỀN CHỨC NĂNG (TAB) THEO ĐƠN VỊ (gấp gọn mặc định) ── */}
+      <AccordionCard icon="🎛️" title="Phân quyền chức năng theo đơn vị" badge={`${allDonViGroups.length} đơn vị`} badgeColor="#0f766e"
+        open={permOpen2} onToggle={()=>setPermOpen2(o=>!o)}>
+        <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Tick chọn (các) nhiệm vụ mà mỗi đơn vị được phép thao tác/xem sau khi đăng nhập — độc lập với bảng "Phân quyền dòng xe" ở trên (bảng đó quyết định XEM DỮ LIỆU DÒNG XE NÀO, bảng này quyết định LÀM NHIỆM VỤ GÌ). Bỏ tick "🗂️ BOM Mẫu"/"✅ Nhận Hàng" khỏi 1 kho chuyên trách chỉ Soạn Hàng, hoặc bỏ tick "📋 Soạn Hàng" khỏi 1 xưởng chuyên trách chỉ Nhận Hàng, v.v. Tài khoản <b>admin</b> và tài khoản đặc biệt <b>xh04</b> luôn giữ trọn bộ chức năng của mình.</div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
+              <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>Đơn vị</th>
+              {TAB_META.map(tb=><th key={tb.id} style={{padding:"8px 8px",textAlign:"center",fontWeight:700,color:"#6b7280",fontSize:10.5,whiteSpace:"nowrap"}}>{tb.label}</th>)}
+            </tr></thead>
+            <tbody>
+              {allDonViGroups.map((dv,i)=>{
+                const dvTabs=getTabKeysForDonVi(tabQuyen,dv);
+                return(
+                <tr key={dv} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
+                  <td style={{padding:"8px 12px",fontWeight:600,whiteSpace:"nowrap"}}>{dv}</td>
+                  {TAB_META.map(tb=>{
+                    const checked=dvTabs.includes(tb.id);
+                    return (
+                      <td key={tb.id} style={{padding:"8px 8px",textAlign:"center"}}>
+                        <input type="checkbox" checked={checked} onChange={()=>toggleTabQuyen(dv,tb.id)} style={{width:16,height:16,cursor:"pointer"}}/>
+                      </td>
+                    );
+                  })}
+                </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </AccordionCard>
 
@@ -2519,6 +2643,7 @@ export default function App(){
   const [showGiaoXeChiTiet, setShowGiaoXeChiTiet] = useState(false);
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
+  const [tabQuyen, setTabQuyen] = useState({}); // phân quyền chức năng (tab) theo đơn vị — rỗng = dùng TAB_QUYEN_DEFAULT
   const [dbErr,    setDbErr]    = useState("");
   const [projs,    setProjs]    = useState([]);
   const [projPickerOpen, setProjPickerOpen] = useState(false);
@@ -2733,7 +2858,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -2749,6 +2874,7 @@ export default function App(){
           supabase.from(T("bom_mau_loai")).select("*").order("thu_tu").range(0, 9999),
           supabase.from(T("bom_mau")).select("*").order("stt").range(0, 9999),
           supabase.from("quyen_dong_xe").select("*").range(0, 9999),
+          supabase.from("quyen_chuc_nang").select("*").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -2826,6 +2952,15 @@ export default function App(){
           r10.data.forEach(row=>{ if(row.don_vi) m[row.don_vi]=Array.isArray(row.dong_xe)?row.dong_xe:[]; });
           setLineQuyen(q=>({...q,...m}));
         }
+        // Phân quyền chức năng (tab) theo đơn vị — nếu bảng chưa tạo, mỗi đơn vị vẫn dùng
+        // đúng bộ chức năng mặc định theo vai trò (xem TAB_QUYEN_DEFAULT/getTabKeysForDonVi).
+        if(r11.error){
+          console.warn("Chưa đọc được bảng quyen_chuc_nang (có thể chưa tạo bảng):",r11.error.message);
+        } else if(r11.data?.length){
+          const m={};
+          r11.data.forEach(row=>{ if(row.don_vi) m[row.don_vi]=Array.isArray(row.chuc_nang)?row.chuc_nang:[]; });
+          setTabQuyen(q=>({...q,...m}));
+        }
       }catch(e){
         console.error("Supabase load error:",e);
         // ✅ FIX QUAN TRỌNG: trước đây lỗi ở đây chỉ log console, KHÔNG setDbErr — nếu
@@ -2850,6 +2985,23 @@ export default function App(){
     const pollTimer=setInterval(load,10000);
     return ()=>clearInterval(pollTimer);
   },[user,activeLine]);
+
+  // ✅ TỰ SỬA "dòng xe đang xem" nếu lệch quyền: trước đây ô "DÒNG XE" trong dashboard cho
+  // phép MỌI tài khoản tự đổi sang dòng xe bất kỳ (không kiểm tra bảng "Phân quyền dòng xe
+  // theo đơn vị"), nên có thể tồn tại tài khoản đang lưu sẵn (localStorage) 1 dòng xe KHÔNG
+  // thuộc quyền của mình (VD tài khoản "KHO VẬT TƯ" — chỉ được cấp Mini Bus — lại đang xem
+  // dữ liệu City Bus). Khi phát hiện activeLine hiện tại không nằm trong danh sách dòng xe
+  // được cấp (và danh sách đó không rỗng), tự động đưa về đúng dòng xe được phép đầu tiên.
+  useEffect(()=>{
+    if(!user || user.id==="admin") return; // admin luôn có toàn quyền cả 3 dòng
+    const allowed = lineQuyen[user.don_vi];
+    if(!allowed || !allowed.length) return; // chưa tải xong bảng phân quyền / đơn vị chưa cấu hình — không đoán bừa
+    if(!allowed.includes(activeLine)){
+      const fixedLine = allowed[0];
+      setActiveLine(fixedLine);
+      try{localStorage.setItem("activeLine",fixedLine);}catch{}
+    }
+  },[user,lineQuyen,activeLine]);
 
   // ── Realtime: đồng bộ bảng bom_items giữa các thiết bị/người dùng gần như tức thời.
   // Đây là LỚP BẢO VỆ BỔ SUNG chống mất dữ liệu nhiều trạm: lớp chính là đã đổi mọi thao
@@ -3306,6 +3458,20 @@ export default function App(){
       return true;
     }catch(e){
       console.error("dbUpsertQuyenDongXe:",e);
+      return false;
+    }
+  };
+  const dbUpsertQuyenChucNang=async(don_vi,chuc_nang)=>{
+    try{
+      const {error}=await supabase.from("quyen_chuc_nang").upsert({don_vi,chuc_nang},{onConflict:"don_vi"});
+      if(error){
+        console.error("dbUpsertQuyenChucNang:",error);
+        alert("⚠️ Chưa lưu được phân quyền chức năng xuống máy chủ: "+error.message+"\n(Có thể bảng quyen_chuc_nang chưa được tạo trên Supabase — xem hướng dẫn SQL ở comment gần TAB_QUYEN_DEFAULT trong code.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbUpsertQuyenChucNang:",e);
       return false;
     }
   };
@@ -5491,14 +5657,32 @@ Bạn có chắc chắn không?`;
   const isXH      = role==="xuonghan";
   const isKHO     = role==="kho";
   const isKHTH    = role==="khth";       // Vai trò mới — CHỈ XEM, không thao tác
-  const TABS_NOW  = isTHCK ? TABS_THCK : isKHO ? TABS_KHO : isKHTH ? TABS_KHTH : (()=>{
-    const tabs = TABS_XUONGHAN;
-    if(isXH && user.id === "xh04") {
-      // Thêm "users" tab cho xh04
-      return [...tabs, ["users", "👥 Người dùng"]];
+  // ✅ Bộ tab hiển thị = giao giữa (a) chức năng đã cấp cho ĐƠN VỊ của tài khoản (bảng
+  // "Phân quyền chức năng theo đơn vị" — tabQuyen, mặc định theo TAB_QUYEN_DEFAULT nếu
+  // Admin chưa tuỳ chỉnh) và (b) thứ tự/nhãn chuẩn của TABS_ALL. Nhờ vậy mỗi đơn vị chỉ
+  // thấy đúng nhiệm vụ đã được phân công (VD "XH_MINIBUS" có thể bị giới hạn chỉ còn
+  // "✅ Nhận Hàng" thay vì trọn bộ chức năng của vai trò "xuonghan").
+  const donViTabKeys = getTabKeysForDonVi(tabQuyen, user.don_vi);
+  const TABS_NOW  = (()=>{
+    let tabs = TABS_ALL.filter(([k])=>donViTabKeys.includes(k));
+    if(isXH && user.id === "xh04" && !tabs.some(([k])=>k==="users")) {
+      // Thêm "users" tab cho xh04 (tài khoản quản trị đặc biệt) dù bảng phân quyền chức
+      // năng của đơn vị "XƯỞNG HÀN" có bị giới hạn đến đâu.
+      tabs = [...tabs, ["users", "👥 Người dùng"]];
     }
+    // An toàn: nếu 1 đơn vị lỡ bị cấu hình 0 chức năng, vẫn giữ lại tối thiểu "📦 Vật tư"
+    // để tài khoản không rơi vào màn trắng không điều hướng được.
+    if(!tabs.length) tabs = TABS_ALL.filter(([k])=>k==="ds");
     return tabs;
   })();
+  // ✅ Dòng xe mà tài khoản đang đăng nhập được PHÉP truy cập, dùng để giới hạn bộ chọn
+  // "DÒNG XE" ngay trong màn hình chính (dashboard) — trước đây bộ chọn này liệt kê CẢ 3
+  // dòng xe cho MỌI tài khoản, không kiểm tra bảng "Phân quyền dòng xe theo đơn vị", nên
+  // 1 tài khoản chỉ được cấp 1 dòng (VD "KHO VẬT TƯ" → chỉ Mini Bus) vẫn có thể tự bấm đổi
+  // sang dòng xe khác (VD City Bus) và xem/thao tác nhầm dữ liệu không thuộc phận sự của
+  // mình. Nay giới hạn đúng theo lineQuyen — tài khoản "admin" luôn có toàn quyền cả 3.
+  const allowedLinesForUser = user.id==="admin" ? LINE_IDS : (lineQuyen[user.don_vi] || []);
+  const linesPickable = KL_LINES.filter(l=>allowedLinesForUser.includes(l.id));
   const mauRole   = isTHCK ? "#1d4ed8" : isKHO ? "#0f766e" : isKHTH ? "#7c3aed" : "#b45309";
 
   return(
@@ -5577,13 +5761,15 @@ Bạn có chắc chắn không?`;
         </>
       )}
 
-      {/* Modal chọn Dòng xe (được mở từ ô "DÒNG XE" trong dashboard bên dưới) */}
+      {/* Modal chọn Dòng xe (được mở từ ô "DÒNG XE" trong dashboard bên dưới) — CHỈ liệt kê
+          đúng (các) dòng xe tài khoản đang đăng nhập được cấp quyền (linesPickable), không
+          còn hiện cả 3 dòng cho mọi tài khoản như trước. */}
       {linePickerOpen&&(
         <>
           <div onClick={()=>setLinePickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
           <div style={{position:"fixed",left:16,right:16,top:"18%",background:"#fff",borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,0.25)",maxWidth:340,margin:"0 auto",zIndex:41,overflow:"hidden"}}>
             <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DÒNG XE</div>
-            {KL_LINES.map(l=>(
+            {linesPickable.map(l=>(
               <div key={l.id} onClick={()=>{setActiveLine(l.id);try{localStorage.setItem("activeLine",l.id);}catch{}setLinePickerOpen(false);}}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:l.id===activeLine?"#eaf2ff":"#fff",borderBottom:"1px solid #f1f5f9"}}>
                 <VehicleIconCircle lineId={l.id} size={20}/>
@@ -5591,6 +5777,9 @@ Bạn có chắc chắn không?`;
                 {l.id===activeLine&&<span style={{marginLeft:"auto",fontSize:11,color:"#2563eb"}}>●</span>}
               </div>
             ))}
+            {!linesPickable.length&&(
+              <div style={{padding:"14px",fontSize:12,color:"#dc2626"}}>⚠️ Đơn vị "{user.don_vi}" chưa được cấp quyền truy cập dòng xe nào. Liên hệ Quản trị viên.</div>
+            )}
           </div>
         </>
       )}
@@ -5632,18 +5821,20 @@ Bạn có chắc chắn không?`;
         );
       })()}
 
-      {/* DASHBOARD TỔNG QUAN — hiển thị THƯỜNG TRỰC trên mọi tab, cho TẤT CẢ phòng ban (Nhà máy THCK / Kho vật tư / Xưởng hàn / KHTH...) — mỗi phòng ban vẫn giữ đúng quyền thao tác đã được phân quyền sẵn (KHTH chỉ xem, không thêm/xoá/sửa) */}
-      {(()=>{
+      {/* DASHBOARD TỔNG QUAN — hiển thị THƯỜNG TRỰC trên mọi tab NGOẠI TRỪ tab "👥 Người dùng"
+          (trang quản lý tài khoản/phân quyền không liên quan tới 1 dự án/dòng xe cụ thể nào,
+          nên khối "Dòng xe / Dự án / Tổng quan dự án" không có ý nghĩa và gây rối mắt ở đây). */}
+      {tab!=="users" && (()=>{
         const daGiao=Math.min((ls||[]).filter(r=>r.loai==="Giao xe").reduce((s,r)=>s+(Number(r.sl)||0),0),soXe);
         const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
         return(
           <div style={{background:"#fff",borderBottom:"1px solid #e4e9f2",padding:"0 10px 14px"}}>
             {/* Dòng xe / Dự án */}
             <div style={{display:"flex",gap:10,marginBottom:12}}>
-              <div onClick={()=>setLinePickerOpen(true)} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e4e9f2",borderRadius:12,padding:"9px 12px",cursor:"pointer"}}>
+              <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e4e9f2",borderRadius:12,padding:"9px 12px",cursor:linesPickable.length>1?"pointer":"default"}}>
                 <div style={{fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:.5}}>DÒNG XE</div>
                 <div style={{fontSize:15,fontWeight:800,color:"#0f172a",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                  {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"} <span style={{color:"#94a3b8",fontWeight:700}}>▾</span>
+                  {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"} {linesPickable.length>1&&<span style={{color:"#94a3b8",fontWeight:700}}>▾</span>}
                 </div>
               </div>
               <div onClick={()=>setProjPickerOpen(true)} style={{flex:1,minWidth:0,background:`${mauRole}14`,border:`1.5px solid ${mauRole}`,borderRadius:12,padding:"9px 12px",cursor:"pointer"}}>
@@ -7060,7 +7251,7 @@ Bạn có chắc chắn không?`;
         })()}
 
         {tab==="users"&&user.id==="xh04"&&(
-          <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH} lineQuyen={lineQuyen} setLineQuyen={setLineQuyen} dbUpsertQuyenDongXe={dbUpsertQuyenDongXe}/>
+          <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH} lineQuyen={lineQuyen} setLineQuyen={setLineQuyen} dbUpsertQuyenDongXe={dbUpsertQuyenDongXe} tabQuyen={tabQuyen} setTabQuyen={setTabQuyen} dbUpsertQuyenChucNang={dbUpsertQuyenChucNang}/>
         )}
 
       </div>
