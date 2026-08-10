@@ -968,6 +968,12 @@ const DIRECT_ENTRY_BY_DON_VI = {
 };
 const getDirectEntry = (don_vi) => DIRECT_ENTRY_BY_DON_VI[normalizeDonViKey(don_vi)] || null;
 
+// ✅ Nút "＋ Thêm xe mới" + biểu tượng "🗑️ Xoá dự án" trong khối "Tổng quan dự án" — theo
+// yêu cầu CHỈ hiển thị cho đúng 3 đơn vị được phân công nhiệm vụ khởi tạo/xoá dự án:
+// XƯỞNG HÀN, Phòng KT, Phòng KH-TH. Mọi đơn vị khác (kể cả Nhà máy THCK, các kho/xưởng
+// chuyên trách từng dòng xe, Ban CN, Ban LĐNM...) đều không thấy 2 nút này.
+const SHOW_THEM_XE_DON_VI = ["XƯỞNG HÀN","Phòng KT","Phòng KH-TH"];
+
 // ── Màu đặc trưng của từng dòng xe (dùng cho vòng tròn icon) ──
 const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#ff9a1f"};
 // ✅ Hàm dùng chung: vẽ 1 vòng tròn tô màu bao quanh icon chiếc xe — áp dụng cho MỌI
@@ -5853,8 +5859,11 @@ Bạn có chắc chắn không?`;
               <div style={{fontSize:17,fontWeight:800,color:"#16a34a",flexShrink:0}}>{pctGiao}%</div>
             </div>
 
-            {/* Thêm xe / Xoá dự án — chỉ ẩn với KHTH (vai trò chỉ xem, không thao tác) */}
-            {!isKHTH&&(
+            {/* Thêm xe / Xoá dự án — CHỈ hiển thị cho 3 đơn vị được phân công nhiệm vụ này:
+                XƯỞNG HÀN, Phòng KT, Phòng KH-TH. Mọi đơn vị khác (Nhà máy THCK, KHO VẬT TƯ,
+                KHO CITYBUS, KHO 12M, XH_MINIBUS, XH_CITYBUS, XH_12, Ban CN, Ban LĐNM...) đều
+                KHÔNG thấy nút này, dù trước đây chỉ ẩn theo vai trò "khth". */}
+            {SHOW_THEM_XE_DON_VI.includes(user.don_vi)&&(
               <div style={{display:"flex",gap:10,marginBottom:20}}>
                 <button onClick={()=>setNewP(true)} style={{flex:1,border:"none",cursor:"pointer",fontFamily:"inherit",background:mauRole,color:"#fff",borderRadius:12,padding:"13px 0",fontSize:15,fontWeight:800}}>＋ Thêm xe mới</button>
                 {projs.length>1&&<button onClick={()=>delProj(pid)} title="Xoá dự án" style={{border:"1px solid #e4e9f2",cursor:"pointer",fontFamily:"inherit",background:"#fff",color:"#64748b",borderRadius:12,padding:"0 18px",fontSize:18}}>🗑️</button>}
