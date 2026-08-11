@@ -5982,22 +5982,22 @@ Bạn có chắc chắn không?`;
         <div style={{position:"relative",zIndex:1}}>
 
         {/* Brand row */}
-        <div style={{padding:"16px 16px 14px",display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:46,height:46,borderRadius:13,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,color:"#fff",overflow:"hidden"}}>
+        <div style={{padding:"16px 16px 14px",display:"flex",alignItems:"center",gap:12,background:"#000000"}}>
+          <div style={{width:54,height:54,borderRadius:14,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0,color:"#fff",overflow:"hidden"}}>
             {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":(
-              <img src={XH_BUS_ICON_B64} alt="Xe buýt điện" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:13}}/>
+              <img src={XH_BUS_ICON_B64} alt="Xe buýt điện" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:14}}/>
             )}
           </div>
           <div style={{minWidth:0,flex:1}}>
-            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#ffffff",background:"#000000",borderRadius:8,padding:"3px 10px",display:"inline-block",maxWidth:"100%"}}>{t("brandTitle")}</div>
-            <div style={{fontSize:13,fontWeight:800,color:"#2563eb",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
+            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#ffffff"}}>{t("brandTitle")}</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#60a5fa",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
               {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
             </div>
           </div>
           {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap",flexShrink:0}}>{msg}</span>}
           {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}} title={dbErr}>⚠️</span>}
           {/* 🔔 Chuông cảnh báo khẩn cấp — badge đỏ hiện số lượng chưa đọc */}
-          <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:34,height:34,borderRadius:"50%",background:canhBaoChuaDoc>0?"#fef2f2":"#f8fafc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1.5px solid #fecaca":"1px solid #eef1f7"}}>
+          <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:40,height:40,borderRadius:"50%",background:canhBaoChuaDoc>0?"#fef2f2":"#f8fafc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1.5px solid #fecaca":"1px solid #eef1f7"}}>
             🔔
             {canhBaoChuaDoc>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{canhBaoChuaDoc>9?"9+":canhBaoChuaDoc}</span>}
           </div>
