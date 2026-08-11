@@ -2453,10 +2453,12 @@ async function chiaSePhieuAnh(el, vp){
 }
 
 // Nút xuất dùng chung
-function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label=""}){
+function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label="", fluid=false, compact=false}){
   const [busy, setBusy] = useState(false);
   const {t} = useLang();
-  const s={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,padding:"6px 13px",display:"flex",alignItems:"center",gap:5};
+  const s=fluid
+    ? {border:"1.5px solid",borderRadius:12,cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:compact?11:12.5,padding:compact?"11px 6px":"11px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:compact?4:6,flex:1,minWidth:0,whiteSpace:"nowrap"}
+    : {border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,padding:"6px 13px",display:"flex",alignItems:"center",gap:5};
 
   const handleClick = async () => {
     setBusy(true);
@@ -2464,13 +2466,13 @@ function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label=""}){
   };
 
   return(
-    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+    <div style={{display:"flex",gap:fluid?(compact?6:10):6,alignItems:"center",width:fluid?"100%":"auto",minWidth:0}}>
       {label&&<span style={{fontSize:11,color:"#6b7280",fontWeight:600}}>{label}</span>}
-      <button onClick={onExcel} style={{...s,background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0"}}>
-        <span>📊</span> {t("btnExcel")}
+      <button onClick={onExcel} style={{...s,background:"#f0fdf4",color:"#16a34a",borderColor:"#bbf7d0"}}>
+        <span>📊</span> <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{compact?"Excel":t("btnExcel")}</span>
       </button>
-      <button onClick={handleClick} disabled={busy} style={{...s,background:busy?"#ede9fe":"#fff7ed",color:busy?"#6d28d9":"#c2410c",border:`1px solid ${busy?"#c4b5fd":"#fed7aa"}`,transition:"all .2s",opacity:busy?0.75:1}}>
-        <span>{busy?"⏳":"🖼️🔗"}</span> {busy?"Đang tạo ảnh...":t("btnPdfShare")}
+      <button onClick={handleClick} disabled={busy} style={{...s,background:busy?"#ede9fe":"#fff7ed",color:busy?"#6d28d9":"#c2410c",borderColor:busy?"#c4b5fd":"#fed7aa",transition:"all .2s",opacity:busy?0.75:1}}>
+        <span>{busy?"⏳":"🖼️🔗"}</span> <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{busy?"...":(compact?"Chia sẻ":t("btnPdfShare"))}</span>
       </button>
     </div>
   );
@@ -5720,7 +5722,20 @@ Bạn có chắc chắn không?`;
         {/* Brand row */}
         <div style={{padding:"16px 16px 14px",display:"flex",alignItems:"center",gap:12}}>
           <div style={{width:46,height:46,borderRadius:13,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,color:"#fff"}}>
-            {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":"🚗"}
+            {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":(
+              <svg width="34" height="34" viewBox="0 0 64 64" fill="none">
+                {/* Thân xe buýt điện — icon trắng to, đơn giản */}
+                <rect x="6" y="20" width="44" height="26" rx="7" fill="#ffffff"/>
+                <path d="M50 20h2a6 6 0 0 1 6 6v8a2 2 0 0 1-2 2h-6Z" fill="#ffffff" opacity="0.9"/>
+                <rect x="12" y="25" width="10" height="9" rx="2" fill={mauRole}/>
+                <rect x="25" y="25" width="10" height="9" rx="2" fill={mauRole} opacity="0.55"/>
+                <rect x="52" y="24" width="6" height="7" rx="1.5" fill={mauRole}/>
+                <circle cx="18" cy="47" r="5.5" fill={mauRole} stroke="#ffffff" strokeWidth="2.4"/>
+                <circle cx="42" cy="47" r="5.5" fill={mauRole} stroke="#ffffff" strokeWidth="2.4"/>
+                {/* Tia sét điện trên nóc xe */}
+                <path d="M31 6 l-7 12 h6 l-4 10 12-13h-6z" fill="#ffffff"/>
+              </svg>
+            )}
           </div>
           <div style={{minWidth:0,flex:1}}>
             <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#0f172a"}}>{t("brandTitle")}</div>
@@ -5877,30 +5892,51 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
 
-            {/* ╔════ Trạng thái dự án — thẻ chính với thông tin chi tiết ════╗ */}
-            <div style={{display:"flex",alignItems:"stretch",gap:10,marginBottom:12}}>
-              {/* Phần chữ */}
-              <div style={{flex:1,background:"#fff",border:"1px solid #e5e7eb",borderLeft:`5px solid #0f766e`,borderRadius:12,padding:"14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:10}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:900,color:"#78716c",textTransform:"uppercase",letterSpacing:.5,marginBottom:3}}>Tiến Độ Dự Án</div>
-                    <div style={{fontSize:15,fontWeight:900,color:"#0f172a"}}>
-                      {proj.ten} · {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
-                    </div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:56,height:56,borderRadius:10,background:"#f0fdf4",border:"2.5px solid #10b981",flexShrink:0}}>
-                    <div style={{fontSize:24,fontWeight:900,color:"#16a34a"}}>{pctGiao}%</div>
-                  </div>
-                </div>
-                {/* Thanh tiến độ */}
-                <div style={{width:"100%",height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${pctGiao}%`,background:"linear-gradient(90deg, #0f766e 0%, #10b981 100%)",transition:"width 0.3s ease"}}></div>
+            {/* ╔════ Tiến độ dự án — 1 khối duy nhất: icon lá + tiêu đề + vòng tròn % (giống mẫu) ════╗ */}
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12,background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+              {/* Icon xe buýt điện + trạm sạc — vẽ lại theo đúng ảnh mẫu */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:54,height:42,flexShrink:0}}>
+                <svg width="54" height="42" viewBox="0 0 88 68" fill="none">
+                  {/* Thân xe buýt */}
+                  <rect x="3" y="16" width="48" height="28" rx="8" fill="#eaf2ff" stroke="#2f8fff" strokeWidth="2.2"/>
+                  {/* Kính trước */}
+                  <path d="M45 16 h6 a8 8 0 0 1 8 8 v6 h-14 Z" fill="#bfdcff" stroke="#2f8fff" strokeWidth="1.6"/>
+                  {/* Cửa sổ */}
+                  <rect x="9" y="22" width="11" height="9" rx="2" fill="#2f8fff" opacity="0.9"/>
+                  <rect x="23" y="22" width="11" height="9" rx="2" fill="#2f8fff" opacity="0.55"/>
+                  {/* Bánh xe */}
+                  <circle cx="16" cy="45" r="5.5" fill="#0d1826" stroke="#2f8fff" strokeWidth="2"/>
+                  <circle cx="42" cy="45" r="5.5" fill="#0d1826" stroke="#2f8fff" strokeWidth="2"/>
+                  {/* Trụ sạc */}
+                  <rect x="66" y="10" width="14" height="9" rx="3" fill="#1d4ed8"/>
+                  <rect x="70" y="19" width="6" height="27" rx="2.5" fill="#2f8fff"/>
+                  {/* Tia sét trên trụ sạc */}
+                  <path d="M75 24 l-3.5 6 h3 l-2.5 6 6-7h-3z" fill="#facc15"/>
+                  {/* Dây cắm sạc nối vào xe */}
+                  <path d="M66 32 C58 36, 60 38, 51 38" stroke="#1d4ed8" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+                </svg>
+              </div>
+              {/* Icon lá xanh trong vòng tròn nhạt */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:46,height:46,borderRadius:"50%",background:"#eafaf0",flexShrink:0}}>
+                <span style={{fontSize:21,lineHeight:1}}>🌿</span>
+              </div>
+              {/* Nhãn + tên dự án */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:10.5,fontWeight:900,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.6,marginBottom:4}}>Tiến Độ Dự Án</div>
+                <div style={{fontSize:14.5,fontWeight:800,color:"#0f172a",lineHeight:1.35}}>
+                  {proj.ten} · {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
                 </div>
               </div>
-              
-              {/* Phần hình xe */}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",background:"#f0fdf4",border:"1px solid #d1fae5",borderRadius:12,padding:"10px",minWidth:100,flexShrink:0}}>
-                <div style={{fontSize:65,opacity:0.5,lineHeight:1}}>🚌</div>
+              {/* Vòng tròn phần trăm (donut) */}
+              <div style={{position:"relative",width:58,height:58,flexShrink:0}}>
+                <svg width="58" height="58" viewBox="0 0 58 58" style={{transform:"rotate(-90deg)"}}>
+                  <circle cx="29" cy="29" r="24" fill="none" stroke="#e5f7ee" strokeWidth="5.5"/>
+                  <circle cx="29" cy="29" r="24" fill="none" stroke="#10b981" strokeWidth="5.5"
+                    strokeDasharray={`${2*Math.PI*24}`}
+                    strokeDashoffset={`${2*Math.PI*24*(1-pctGiao/100)}`}
+                    strokeLinecap="round"/>
+                </svg>
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13.5,fontWeight:900,color:"#16a34a"}}>{pctGiao}%</div>
               </div>
             </div>
 
@@ -5915,26 +5951,7 @@ Bạn có chắc chắn không?`;
               </div>
             )}
 
-            {/* Tổng quan dự án */}
-            <div style={{fontSize:11,fontWeight:900,color:"#9ca3af",letterSpacing:.7,textTransform:"uppercase",marginBottom:12}}>Tổng Quan Dự Án</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              {[
-                {v:fmt(soXe), l:"Xe", icon:"🚌", c:"#2563eb", badge:soXe>0?"Đủ":null, badgeColor:"#e2e8f0", badgeText:"#475569", onClick:isKHTH?undefined:editSoXe},
-                {v:fmt(bom.length), l:"Mã vật tư", icon:"🏷️", c:"#16a34a", badge:null},
-                {v:fmt(phList.length), l:"Phiếu", icon:"📄", c:"#f59e0b", badge:phList.filter(p=>p.tt!=="Đã xác nhận").length>0?"Chờ":null, badgeColor:"#fef3c7", badgeText:"#b45309"},
-                {v:fmt(ls.length), l:"Giao dịch", icon:"🔄", c:"#7c3aed", badge:null},
-              ].map((s,i)=>(
-                <div key={i} onClick={s.onClick} style={{background:"#fff",border:"1px solid #e5e7eb",borderLeft:`5px solid ${s.c}`,borderRadius:12,padding:"14px",cursor:s.onClick?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",transition:"all 0.2s ease"}}>
-                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10}}>
-                    <div style={{fontSize:28,fontWeight:900,color:"#0f172a",lineHeight:1}}>{s.v}</div>
-                    {s.badge&&<span style={{fontSize:10,fontWeight:800,color:s.badgeText||"#16a34a",background:s.badgeColor||"#dcfce7",borderRadius:20,padding:"3px 8px",flexShrink:0}}>{s.badge}</span>}
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,fontWeight:700,color:"#64748b"}}>
-                    <span style={{fontSize:16}}>{s.icon}</span><span>{s.l}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Tổng quan dự án — đã bỏ theo yêu cầu (4 ô Xe/Mã vật tư/Phiếu/Giao dịch) */}
           </div>
         );
       })()}
@@ -6109,16 +6126,22 @@ Bạn có chắc chắn không?`;
                 <div style={{fontWeight:800,fontSize:16,color:"#fff",lineHeight:1.35}}>{t("titleSoan")} — {proj.icon} {proj.ten}</div>
               </div>
 
-              {/* ── Thẻ số xe + đã duyệt đủ ── */}
-              <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
-                <div style={{flex:"1 1 130px",background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:24}}>🚐</span>
-                  <div><span style={{fontWeight:800,fontSize:22,color:"#1d4ed8"}}>{soXe}</span> <span style={{fontSize:13,color:"#6b7280",fontWeight:700}}>xe</span></div>
+              {/* ── Thẻ số xe + đã duyệt đủ — thiết kế lại giống ảnh mẫu ── */}
+              <div style={{display:"flex",gap:10,marginBottom:14}}>
+                <div style={{flex:1,minWidth:0,background:"#fff",borderRadius:16,padding:"18px 16px",boxShadow:"0 2px 10px rgba(15,23,42,0.10)",display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{fontSize:30,lineHeight:1,flexShrink:0}}>🚐</span>
+                  <div style={{display:"flex",alignItems:"baseline",gap:6,minWidth:0}}>
+                    <span style={{fontWeight:900,fontSize:28,color:"#1d4ed8",lineHeight:1}}>{soXe}</span>
+                    <span style={{fontSize:15,color:"#6b7280",fontWeight:700}}>xe</span>
+                  </div>
                 </div>
                 {soMaDaDuyet>0&&(
-                  <div style={{flex:"1 1 200px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{width:26,height:26,borderRadius:"50%",background:"#16a34a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>✓</span>
-                    <div style={{fontSize:12,color:"#065f46",fontWeight:700,lineHeight:1.3}}>Đã duyệt đủ:<br/><span style={{fontSize:15}}>{soMaDaDuyet} mã (ẩn)</span></div>
+                  <div style={{flex:1,minWidth:0,background:"#f0fdf4",border:"1.5px solid #86efac",borderRadius:16,padding:"14px 16px",boxShadow:"0 2px 10px rgba(16,185,129,0.10)",display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{width:34,height:34,borderRadius:"50%",background:"radial-gradient(circle at 32% 28%, #4ade80, #16a34a 65%, #15803d)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,fontWeight:900,flexShrink:0,boxShadow:"0 2px 5px rgba(21,128,61,0.45), inset 0 1px 1px rgba(255,255,255,0.5)"}}>✓</span>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:10.5,color:"#15803d",fontWeight:900,letterSpacing:.4,textTransform:"uppercase",lineHeight:1.3}}>Đã duyệt đủ:</div>
+                      <div style={{fontSize:16,color:"#166534",fontWeight:900,lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{soMaDaDuyet} mã (ẩn)</div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -6167,9 +6190,11 @@ Bạn có chắc chắn không?`;
                     <span>Đang hiển thị {bomHienThi.length}/{bom.length} mã{soanFilter==="all"?` — ẩn ${bom.length-bomHienThi.length} mã đã duyệt đủ`:""}</span>
                   </div>
                 )}
-                {/* ── Hàng nút hành động ── */}
-                <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>
+                {/* ── Hàng nút hành động — cả 3 nút cùng 1 hàng, chia đều vừa màn hình ── */}
+                <div style={{display:"flex",gap:6,marginTop:16}}>
                   <ExportBar
+                    fluid
+                    compact
                     shareTitle={`${t("titleSoan")} — ${proj.ten}`}
                     shareText={`Soạn hàng ${proj.ten}: ${daSoan.length}/${bom.length} mã đã soạn (${pct}%)`}
                     onExcel={()=>{
@@ -6210,8 +6235,9 @@ Bạn có chắc chắn không?`;
                     }}
                   />
                   <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
-                    style={{...btn,flex:1,background:xong?"#16a34a":"#f59e0b",color:"#fff",padding:"9px 18px",fontSize:13,fontWeight:700,opacity:bom.length===0?.5:1,minWidth:150,justifyContent:"center"}}>
-                    {xong?"✅ Gửi XƯỞNG HÀN":`📤 Gửi đơn (${daSoan.length}/${bom.length})`}
+                    style={{border:"none",cursor:"pointer",fontFamily:"inherit",flex:1,minWidth:0,background:xong?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#f59e0b,#d97706)",color:"#fff",padding:"11px 6px",fontSize:11.5,fontWeight:800,opacity:bom.length===0?.5:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:12,boxShadow:xong?"0 3px 10px rgba(22,163,74,0.35)":"0 3px 10px rgba(217,119,6,0.35)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                    <span>{xong?"✅":"📤"}</span>
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{xong?"Gửi XH":`Gửi (${daSoan.length}/${bom.length})`}</span>
                   </button>
                 </div>
               </div>
