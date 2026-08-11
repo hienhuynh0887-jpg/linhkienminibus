@@ -1081,13 +1081,17 @@ const LINE_QUYEN_DEFAULT = {
 //     phan_hoi jsonb not null default '[]'::jsonb,     -- phản hồi: [{nguoi,don_vi,noi_dung,ts}]
 //     dong_xe text default 'minibus',                  -- ✅ mới: "12m" | "citybus" | "minibus" —
 //                                                       --   nhãn dòng xe hiện trước tin nhắn
-//     phan_hoi_moi boolean default false                -- ✅ mới: true = có phản hồi CHƯA XEM,
-//                                                       --   dành cho người GỬI gốc → hiện trên 🔔
+//     phan_hoi_chua_doc jsonb not null default '[]'::jsonb -- ✅ mới: danh sách đơn vị CHƯA XEM
+//                                                       --   phản hồi mới nhất → hiện trên 🔔.
+//                                                       --   MỌI đơn vị liên quan (người gửi gốc +
+//                                                       --   tất cả đơn vị nhận, trừ đơn vị vừa
+//                                                       --   phản hồi) đều được báo — kể cả khi có
+//                                                       --   nhiều lượt phản hồi qua lại liên tiếp.
 //   );
 // (Nếu bảng đã tạo từ trước, chạy thêm:
 //  alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb;
 //  alter table canh_bao_khan add column if not exists dong_xe text default 'minibus';
-//  alter table canh_bao_khan add column if not exists phan_hoi_moi boolean default false;
+//  alter table canh_bao_khan add column if not exists phan_hoi_chua_doc jsonb not null default '[]'::jsonb;
 //  — nhớ chạy cho CẢ 3 bảng theo dòng xe:
 //  canh_bao_khan, canh_bao_khan_citybus, canh_bao_khan_12m.)
 // (Vì dùng chung quy ước T() như các bảng khác, nếu tên bảng có hậu tố dòng xe — VD
@@ -1470,8 +1474,13 @@ function LoginScreen({onLogin, resume, onLogout}){
         </button>
       </header>
 
-      {/* ✅ Nút "Đổi mật khẩu" — đặt ngay dưới đường gạch ngang của header, viền xanh lá chuối */}
-      <div style={{display:"flex",justifyContent:"flex-end",padding:"10px 6vw 0"}}>
+      {/* ✅ Nút "Đổi mật khẩu" — đặt ngay dưới đường gạch ngang của header, viền xanh lá chuối.
+          🔔 Chuông cảnh báo khẩn cấp TOÀN CỤC đặt ngay bên cạnh — cố định hiện diện ở mọi
+          trang trong luồng đăng nhập (Chọn dòng xe / Chọn trạng thái dự án), gộp cảnh báo
+          của CẢ 3 dòng xe cho đơn vị của tài khoản đang đăng nhập, không phụ thuộc dòng xe
+          đang mở hay đã vào Hệ thống chính hay chưa. */}
+      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,padding:"10px 6vw 0"}}>
+        {authedUser&&<GlobalCanhBaoBell donVi={authedUser.don_vi} ten={authedUser.ten}/>}
         <button onClick={()=>{setShowCpw2(true);setCpwForm2({cur:"",next:"",confirm:""});setCpwShow2({cur:false,next:false,confirm:false});setCpwErr2("");setCpwOk2("");}}
           title="Đổi mật khẩu"
           style={{border:"1.5px solid #a3e635",borderRadius:999,background:"rgba(0,0,0,0.45)",color:"#fff",fontWeight:800,fontSize:12,padding:"7px 16px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
@@ -2597,8 +2606,10 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReply
       if((c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi)){
         onMarkRead(c.id,user.don_vi);
       }
-      // 💬 Nếu mình là người GỬI gốc và có phản hồi mới chưa xem → đánh dấu đã xem khi mở 🔔
-      if(c.don_vi_gui===user.don_vi&&c.phan_hoi_moi&&onMarkReplySeen){
+      // 💬 Nếu đơn vị mình CHƯA XEM phản hồi mới nhất của cảnh báo này (dù mình là người gửi gốc
+      // hay 1 trong các đơn vị nhận) → đánh dấu đã xem khi mở 🔔. Áp dụng cho MỌI lượt phản hồi
+      // liên tiếp: mỗi khi có phản hồi mới, đơn vị mình lại được thêm lại vào danh sách chưa xem.
+      if((c.phan_hoi_chua_doc||[]).includes(user.don_vi)&&onMarkReplySeen){
         onMarkReplySeen(c.id);
       }
     });
@@ -2617,7 +2628,7 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReply
           {list.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,fontSize:13}}>Chưa có cảnh báo khẩn cấp nào.</div>}
           {list.map(c=>{
             const nh=nhanDongXe(c.dong_xe);
-            const coPhanHoiMoi = c.don_vi_gui===user.don_vi && c.phan_hoi_moi;
+            const coPhanHoiMoi = (c.phan_hoi_chua_doc||[]).includes(user.don_vi);
             return(
             <div key={c.id} style={{border:coPhanHoiMoi?"1.5px solid #f59e0b":"1px solid #fecaca",background:"#fff7f7",borderRadius:12,padding:"12px 14px",marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,flexWrap:"wrap"}}>
@@ -2670,6 +2681,106 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReply
             );})}
         </div>
       </div>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🔔 CHUÔNG CẢNH BÁO KHẨN CẤP TOÀN CỤC (GlobalCanhBaoBell)
+// ═══════════════════════════════════════════════════════════════
+// Chuông "cố định" — độc lập với dòng xe (activeLine) đang chọn và độc lập với việc đã vào
+// "Hệ thống chính" (App) hay chưa. Tự đọc dữ liệu SONG SONG từ CẢ 3 bảng cảnh báo khẩn cấp
+// (canh_bao_khan / canh_bao_khan_citybus / canh_bao_khan_12m) theo đúng đơn vị (don_vi) của
+// tài khoản đang đăng nhập, rồi gộp lại 1 danh sách duy nhất — nhờ vậy dù người dùng đang ở
+// màn "Chọn dòng xe", "Chọn trạng thái dự án" hay bất kỳ trang nào có gắn component này, đều
+// thấy đầy đủ cảnh báo của MỌI dòng xe liên quan đến đơn vị mình, không riêng dòng đang mở.
+// Tự làm mới định kỳ (poll) để cập nhật số chưa đọc mà không cần người dùng bấm gì.
+const CANH_BAO_BANG_THEO_DONG_XE = [
+  {dong_xe:"minibus", table:"canh_bao_khan"},
+  {dong_xe:"citybus", table:"canh_bao_khan_citybus"},
+  {dong_xe:"12m",     table:"canh_bao_khan_12m"},
+];
+function GlobalCanhBaoBell({donVi, ten, style, pollMs=20000}){
+  const [list,setList]=useState([]);
+  const [showList,setShowList]=useState(false);
+
+  const taiDuLieu=useCallback(async()=>{
+    if(!donVi) return;
+    try{
+      const ketQua=await Promise.all(CANH_BAO_BANG_THEO_DONG_XE.map(async(b)=>{
+        try{
+          const {data,error}=await supabase.from(b.table).select("*").order("ts",{ascending:false}).range(0,999);
+          if(error) return [];
+          return (data||[]).map(r=>({...r,_tbl:b.table}));
+        }catch{ return []; }
+      }));
+      const gop=ketQua.flat().filter(c=>(c.don_vi_nhan||[]).includes(donVi)||c.don_vi_gui===donVi);
+      gop.sort((a,b)=>new Date(b.ts||0)-new Date(a.ts||0));
+      setList(gop);
+    }catch(e){ console.error("GlobalCanhBaoBell taiDuLieu:",e); }
+  },[donVi]);
+
+  useEffect(()=>{
+    taiDuLieu();
+    const iv=setInterval(taiDuLieu,pollMs);
+    return ()=>clearInterval(iv);
+  },[taiDuLieu,pollMs]);
+
+  // Mở lại danh sách → làm mới ngay để chắc chắn thấy cảnh báo mới nhất
+  const moDanhSach=()=>{ taiDuLieu(); setShowList(true); };
+
+  const chuaDoc=list.filter(c=>{
+    const laNguoiNhanChuaDoc=(c.don_vi_nhan||[]).includes(donVi)&&!(c.doc_boi||[]).includes(donVi);
+    const laLienQuanCoPhanHoiChuaXem=((c.don_vi_nhan||[]).includes(donVi)||c.don_vi_gui===donVi)&&(c.phan_hoi_chua_doc||[]).includes(donVi);
+    return laNguoiNhanChuaDoc||laLienQuanCoPhanHoiChuaXem;
+  }).length;
+
+  const onMarkRead=async(id,dv)=>{
+    const cb=list.find(c=>c.id===id);
+    if(!cb||(cb.doc_boi||[]).includes(dv))return;
+    const docBoiMoi=[...(cb.doc_boi||[]),dv];
+    setList(cs=>cs.map(c=>c.id===id?{...c,doc_boi:docBoiMoi}:c));
+    try{ await supabase.from(cb._tbl).update({doc_boi:docBoiMoi}).eq("id",id); }catch(e){console.error("GlobalCanhBaoBell onMarkRead:",e);}
+  };
+
+  const onReply=async(cb,noiDung)=>{
+    const reply={nguoi:ten||donVi, don_vi:donVi, noi_dung:noiDung, ts:new Date().toISOString()};
+    const phanHoiMoi=[...(cb.phan_hoi||[]),reply];
+    const donViLienQuan=Array.from(new Set([cb.don_vi_gui,...(cb.don_vi_nhan||[])].filter(Boolean)));
+    const phanHoiChuaDoc=donViLienQuan.filter(dv=>dv!==donVi);
+    setList(cs=>cs.map(c=>c.id===cb.id?{...c,phan_hoi:phanHoiMoi,phan_hoi_chua_doc:phanHoiChuaDoc}:c));
+    try{
+      await supabase.from(cb._tbl).update({phan_hoi:phanHoiMoi,phan_hoi_chua_doc:phanHoiChuaDoc}).eq("id",cb.id);
+    }catch(e){console.error("GlobalCanhBaoBell onReply:",e);}
+  };
+
+  const onMarkReplySeen=async(id)=>{
+    const cb=list.find(c=>c.id===id);
+    if(!cb||!(cb.phan_hoi_chua_doc||[]).includes(donVi))return;
+    const chuaDocMoi=(cb.phan_hoi_chua_doc||[]).filter(dv=>dv!==donVi);
+    setList(cs=>cs.map(c=>c.id===id?{...c,phan_hoi_chua_doc:chuaDocMoi}:c));
+    try{ await supabase.from(cb._tbl).update({phan_hoi_chua_doc:chuaDocMoi}).eq("id",id); }catch(e){console.error("GlobalCanhBaoBell onMarkReplySeen:",e);}
+  };
+
+  if(!donVi) return null;
+
+  return(
+    <>
+      <div onClick={moDanhSach} title="Cảnh báo khẩn cấp"
+        style={{position:"relative",width:36,height:36,borderRadius:"50%",background:chuaDoc>0?"rgba(220,38,38,0.22)":"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,cursor:"pointer",flexShrink:0,border:chuaDoc>0?"1.5px solid #fca5a5":"1.5px solid rgba(255,255,255,0.3)",...style}}>
+        🔔
+        {chuaDoc>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{chuaDoc>9?"9+":chuaDoc}</span>}
+      </div>
+      {showList&&(
+        <CanhBaoListModal
+          list={list}
+          user={{don_vi:donVi, ten:ten||donVi}}
+          onClose={()=>setShowList(false)}
+          onMarkRead={onMarkRead}
+          onReply={onReply}
+          onMarkReplySeen={onMarkReplySeen}
+        />
+      )}
     </>
   );
 }
@@ -3720,30 +3831,34 @@ export default function App(){
   };
   // 💬 Phản hồi lại 1 cảnh báo khẩn cấp — cộng dồn vào phan_hoi (không ghi đè), lưu Supabase
   // để TẤT CẢ đơn vị liên quan (người gửi gốc + các đơn vị nhận) đều thấy phản hồi này khi
-  // mở lại 🔔. ✅ Nếu người phản hồi KHÔNG PHẢI người gửi gốc → bật cờ phan_hoi_moi=true để
-  // người gửi gốc thấy ngay trên chuông 🔔 (badge đỏ) mà không cần mở lại cảnh báo.
+  // mở lại 🔔. ✅ MỌI đơn vị liên quan (trừ đơn vị vừa phản hồi) đều được đưa vào danh sách
+  // "phan_hoi_chua_doc" → hiện badge đỏ trên chuông 🔔 — kể cả khi phản hồi qua lại NHIỀU LẦN
+  // liên tiếp, mỗi lần đều báo lại cho tất cả các bên (không chỉ người gửi gốc).
   const dbPhanHoiCanhBao=async(cb,noiDung)=>{
     try{
       const reply={nguoi:user.ten, don_vi:user.don_vi, noi_dung:noiDung, ts:new Date().toISOString()};
       const phanHoiMoi=[...(cb.phan_hoi||[]),reply];
-      const boPhanHoiMoi = user.don_vi!==cb.don_vi_gui; // người trả lời khác người gửi gốc → báo cho người gửi gốc biết
-      setCanhBaoKhan(cs=>cs.map(c=>c.id===cb.id?{...c,phan_hoi:phanHoiMoi,phan_hoi_moi:boPhanHoiMoi?true:c.phan_hoi_moi}:c));
-      const {error}=await supabase.from(T("canh_bao_khan")).update({phan_hoi:phanHoiMoi,...(boPhanHoiMoi?{phan_hoi_moi:true}:{})}).eq("id",cb.id);
+      const donViLienQuan=Array.from(new Set([cb.don_vi_gui,...(cb.don_vi_nhan||[])].filter(Boolean)));
+      const phanHoiChuaDoc=donViLienQuan.filter(dv=>dv!==user.don_vi);
+      setCanhBaoKhan(cs=>cs.map(c=>c.id===cb.id?{...c,phan_hoi:phanHoiMoi,phan_hoi_chua_doc:phanHoiChuaDoc}:c));
+      const {error}=await supabase.from(T("canh_bao_khan")).update({phan_hoi:phanHoiMoi,phan_hoi_chua_doc:phanHoiChuaDoc}).eq("id",cb.id);
       if(error){
         console.error("dbPhanHoiCanhBao:",error);
-        alert("⚠️ Chưa lưu được phản hồi lên hệ thống: "+error.message+"\n(Có thể cần chạy: alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb; alter table canh_bao_khan add column if not exists phan_hoi_moi boolean default false; — cho cả 3 bảng theo dòng xe.)");
+        alert("⚠️ Chưa lưu được phản hồi lên hệ thống: "+error.message+"\n(Có thể cần chạy: alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb; alter table canh_bao_khan add column if not exists phan_hoi_chua_doc jsonb not null default '[]'::jsonb; — cho cả 3 bảng theo dòng xe.)");
         return;
       }
       flash("💬 Đã gửi phản hồi");
     }catch(e){console.error("dbPhanHoiCanhBao:",e);}
   };
-  // 🔕 Đánh dấu người GỬI GỐC đã xem phản hồi mới (tắt cờ phan_hoi_moi) — gọi khi mở 🔔.
+  // 🔕 Đánh dấu ĐƠN VỊ CỦA MÌNH đã xem phản hồi mới nhất (bỏ mình ra khỏi phan_hoi_chua_doc)
+  // — gọi khi mở 🔔. Áp dụng cho mọi đơn vị liên quan, không riêng người gửi gốc.
   const dbDanhDauDaXemPhanHoi=async(id)=>{
     try{
       const cb=canhBaoKhan.find(c=>c.id===id);
-      if(!cb||!cb.phan_hoi_moi)return;
-      setCanhBaoKhan(cs=>cs.map(c=>c.id===id?{...c,phan_hoi_moi:false}:c));
-      await supabase.from(T("canh_bao_khan")).update({phan_hoi_moi:false}).eq("id",id);
+      if(!cb||!(cb.phan_hoi_chua_doc||[]).includes(user.don_vi))return;
+      const chuaDocMoi=(cb.phan_hoi_chua_doc||[]).filter(dv=>dv!==user.don_vi);
+      setCanhBaoKhan(cs=>cs.map(c=>c.id===id?{...c,phan_hoi_chua_doc:chuaDocMoi}:c));
+      await supabase.from(T("canh_bao_khan")).update({phan_hoi_chua_doc:chuaDocMoi}).eq("id",id);
     }catch(e){console.error("dbDanhDauDaXemPhanHoi:",e);}
   };
 
@@ -4585,7 +4700,7 @@ export default function App(){
       danh_sach:chosenItems.map(v=>({ma:v.ma,ten:v.ten,dv:v.dv,can:v.can,daGiao:v.daGiao||0,conThieu:v.conThieu})),
       ghi_chu:ghiChu||"", nguoi_gui:user.ten, don_vi_gui:user.don_vi,
       don_vi_nhan:donViChon, ts, doc_boi:[], phan_hoi:[],
-      dong_xe:dongXeGui, phan_hoi_moi:false
+      dong_xe:dongXeGui, phan_hoi_chua_doc:[]
     };
     await dbGuiCanhBao(row);
     const noiDung=`(${nhanDX.icon} ${nhanDX.text}) 🚨 BÁO KHẨN CẤP — VẬT TƯ THIẾU GẤP\n`+
@@ -6018,12 +6133,14 @@ Bạn có chắc chắn không?`;
   // tài khoản thật (users) để luôn khớp với các đơn vị đang thực sự tồn tại trong hệ thống.
   const donViOptions = Array.from(new Set(users.map(u=>u.don_vi).filter(Boolean))).sort();
   // 🔔 Số cảnh báo khẩn cấp CHƯA ĐỌC gửi đến đơn vị của tài khoản đang đăng nhập, CỘNG THÊM
-  // số cảnh báo mình đã GỬI mà có phản hồi mới chưa xem (phan_hoi_moi) — để người gửi gốc biết
-  // ngay khi có phản hồi, không cần chủ động mở lại từng cảnh báo.
+  // số cảnh báo mà đơn vị mình LIÊN QUAN (đã gửi HOẶC là 1 trong các đơn vị nhận) đang có
+  // phản hồi mới mà mình CHƯA XEM (phan_hoi_chua_doc) — báo cho TẤT CẢ các bên liên quan biết,
+  // kể cả khi có nhiều lượt phản hồi qua lại liên tiếp (mỗi lượt đều tính là "mới" cho những
+  // đơn vị chưa kịp xem lượt đó).
   const canhBaoChuaDoc = canhBaoKhan.filter(c=>{
     const laNguoiNhanChuaDoc = (c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi);
-    const laNguoiGuiCoPhanHoiMoi = c.don_vi_gui===user.don_vi&&c.phan_hoi_moi;
-    return laNguoiNhanChuaDoc||laNguoiGuiCoPhanHoiMoi;
+    const laLienQuanCoPhanHoiChuaXem = ((c.don_vi_nhan||[]).includes(user.don_vi)||c.don_vi_gui===user.don_vi) && (c.phan_hoi_chua_doc||[]).includes(user.don_vi);
+    return laNguoiNhanChuaDoc||laLienQuanCoPhanHoiChuaXem;
   }).length;
   // Danh sách hiển thị trong modal 🔔 — mọi cảnh báo mà đơn vị của mình LIÊN QUAN (nhận hoặc đã gửi)
   const canhBaoLienQuan = canhBaoKhan.filter(c=>(c.don_vi_nhan||[]).includes(user.don_vi)||c.don_vi_gui===user.don_vi);
