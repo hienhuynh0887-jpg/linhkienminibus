@@ -5989,7 +5989,7 @@ Bạn có chắc chắn không?`;
             )}
           </div>
           <div style={{minWidth:0,flex:1}}>
-            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c2410c"}}>{t("brandTitle")}</div>
+            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#ffffff",background:"#000000",borderRadius:8,padding:"3px 10px",display:"inline-block",maxWidth:"100%"}}>{t("brandTitle")}</div>
             <div style={{fontSize:13,fontWeight:800,color:"#2563eb",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
               {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
             </div>
@@ -6349,10 +6349,12 @@ Bạn có chắc chắn không?`;
           // ✅ Bộ lọc nhanh: Tất cả / Chưa soạn / Đã soạn / Thiếu SL.
           // "Thiếu SL" hiển thị TOÀN BỘ mã thuộc soanThieuSet (không ẩn mã nào, kể cả đã duyệt đủ).
           const bomHienThi = soanFilter==="thieu" ? bom.filter(v=>soanThieuSet.has(v.ma))
-                            : soanFilter==="da"    ? bomHienThiGoc.filter(v=>soan[v.ma]?.on)
+                            : soanFilter==="da"    ? bom.filter(v=>hoanThanhSet.has(v.ma))
                             : soanFilter==="chua"  ? bomHienThiGoc.filter(v=>!soan[v.ma]?.on)
                             : bomHienThiGoc;
           const daSoanHienGoc=bomHienThiGoc.filter(v=>soan[v.ma]?.on).length;
+          const soanFilterLabel = soanFilter==="da"?"Đã soạn":soanFilter==="chua"?"Chưa soạn":soanFilter==="thieu"?"Thiếu SL":"Tất cả";
+          const soanFilterSlug = soanFilter==="da"?"DaSoan":soanFilter==="chua"?"ChuaSoan":soanFilter==="thieu"?"ThieuSL":"TatCa";
           const soMaDaDuyet=daDuyetDuSet.size;
           const nhom={};bomHienThi.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!nhom[k])nhom[k]=[];nhom[k].push(v);});
           const nhomKeys=Object.keys(nhom);
@@ -6392,36 +6394,21 @@ Bạn có chắc chắn không?`;
                   <Prog p={pct} done={xong} h={10}/>
                   <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:80,textAlign:"right",flexShrink:0}}>{soMaHoanThanh}/{bom.length} ({pct}%)</span>
                 </div>
-                {/* ── Thẻ thống kê nhanh (1 hàng, 4 cột) — tính trên TOÀN BỘ dự án, coi mã "đã duyệt đủ" là đã hoàn thành ── */}
+                {/* ── Thẻ thống kê nhanh (1 hàng, 4 cột) — bấm vào thẻ = áp dụng bộ lọc tương ứng ── */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
                   {[
-                    ["📄","Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
-                    ["✅","Đã soạn",soMaHoanThanh,"#16a34a","#f0fdf4"],
-                    ["⏳","Chưa soạn",soMaChuaSoanTong,"#dc2626","#fef2f2"],
-                    ["⚠️","Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
-                  ].map(([ic,l,v,c,bg])=>(
-                    <div key={l} style={{background:bg,borderRadius:12,padding:"10px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,textAlign:"center"}}>
+                    ["📄","Tổng mã",bom.length,"#1d4ed8","#eff6ff","all"],
+                    ["✅","Đã soạn",soMaHoanThanh,"#16a34a","#f0fdf4","da"],
+                    ["⏳","Chưa soạn",soMaChuaSoanTong,"#dc2626","#fef2f2","chua"],
+                    ["⚠️","Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb","thieu"],
+                  ].map(([ic,l,v,c,bg,fk])=>(
+                    <div key={l} onClick={()=>setSoanFilter(fk)}
+                      style={{background:bg,borderRadius:12,padding:"10px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,textAlign:"center",cursor:"pointer",
+                        border:soanFilter===fk?`2px solid ${c}`:"2px solid transparent",boxSizing:"border-box"}}>
                       <span style={{width:26,height:26,borderRadius:"50%",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,0.12)"}}>{ic}</span>
                       <div style={{fontWeight:800,fontSize:16,color:c,lineHeight:1.1}}>{v}</div>
                       <div style={{fontSize:9,color:c,fontWeight:600,opacity:.85}}>{l}</div>
                     </div>
-                  ))}
-                </div>
-                {/* ── Bộ lọc nhanh ── */}
-                <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
-                  {[
-                    ["all",`Tất cả (${bomHienThiGoc.length})`],
-                    ["chua",`⏳ Chưa soạn (${bomHienThiGoc.length-daSoanHienGoc})`],
-                    ["da",`✅ Đã soạn (${daSoanHienGoc})`],
-                    ...(soanThieuSet.size>0?[["thieu",`⚠️ Thiếu SL (${soanThieuSet.size})`]]:[]),
-                  ].map(([k,l])=>(
-                    <button key={k} onClick={()=>setSoanFilter(k)}
-                      style={{border:`1.5px solid ${soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#e5e7eb"}`,borderRadius:20,cursor:"pointer",fontFamily:"inherit",
-                        padding:"6px 14px",fontSize:11,fontWeight:700,
-                        background:soanFilter===k?(k==="thieu"?"#f59e0b":"#1d4ed8"):"#f9fafb",
-                        color:soanFilter===k?"#fff":"#374151"}}>
-                      {l}
-                    </button>
                   ))}
                 </div>
                 {bomHienThi.length<bom.length&&(
@@ -6449,29 +6436,23 @@ Bạn có chắc chắn không?`;
                     fluid
                     compact
                     shareTitle={`${t("titleSoan")} — ${proj.ten}`}
-                    shareText={`Soạn hàng ${proj.ten}: ${soMaHoanThanh}/${bom.length} mã đã soạn (${pct}%)`}
+                    shareText={`Soạn hàng ${proj.ten} — ${soanFilterLabel}: ${bomHienThi.length} mã`}
                     onExcel={()=>{
-                      const daSoan2=bom.filter(v=>soan[v.ma]?.on);
-                      const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
-                      xuatExcel([
-                        ...daSoan2.map(v=>({
+                      const rows=bomHienThi.map(v=>{
+                        const ok=hoanThanhSet.has(v.ma);
+                        return {
                           "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
                           "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
-                          "SL thực soạn":soan[v.ma]?.sl??v.dm*soXe,
-                          "Trạng thái":"✓ Đã soạn","Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
-                        })),
-                        ...chuaSoan2.map(v=>({
-                          "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
-                          "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
-                          "SL thực soạn":0,"Trạng thái":"⏳ Chưa soạn",
-                          "Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
-                        }))
-                      ],`SoanHang_${proj.ten.replace(/\s/g,"_")}`,`Soạn hàng — ${proj.ten}`);
+                          "SL thực soạn":ok?(soan[v.ma]?.sl??v.dm*soXe):0,
+                          "Trạng thái":ok?"✓ Đã soạn":"⏳ Chưa soạn","Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig
+                        };
+                      });
+                      xuatExcel(rows,`SoanHang_${proj.ten.replace(/\s/g,"_")}_${soanFilterSlug}`,`Soạn hàng — ${proj.ten} (${soanFilterLabel})`);
                     }}
                     onPDF={()=>{
-                      const daSoan2=bom.filter(v=>soan[v.ma]?.on);
-                      const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
-                      const mkRow=(v,ok)=>`<tr>
+                      const mkRow=v=>{
+                        const ok=hoanThanhSet.has(v.ma);
+                        return `<tr>
                         <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                         <td style="text-align:center">${v.dv}</td>
                         <td style="text-align:center">${fmt(v.dm*soXe)}</td>
@@ -6480,11 +6461,12 @@ Bạn có chắc chắn không?`;
                         <td>${v.jig||""}</td>
                         <td><span class="badge ${ok?"ok":"warn"}">${ok?"✓ Đã soạn":"⏳ Chưa soạn"}</span></td>
                       </tr>`;
+                      };
                       xuatPDF(`<h2>${t("rpSoan")}</h2>
-                        <p class="sub">${proj.icon} ${proj.ten} · ${daSoan2.length}/${bom.length} mã đã soạn · ${soXe} xe</p>
+                        <p class="sub">${proj.icon} ${proj.ten} · ${soanFilterLabel}: ${bomHienThi.length} mã · ${soXe} xe</p>
                         <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thSoSoan")}</th><th>${t("thNguonGoc")}</th><th>JIG</th><th>${t("thTrangThai")}</th></tr></thead><tbody>
-                        ${[...daSoan2.map(v=>mkRow(v,true)),...chuaSoan2.map(v=>mkRow(v,false))].join("")}
-                        </tbody></table>`,`SoanHang_${proj.ten}`);
+                        ${bomHienThi.map(mkRow).join("")}
+                        </tbody></table>`,`SoanHang_${proj.ten}_${soanFilterSlug}`);
                     }}
                   />
                   <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
