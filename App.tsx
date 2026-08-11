@@ -1054,6 +1054,23 @@ const LINE_QUYEN_DEFAULT = {
 //     don_vi text primary key,
 //     chuc_nang jsonb not null default '[]'::jsonb
 //   );
+//
+// ⚠️ SQL cần chạy 1 lần trên Supabase (SQL Editor) để dùng tính năng "🚨 Báo khẩn cấp"
+// (gửi tin nhắn đến các bộ phận liên quan khi có mã vật tư còn thiếu cần gấp):
+//   create table if not exists canh_bao_khan (
+//     id text primary key,
+//     pid text,
+//     ten_du_an text,
+//     danh_sach jsonb not null default '[]'::jsonb,  -- [{ma,ten,dv,can,daGiao,conThieu}]
+//     ghi_chu text default '',
+//     nguoi_gui text,
+//     don_vi_gui text,
+//     don_vi_nhan jsonb not null default '[]'::jsonb, -- ["KHO VẬT TƯ","Nhà máy THCK",...]
+//     ts timestamptz default now(),
+//     doc_boi jsonb not null default '[]'::jsonb       -- đơn vị nào đã xem: ["KHO VẬT TƯ",...]
+//   );
+// (Vì dùng chung quy ước T() như các bảng khác, nếu tên bảng có hậu tố dòng xe — VD
+// "canh_bao_khan_citybus" — hãy tạo thêm bảng tương ứng hoặc bỏ hậu tố tùy nhu cầu.)
 const TAB_META = [
   {id:"ds",      label:"📦 Vật tư"},
   {id:"soan",    label:"📋 Soạn Hàng / Kiểm tra"},
@@ -2479,6 +2496,112 @@ function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label="", fluid
   );
 }
 
+// 🚨 Modal soạn & gửi "Báo khẩn cấp" — cho phép bỏ bớt mã, ghi chú, chọn đơn vị nhận,
+// gửi song song 2 nơi: (1) lưu vào Supabase để hiện trong 🔔 app của đơn vị nhận,
+// (2) mở Web Share API (Zalo/SMS/Email/Messenger...) để gửi ra ngoài ngay lập tức.
+function KhanCapModal({items, proj, donViOptions, onClose, onSubmit}){
+  const [checked,setChecked]=useState(()=>Object.fromEntries(items.map(v=>[v.ma,true])));
+  const [ghiChu,setGhiChu]=useState("");
+  const [donViChon,setDonViChon]=useState([]);
+  const [sending,setSending]=useState(false);
+  const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #fecaca",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#fff"};
+  const chosenItems=items.filter(v=>checked[v.ma]);
+  const toggleDv=dv=>setDonViChon(s=>s.includes(dv)?s.filter(x=>x!==dv):[...s,dv]);
+  const submit=async()=>{
+    if(chosenItems.length===0){alert("Chọn ít nhất 1 mã vật tư!");return;}
+    if(donViChon.length===0){alert("Chọn ít nhất 1 đơn vị nhận!");return;}
+    setSending(true);
+    try{ await onSubmit(chosenItems,ghiChu,donViChon); onClose(); }
+    finally{ setSending(false); }
+  };
+  return(
+    <>
+      <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200}}/>
+      <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:201,background:"#fff",borderRadius:"18px 18px 0 0",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 -6px 24px rgba(0,0,0,0.25)"}}>
+        <div style={{padding:"16px 18px 10px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <span style={{fontSize:20}}>🚨</span>
+          <div style={{fontWeight:800,fontSize:15,color:"#b91c1c"}}>Báo khẩn cấp — Vật tư thiếu gấp</div>
+          <button onClick={onClose} style={{marginLeft:"auto",border:"none",background:"none",fontSize:18,color:"#9ca3af",cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{overflowY:"auto",padding:"14px 18px",flex:1}}>
+          <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>Dự án: <b style={{color:"#111827"}}>{proj?.icon} {proj?.ten}</b></div>
+          <div style={{fontWeight:700,fontSize:12,color:"#374151",marginBottom:6}}>Danh sách mã vật tư ({chosenItems.length}/{items.length} chọn)</div>
+          <div style={{border:"1px solid #fecaca",borderRadius:10,overflow:"hidden",marginBottom:14}}>
+            {items.map((v,i)=>(
+              <label key={v.ma} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderBottom:i<items.length-1?"1px solid #fef2f2":"none",background:checked[v.ma]?"#fff":"#f9fafb",cursor:"pointer"}}>
+                <input type="checkbox" checked={!!checked[v.ma]} onChange={()=>setChecked(c=>({...c,[v.ma]:!c[v.ma]}))}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#374151"}}>{v.ma} <span style={{fontWeight:400,color:"#6b7280"}}>— {v.ten}</span></div>
+                  <div style={{fontSize:10,color:"#b45309"}}>Cần {fmt(v.can)} {v.dv} · đã giao {fmt(v.daGiao||0)} · còn thiếu <b>{fmt(v.conThieu)}</b> {v.dv}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+          <div style={{fontWeight:700,fontSize:12,color:"#374151",marginBottom:6}}>Ghi chú thêm (tùy chọn)</div>
+          <textarea value={ghiChu} onChange={e=>setGhiChu(e.target.value)} placeholder="VD: Cần gấp trước 14h chiều nay để kịp ráp xe..." rows={3} style={{...inp,marginBottom:14,resize:"vertical"}}/>
+          <div style={{fontWeight:700,fontSize:12,color:"#374151",marginBottom:6}}>Gửi đến đơn vị nào?</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:6}}>
+            {donViOptions.map(dv=>(
+              <button key={dv} type="button" onClick={()=>toggleDv(dv)}
+                style={{border:`1.5px solid ${donViChon.includes(dv)?"#dc2626":"#e5e7eb"}`,background:donViChon.includes(dv)?"#fef2f2":"#fff",color:donViChon.includes(dv)?"#b91c1c":"#374151",borderRadius:20,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                {donViChon.includes(dv)&&"✓ "}{dv}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{padding:"12px 18px",borderTop:"1px solid #f1f5f9",display:"flex",gap:10,flexShrink:0}}>
+          <button onClick={onClose} style={{flex:1,border:"1px solid #e5e7eb",background:"#fff",color:"#374151",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer"}}>Hủy</button>
+          <button onClick={submit} disabled={sending} style={{flex:2,border:"none",background:sending?"#fca5a5":"linear-gradient(135deg,#dc2626,#b91c1c)",color:"#fff",borderRadius:12,padding:"12px 0",fontWeight:800,fontSize:13,cursor:sending?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            {sending?"⏳ Đang gửi...":"🚨 Gửi báo khẩn cấp"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// 🔔 Modal xem danh sách "Báo khẩn cấp" đã nhận/đã gửi — tự đánh dấu đã đọc khi mở lên.
+function CanhBaoListModal({list, user, onClose, onMarkRead}){
+  useEffect(()=>{
+    list.forEach(c=>{
+      if((c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi)){
+        onMarkRead(c.id,user.don_vi);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  return(
+    <>
+      <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200}}/>
+      <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:201,background:"#fff",borderRadius:"18px 18px 0 0",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 -6px 24px rgba(0,0,0,0.25)"}}>
+        <div style={{padding:"16px 18px 10px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <span style={{fontSize:20}}>🔔</span>
+          <div style={{fontWeight:800,fontSize:15}}>Cảnh báo khẩn cấp</div>
+          <button onClick={onClose} style={{marginLeft:"auto",border:"none",background:"none",fontSize:18,color:"#9ca3af",cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{overflowY:"auto",padding:"12px 14px",flex:1}}>
+          {list.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,fontSize:13}}>Chưa có cảnh báo khẩn cấp nào.</div>}
+          {list.map(c=>(
+            <div key={c.id} style={{border:"1px solid #fecaca",background:"#fff7f7",borderRadius:12,padding:"12px 14px",marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:4}}>
+                <div style={{fontWeight:800,fontSize:12,color:"#b91c1c"}}>🚨 {c.ten_du_an}</div>
+                <div style={{fontSize:10,color:"#9ca3af",whiteSpace:"nowrap",flexShrink:0}}>{c.ts?new Date(c.ts).toLocaleString("vi-VN"):""}</div>
+              </div>
+              <div style={{fontSize:11,color:"#6b7280",marginBottom:6}}>Từ: <b>{c.nguoi_gui}</b> ({c.don_vi_gui}) → {(c.don_vi_nhan||[]).join(", ")}</div>
+              <div style={{fontSize:12,color:"#374151"}}>
+                {(c.danh_sach||[]).map((v,i)=>(
+                  <div key={i}>• <b>{v.ma}</b> — {v.ten}: thiếu <b style={{color:"#b45309"}}>{fmt(v.conThieu)} {v.dv}</b></div>
+                ))}
+              </div>
+              {c.ghi_chu&&<div style={{marginTop:6,fontSize:11,fontStyle:"italic",color:"#6b7280"}}>"{c.ghi_chu}"</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function AnhModal({src,onClose}){
   if(!src)return null;
   return(
@@ -2654,6 +2777,10 @@ export default function App(){
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [tabQuyen, setTabQuyen] = useState({}); // phân quyền chức năng (tab) theo đơn vị — rỗng = dùng TAB_QUYEN_DEFAULT
   const [dbErr,    setDbErr]    = useState("");
+  // 🚨 Cảnh báo khẩn cấp — danh sách các lượt "báo khẩn cấp" đã gửi (mã vật tư còn thiếu cần gấp)
+  const [canhBaoKhan, setCanhBaoKhan] = useState([]);
+  const [khanCapModal, setKhanCapModal] = useState(null); // {items:[...]} khi mở form gửi báo khẩn, null = đóng
+  const [showCanhBaoList, setShowCanhBaoList] = useState(false); // mở/đóng danh sách 🔔 đã nhận
   const [projs,    setProjs]    = useState([]);
   const [projPickerOpen, setProjPickerOpen] = useState(false);
   const [linePickerOpen, setLinePickerOpen] = useState(false);
@@ -2867,7 +2994,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -2884,6 +3011,7 @@ export default function App(){
           supabase.from(T("bom_mau")).select("*").order("stt").range(0, 9999),
           supabase.from("quyen_dong_xe").select("*").range(0, 9999),
           supabase.from("quyen_chuc_nang").select("*").range(0, 9999),
+          supabase.from(T("canh_bao_khan")).select("*").order("ts",{ascending:false}).range(0, 999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -2969,6 +3097,12 @@ export default function App(){
           const m={};
           r11.data.forEach(row=>{ if(row.don_vi) m[row.don_vi]=Array.isArray(row.chuc_nang)?row.chuc_nang:[]; });
           setTabQuyen(q=>({...q,...m}));
+        }
+        // 🚨 Cảnh báo khẩn cấp — nếu bảng chưa tạo, im lặng bỏ qua (tính năng tự ẩn, không báo lỗi đỏ toàn app).
+        if(r12.error){
+          console.warn("Chưa đọc được bảng canh_bao_khan (có thể chưa tạo bảng):",r12.error.message);
+        } else {
+          setCanhBaoKhan(r12.data||[]);
         }
       }catch(e){
         console.error("Supabase load error:",e);
@@ -3483,6 +3617,34 @@ export default function App(){
       console.error("dbUpsertQuyenChucNang:",e);
       return false;
     }
+  };
+  // 🚨 Gửi báo khẩn cấp (mã vật tư còn thiếu cần gấp) — lưu vào Supabase để các đơn vị
+  // được chọn nhận nhìn thấy trong app (🔔), song song vẫn trả về true/false để caller
+  // tiếp tục gọi Web Share API (Zalo/SMS/Email) ngay sau khi lưu thành công.
+  const dbGuiCanhBao=async(row)=>{
+    try{
+      const {error}=await supabase.from(T("canh_bao_khan")).upsert(row);
+      if(error){
+        console.error("dbGuiCanhBao:",error);
+        alert("⚠️ Chưa lưu được cảnh báo khẩn cấp lên hệ thống: "+error.message+"\n(Có thể bảng canh_bao_khan chưa được tạo trên Supabase — xem hướng dẫn SQL ở comment gần TAB_META trong code.)\nVẫn có thể tiếp tục gửi ra ngoài (Zalo/SMS/Email).");
+        return false;
+      }
+      setCanhBaoKhan(cs=>[row,...cs]);
+      return true;
+    }catch(e){
+      console.error("dbGuiCanhBao:",e);
+      return false;
+    }
+  };
+  // Đánh dấu 1 đơn vị đã xem 1 cảnh báo khẩn cấp (cộng dồn vào doc_boi, không ghi đè)
+  const dbDanhDauDocCanhBao=async(id,donVi)=>{
+    try{
+      const cb=canhBaoKhan.find(c=>c.id===id);
+      if(!cb||(cb.doc_boi||[]).includes(donVi))return;
+      const docBoiMoi=[...(cb.doc_boi||[]),donVi];
+      setCanhBaoKhan(cs=>cs.map(c=>c.id===id?{...c,doc_boi:docBoiMoi}:c));
+      await supabase.from(T("canh_bao_khan")).update({doc_boi:docBoiMoi}).eq("id",id);
+    }catch(e){console.error("dbDanhDauDocCanhBao:",e);}
   };
 
   // ── Derived ──
@@ -4309,6 +4471,44 @@ export default function App(){
     });
     return{...s,[pid]:{...c,...p}};
   });
+
+  // 🚨 Gửi "Báo khẩn cấp" — nhận (chosenItems, ghiChu, donViChon) từ KhanCapModal.
+  // Lưu vào Supabase (để hiện trong 🔔 của các đơn vị được chọn), sau đó mở Web Share API
+  // (Zalo/SMS/Email/Messenger — cùng cơ chế đã dùng cho nút "Chia sẻ" ảnh phiếu) để gửi ra
+  // ngoài ngay lập tức; nếu máy không hỗ trợ chia sẻ, copy nội dung vào clipboard để dán tay.
+  const guiCanhBaoKhan=async(chosenItems,ghiChu,donViChon)=>{
+    const ts=new Date().toISOString();
+    const row={
+      id:uid(), pid, ten_du_an:proj?.ten||"",
+      danh_sach:chosenItems.map(v=>({ma:v.ma,ten:v.ten,dv:v.dv,can:v.can,daGiao:v.daGiao||0,conThieu:v.conThieu})),
+      ghi_chu:ghiChu||"", nguoi_gui:user.ten, don_vi_gui:user.don_vi,
+      don_vi_nhan:donViChon, ts, doc_boi:[]
+    };
+    await dbGuiCanhBao(row);
+    const noiDung=`🚨 BÁO KHẨN CẤP — VẬT TƯ THIẾU GẤP\n`+
+      `Dự án: ${proj?.icon||""} ${proj?.ten||""}\n`+
+      `Người gửi: ${user.ten} (${user.don_vi})\n`+
+      `Thời gian: ${new Date(ts).toLocaleString("vi-VN")}\n\n`+
+      `Danh sách vật tư cần gấp:\n`+
+      chosenItems.map((v,i)=>`${i+1}. ${v.ma} - ${v.ten}: cần ${fmt(v.can)} ${v.dv}, đã giao ${fmt(v.daGiao||0)}, còn thiếu ${fmt(v.conThieu)} ${v.dv}`).join("\n")+
+      (ghiChu?`\n\nGhi chú: ${ghiChu}`:"")+
+      `\n\nGửi đến: ${donViChon.join(", ")}`;
+    try{
+      if(navigator.share){
+        await navigator.share({title:"🚨 Báo khẩn cấp — Vật tư thiếu gấp",text:noiDung});
+      }else{
+        throw new Error("no-share-api");
+      }
+    }catch(e){
+      try{
+        await navigator.clipboard.writeText(noiDung);
+        alert("📋 Đã copy nội dung báo khẩn cấp — dán vào Zalo/SMS/Email để gửi.\n(Đã lưu vào hệ thống, các đơn vị được chọn sẽ thấy trong 🔔.)");
+      }catch{
+        alert("✓ Đã lưu báo khẩn cấp vào hệ thống.\nKhông tự mở được ứng dụng gửi tin — vui lòng tự soạn tin nhắn gửi các đơn vị:\n\n"+noiDung);
+      }
+    }
+    flash(`🚨 Đã gửi báo khẩn cấp ${chosenItems.length} mã đến ${donViChon.length} đơn vị`);
+  };
 
   // ── Gửi đơn ──
   const guiDon=()=>{
@@ -5711,6 +5911,13 @@ Bạn có chắc chắn không?`;
   const allowedLinesForUser = user.id==="admin" ? LINE_IDS : (lineQuyen[user.don_vi] || []);
   const linesPickable = KL_LINES.filter(l=>allowedLinesForUser.includes(l.id));
   const mauRole   = isTHCK ? "#1d4ed8" : isKHO ? "#0f766e" : isKHTH ? "#7c3aed" : "#b45309";
+  // 🚨 Danh sách đơn vị để chọn "gửi đến" khi báo khẩn cấp — lấy trực tiếp từ danh sách
+  // tài khoản thật (users) để luôn khớp với các đơn vị đang thực sự tồn tại trong hệ thống.
+  const donViOptions = Array.from(new Set(users.map(u=>u.don_vi).filter(Boolean))).sort();
+  // 🔔 Số cảnh báo khẩn cấp CHƯA ĐỌC gửi đến đơn vị của tài khoản đang đăng nhập
+  const canhBaoChuaDoc = canhBaoKhan.filter(c=>(c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi)).length;
+  // Danh sách hiển thị trong modal 🔔 — mọi cảnh báo mà đơn vị của mình LIÊN QUAN (nhận hoặc đã gửi)
+  const canhBaoLienQuan = canhBaoKhan.filter(c=>(c.don_vi_nhan||[]).includes(user.don_vi)||c.don_vi_gui===user.don_vi);
 
   return(
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
@@ -5735,6 +5942,11 @@ Bạn có chắc chắn không?`;
           </div>
           {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap",flexShrink:0}}>{msg}</span>}
           {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}} title={dbErr}>⚠️</span>}
+          {/* 🔔 Chuông cảnh báo khẩn cấp — badge đỏ hiện số lượng chưa đọc */}
+          <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:34,height:34,borderRadius:"50%",background:canhBaoChuaDoc>0?"#fef2f2":"#f8fafc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1.5px solid #fecaca":"1px solid #eef1f7"}}>
+            🔔
+            {canhBaoChuaDoc>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{canhBaoChuaDoc>9?"9+":canhBaoChuaDoc}</span>}
+          </div>
         </div>
 
         <div style={{borderTop:"1px solid #eef1f7"}}/>
@@ -6063,9 +6275,6 @@ Bạn có chắc chắn không?`;
                    : thFull;
           const thByMa={};th.forEach(v=>{thByMa[v.ma]=v;});
           const daSoan=bom.filter(v=>{const slCN=v.dm*soXe;const sl=soan[v.ma]?.sl??slCN;return soan[v.ma]?.on&&sl>=slCN;});
-          const chuaSoan=bom.filter(v=>{const slCN=v.dm*soXe;const sl=soan[v.ma]?.sl??slCN;const chuaDuSl=soan[v.ma]?.on&&sl<slCN;return !soan[v.ma]?.on||chuaDuSl;});
-          const pct=bom.length?Math.round(daSoan.length/bom.length*100):0;
-          const xong=pct===100&&bom.length>0;
           // Tính mã đã duyệt đủ (done=true trong th) - dùng để lọc khỏi danh sách soạn
           const daDuyetDuSet=new Set(th.filter(v=>v.done).map(v=>v.ma));
           // Vật tư thiếu SL = đã có trong phiếu nhưng SL nhận < SL cần
@@ -6075,6 +6284,14 @@ Bạn có chắc chắn không?`;
           const soanThieuSet=new Set(th.filter(v=>v.giaoThieu&&v.dnXN>0).map(v=>v.ma));
           // Chỉ giữ lại: chưa được soạn HOẶC đã soạn nhưng thiếu SL (loại bỏ đã duyệt đủ)
           const bomHienThiGoc=bom.filter(v=>!daDuyetDuSet.has(v.ma)||thieuSlSet.has(v.ma)||soanThieuSet.has(v.ma));
+          // ✅ Thẻ thống kê tổng quan (Tổng mã/Đã soạn/Chưa soạn) phải tính TRÊN TOÀN BỘ dự án,
+          // coi các mã "đã duyệt đủ" (bị ẩn khỏi danh sách soạn) là ĐÃ HOÀN THÀNH — tránh nghịch lý
+          // "Đã duyệt đủ 55 mã" nhưng "Chưa soạn" vẫn đếm cả 55 mã đó (56/56).
+          const hoanThanhSet=new Set([...daDuyetDuSet,...daSoan.map(v=>v.ma)]);
+          const soMaHoanThanh=hoanThanhSet.size;
+          const soMaChuaSoanTong=bom.length-soMaHoanThanh;
+          const pct=bom.length?Math.round(soMaHoanThanh/bom.length*100):0;
+          const xong=pct===100&&bom.length>0;
           // ✅ Bộ lọc nhanh: Tất cả / Chưa soạn / Đã soạn / Thiếu SL.
           // "Thiếu SL" hiển thị TOÀN BỘ mã thuộc soanThieuSet (không ẩn mã nào, kể cả đã duyệt đủ).
           const bomHienThi = soanFilter==="thieu" ? bom.filter(v=>soanThieuSet.has(v.ma))
@@ -6119,14 +6336,14 @@ Bạn có chắc chắn không?`;
                 <div style={{fontWeight:800,fontSize:12,color:"#374151",letterSpacing:.4,marginBottom:12}}>TIẾN ĐỘ SOẠN HÀNG</div>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
                   <Prog p={pct} done={xong} h={10}/>
-                  <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:80,textAlign:"right",flexShrink:0}}>{daSoan.length}/{bom.length} ({pct}%)</span>
+                  <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:80,textAlign:"right",flexShrink:0}}>{soMaHoanThanh}/{bom.length} ({pct}%)</span>
                 </div>
-                {/* ── Thẻ thống kê nhanh (lưới 2x2) ── */}
+                {/* ── Thẻ thống kê nhanh (lưới 2x2) — tính trên TOÀN BỘ dự án, coi mã "đã duyệt đủ" là đã hoàn thành ── */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {[
                     ["📄","Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
-                    ["✅","Đã soạn",daSoan.length,"#16a34a","#f0fdf4"],
-                    ["⏳","Chưa soạn",chuaSoan.length,"#dc2626","#fef2f2"],
+                    ["✅","Đã soạn",soMaHoanThanh,"#16a34a","#f0fdf4"],
+                    ["⏳","Chưa soạn",soMaChuaSoanTong,"#dc2626","#fef2f2"],
                     ["⚠️","Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
                   ].map(([ic,l,v,c,bg])=>(
                     <div key={l} style={{background:bg,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
@@ -6158,13 +6375,26 @@ Bạn có chắc chắn không?`;
                     <span>Đang hiển thị {bomHienThi.length}/{bom.length} mã{soanFilter==="all"?` — ẩn ${bom.length-bomHienThi.length} mã đã duyệt đủ`:""}</span>
                   </div>
                 )}
+                {soanThieuSet.size>0&&(
+                  <button onClick={()=>{
+                      const items=bom.filter(v=>soanThieuSet.has(v.ma)).map(v=>{
+                        const thV=thByMa[v.ma];const slCN=v.dm*soXe;
+                        const canNhan=thV?.cn??slCN;const daGiaoXHDuyet=thV?.dnXN||0;
+                        return {ma:v.ma,ten:v.ten,dv:v.dv,can:canNhan,daGiao:daGiaoXHDuyet,conThieu:Math.max(0,canNhan-daGiaoXHDuyet)};
+                      });
+                      setKhanCapModal({items});
+                    }}
+                    style={{marginTop:12,width:"100%",border:"1.5px solid #fecaca",background:"#fef2f2",color:"#b91c1c",borderRadius:12,padding:"11px 0",fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                    🚨 Báo khẩn cấp hàng loạt ({soanThieuSet.size} mã thiếu SL)
+                  </button>
+                )}
                 {/* ── Hàng nút hành động — cả 3 nút cùng 1 hàng, chia đều vừa màn hình ── */}
                 <div style={{display:"flex",gap:6,marginTop:16}}>
                   <ExportBar
                     fluid
                     compact
                     shareTitle={`${t("titleSoan")} — ${proj.ten}`}
-                    shareText={`Soạn hàng ${proj.ten}: ${daSoan.length}/${bom.length} mã đã soạn (${pct}%)`}
+                    shareText={`Soạn hàng ${proj.ten}: ${soMaHoanThanh}/${bom.length} mã đã soạn (${pct}%)`}
                     onExcel={()=>{
                       const daSoan2=bom.filter(v=>soan[v.ma]?.on);
                       const chuaSoan2=bom.filter(v=>!soan[v.ma]?.on);
@@ -6205,7 +6435,7 @@ Bạn có chắc chắn không?`;
                   <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
                     style={{border:"none",cursor:"pointer",fontFamily:"inherit",flex:1,minWidth:0,background:xong?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#f59e0b,#d97706)",color:"#fff",padding:"11px 6px",fontSize:11.5,fontWeight:800,opacity:bom.length===0?.5:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:12,boxShadow:xong?"0 3px 10px rgba(22,163,74,0.35)":"0 3px 10px rgba(217,119,6,0.35)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                     <span>{xong?"✅":"📤"}</span>
-                    <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{xong?"Gửi XH":`Gửi (${daSoan.length}/${bom.length})`}</span>
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{xong?"Gửi XH":`Gửi (${soMaHoanThanh}/${bom.length})`}</span>
                   </button>
                 </div>
               </div>
@@ -6292,6 +6522,12 @@ Bạn có chắc chắn không?`;
                             {!canhBao&&slV!==slCN&&<span style={{fontSize:8,color:"#f59e0b"}}>≠ KH</span>}
                           </div>
                           <div style={{width:20,height:20,borderRadius:"50%",background:on?"#d1fae5":"#f1f5f9",color:on?"#065f46":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,flexShrink:0}}>{v.stt}</div>
+                          {canhBao&&(
+                            <button onClick={()=>setKhanCapModal({items:[{ma:v.ma,ten:v.ten,dv:v.dv,can:slCN,daGiao:daGiaoXHDuyet,conThieu}]})}
+                              title="Báo khẩn cấp mã này" style={{border:"none",background:"#fee2e2",color:"#dc2626",borderRadius:8,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"pointer",flexShrink:0}}>
+                              🚨
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -6304,7 +6540,7 @@ Bạn có chắc chắn không?`;
               {bom.length>0&&(isTHCK||isKHO)&&(
                 <div style={{position:"sticky",bottom:12,margin:"14px 0 0",background:xong?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#1e3a5f,#1d4ed8)",borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,boxShadow:"0 4px 20px rgba(0,0,0,0.2)",flexWrap:"wrap"}}>
                   <div>
-                    <div style={{color:"#fff",fontWeight:700,fontSize:14}}>{xong?"✅ Đã soạn xong!":` ${daSoan.length}/${bom.length} mã đã soạn`}</div>
+                    <div style={{color:"#fff",fontWeight:700,fontSize:14}}>{xong?"✅ Đã soạn xong!":` ${soMaHoanThanh}/${bom.length} mã đã soạn`}</div>
                     <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,marginTop:2}}>
                       {xong?"Nhấn Gửi XƯỞNG HÀN để hoàn tất":`Còn ${bomHienThi.length} mã cần soạn${soMaDaDuyet>0?` · ${soMaDaDuyet} mã đã duyệt đủ`:""}`}
                     </div>
@@ -7850,6 +8086,27 @@ Bạn có chắc chắn không?`;
       )}
 
       <AnhModal src={anhPv} onClose={()=>setAnhPv(null)}/>
+
+      {/* 🚨 Modal soạn & gửi báo khẩn cấp (mở từ nút 🚨 trong tab Kiểm tra/Soạn Hàng) */}
+      {khanCapModal&&(
+        <KhanCapModal
+          items={khanCapModal.items}
+          proj={proj}
+          donViOptions={donViOptions.filter(dv=>dv!==user.don_vi)}
+          onClose={()=>setKhanCapModal(null)}
+          onSubmit={guiCanhBaoKhan}
+        />
+      )}
+
+      {/* 🔔 Modal danh sách cảnh báo khẩn cấp đã nhận/đã gửi (mở từ chuông ở header) */}
+      {showCanhBaoList&&(
+        <CanhBaoListModal
+          list={canhBaoLienQuan}
+          user={user}
+          onClose={()=>setShowCanhBaoList(false)}
+          onMarkRead={dbDanhDauDocCanhBao}
+        />
+      )}
 
       {/* ── ĐỔI MẬT KHẨU MODAL ── */}
       {/* ── MODAL CẬP NHẬT NGUỒN GỐC ── */}
