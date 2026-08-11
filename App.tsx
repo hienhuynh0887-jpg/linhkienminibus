@@ -934,6 +934,16 @@ const KL_LINES = [
 //   );
 const LINE_IDS = KL_LINES.map(l=>l.id); // ["12m","citybus","minibus"]
 
+// 🏷️ Nhãn ngắn gọn theo dòng xe — dùng để gắn TRƯỚC tin nhắn "🚨 Báo khẩn cấp" (cả trong app
+// lẫn trong nội dung chia sẻ ra Zalo/SMS) để người nhận biết ngay cảnh báo thuộc dòng xe nào,
+// không cần mở app / đổi tab mới biết.
+const DONG_XE_NHAN = {
+  "12m":     {text:"12M",      icon:"🚛", mau:"#334155", nen:"#e2e8f0"},
+  citybus:   {text:"CITY BUS", icon:"🚌", mau:"#0f766e", nen:"#ccfbf1"},
+  minibus:   {text:"MINI BUS", icon:"🚐", mau:"#b45309", nen:"#fef3c7"},
+};
+const nhanDongXe = (id)=> DONG_XE_NHAN[id] || DONG_XE_NHAN.minibus;
+
 // ═══════════════════════════════════════════════════════════════
 //  ĐƠN VỊ "CHUYÊN TRÁCH" — LUÔN VÀO THẲNG ĐÚNG TAB, KHÔNG BAO GIỜ RA "TỔNG QUAN"
 // ═══════════════════════════════════════════════════════════════
@@ -1068,10 +1078,17 @@ const LINE_QUYEN_DEFAULT = {
 //     don_vi_nhan jsonb not null default '[]'::jsonb, -- ["KHO VẬT TƯ","Nhà máy THCK",...]
 //     ts timestamptz default now(),
 //     doc_boi jsonb not null default '[]'::jsonb,      -- đơn vị nào đã xem: ["KHO VẬT TƯ",...]
-//     phan_hoi jsonb not null default '[]'::jsonb      -- phản hồi: [{nguoi,don_vi,noi_dung,ts}]
+//     phan_hoi jsonb not null default '[]'::jsonb,     -- phản hồi: [{nguoi,don_vi,noi_dung,ts}]
+//     dong_xe text default 'minibus',                  -- ✅ mới: "12m" | "citybus" | "minibus" —
+//                                                       --   nhãn dòng xe hiện trước tin nhắn
+//     phan_hoi_moi boolean default false                -- ✅ mới: true = có phản hồi CHƯA XEM,
+//                                                       --   dành cho người GỬI gốc → hiện trên 🔔
 //   );
-// (Nếu bảng đã tạo từ trước, chạy thêm: alter table canh_bao_khan add column if not exists
-//  phan_hoi jsonb not null default '[]'::jsonb;  — nhớ chạy cho CẢ 3 bảng theo dòng xe:
+// (Nếu bảng đã tạo từ trước, chạy thêm:
+//  alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb;
+//  alter table canh_bao_khan add column if not exists dong_xe text default 'minibus';
+//  alter table canh_bao_khan add column if not exists phan_hoi_moi boolean default false;
+//  — nhớ chạy cho CẢ 3 bảng theo dòng xe:
 //  canh_bao_khan, canh_bao_khan_citybus, canh_bao_khan_12m.)
 // (Vì dùng chung quy ước T() như các bảng khác, nếu tên bảng có hậu tố dòng xe — VD
 // "canh_bao_khan_citybus" — hãy tạo thêm bảng tương ứng hoặc bỏ hậu tố tùy nhu cầu.)
@@ -2503,7 +2520,7 @@ function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label="", fluid
 // 🚨 Modal soạn & gửi "Báo khẩn cấp" — cho phép bỏ bớt mã, ghi chú, chọn đơn vị nhận,
 // gửi song song 2 nơi: (1) lưu vào Supabase để hiện trong 🔔 app của đơn vị nhận,
 // (2) mở Web Share API (Zalo/SMS/Email/Messenger...) để gửi ra ngoài ngay lập tức.
-function KhanCapModal({items, proj, donViOptions, onClose, onSubmit, preSelectMa}){
+function KhanCapModal({items, proj, donViOptions, onClose, onSubmit, preSelectMa, activeLine}){
   const [checked,setChecked]=useState(()=>preSelectMa
     ? Object.fromEntries(items.map(v=>[v.ma, v.ma===preSelectMa]))
     : Object.fromEntries(items.map(v=>[v.ma,true])));
@@ -2530,6 +2547,11 @@ function KhanCapModal({items, proj, donViOptions, onClose, onSubmit, preSelectMa
           <button onClick={onClose} style={{marginLeft:"auto",border:"none",background:"none",fontSize:18,color:"#9ca3af",cursor:"pointer"}}>✕</button>
         </div>
         <div style={{overflowY:"auto",padding:"14px 18px",flex:1}}>
+          {(()=>{const nh=nhanDongXe(activeLine);return(
+            <div style={{display:"inline-flex",alignItems:"center",gap:5,background:nh.nen,color:nh.mau,border:`1.5px solid ${nh.mau}33`,borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:800,marginBottom:10}}>
+              {nh.icon} {nh.text}
+            </div>
+          );})()}
           <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>Dự án: <b style={{color:"#111827"}}>{proj?.icon} {proj?.ten}</b></div>
           <div style={{fontWeight:700,fontSize:12,color:"#374151",marginBottom:6}}>Danh sách mã vật tư ({chosenItems.length}/{items.length} chọn)</div>
           <div style={{border:"1px solid #fecaca",borderRadius:10,overflow:"hidden",marginBottom:14}}>
@@ -2567,13 +2589,17 @@ function KhanCapModal({items, proj, donViOptions, onClose, onSubmit, preSelectMa
 }
 
 // 🔔 Modal xem danh sách "Báo khẩn cấp" đã nhận/đã gửi — tự đánh dấu đã đọc khi mở lên.
-function CanhBaoListModal({list, user, onClose, onMarkRead, onReply}){
+function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReplySeen}){
   const [replyOpenId,setReplyOpenId]=useState(null);
   const [replyText,setReplyText]=useState("");
   useEffect(()=>{
     list.forEach(c=>{
       if((c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi)){
         onMarkRead(c.id,user.don_vi);
+      }
+      // 💬 Nếu mình là người GỬI gốc và có phản hồi mới chưa xem → đánh dấu đã xem khi mở 🔔
+      if(c.don_vi_gui===user.don_vi&&c.phan_hoi_moi&&onMarkReplySeen){
+        onMarkReplySeen(c.id);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2589,8 +2615,17 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply}){
         </div>
         <div style={{overflowY:"auto",padding:"12px 14px",flex:1}}>
           {list.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,fontSize:13}}>Chưa có cảnh báo khẩn cấp nào.</div>}
-          {list.map(c=>(
-            <div key={c.id} style={{border:"1px solid #fecaca",background:"#fff7f7",borderRadius:12,padding:"12px 14px",marginBottom:10}}>
+          {list.map(c=>{
+            const nh=nhanDongXe(c.dong_xe);
+            const coPhanHoiMoi = c.don_vi_gui===user.don_vi && c.phan_hoi_moi;
+            return(
+            <div key={c.id} style={{border:coPhanHoiMoi?"1.5px solid #f59e0b":"1px solid #fecaca",background:"#fff7f7",borderRadius:12,padding:"12px 14px",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,flexWrap:"wrap"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:4,background:nh.nen,color:nh.mau,borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:800}}>
+                  {nh.icon} {nh.text}
+                </span>
+                {coPhanHoiMoi&&<span style={{display:"inline-flex",alignItems:"center",gap:3,background:"#fef3c7",color:"#92400e",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:800}}>🆕 Phản hồi mới</span>}
+              </div>
               <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:4}}>
                 <div style={{fontWeight:800,fontSize:12,color:"#b91c1c"}}>🚨 {c.ten_du_an}</div>
                 <div style={{fontSize:10,color:"#9ca3af",whiteSpace:"nowrap",flexShrink:0}}>{c.ts?new Date(c.ts).toLocaleString("vi-VN"):""}</div>
@@ -2632,7 +2667,7 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply}){
                 )}
               </div>
             </div>
-          ))}
+            );})}
         </div>
       </div>
     </>
@@ -3685,20 +3720,31 @@ export default function App(){
   };
   // 💬 Phản hồi lại 1 cảnh báo khẩn cấp — cộng dồn vào phan_hoi (không ghi đè), lưu Supabase
   // để TẤT CẢ đơn vị liên quan (người gửi gốc + các đơn vị nhận) đều thấy phản hồi này khi
-  // mở lại 🔔.
+  // mở lại 🔔. ✅ Nếu người phản hồi KHÔNG PHẢI người gửi gốc → bật cờ phan_hoi_moi=true để
+  // người gửi gốc thấy ngay trên chuông 🔔 (badge đỏ) mà không cần mở lại cảnh báo.
   const dbPhanHoiCanhBao=async(cb,noiDung)=>{
     try{
       const reply={nguoi:user.ten, don_vi:user.don_vi, noi_dung:noiDung, ts:new Date().toISOString()};
       const phanHoiMoi=[...(cb.phan_hoi||[]),reply];
-      setCanhBaoKhan(cs=>cs.map(c=>c.id===cb.id?{...c,phan_hoi:phanHoiMoi}:c));
-      const {error}=await supabase.from(T("canh_bao_khan")).update({phan_hoi:phanHoiMoi}).eq("id",cb.id);
+      const boPhanHoiMoi = user.don_vi!==cb.don_vi_gui; // người trả lời khác người gửi gốc → báo cho người gửi gốc biết
+      setCanhBaoKhan(cs=>cs.map(c=>c.id===cb.id?{...c,phan_hoi:phanHoiMoi,phan_hoi_moi:boPhanHoiMoi?true:c.phan_hoi_moi}:c));
+      const {error}=await supabase.from(T("canh_bao_khan")).update({phan_hoi:phanHoiMoi,...(boPhanHoiMoi?{phan_hoi_moi:true}:{})}).eq("id",cb.id);
       if(error){
         console.error("dbPhanHoiCanhBao:",error);
-        alert("⚠️ Chưa lưu được phản hồi lên hệ thống: "+error.message+"\n(Có thể cần chạy: alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb; — cho cả 3 bảng theo dòng xe.)");
+        alert("⚠️ Chưa lưu được phản hồi lên hệ thống: "+error.message+"\n(Có thể cần chạy: alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb; alter table canh_bao_khan add column if not exists phan_hoi_moi boolean default false; — cho cả 3 bảng theo dòng xe.)");
         return;
       }
       flash("💬 Đã gửi phản hồi");
     }catch(e){console.error("dbPhanHoiCanhBao:",e);}
+  };
+  // 🔕 Đánh dấu người GỬI GỐC đã xem phản hồi mới (tắt cờ phan_hoi_moi) — gọi khi mở 🔔.
+  const dbDanhDauDaXemPhanHoi=async(id)=>{
+    try{
+      const cb=canhBaoKhan.find(c=>c.id===id);
+      if(!cb||!cb.phan_hoi_moi)return;
+      setCanhBaoKhan(cs=>cs.map(c=>c.id===id?{...c,phan_hoi_moi:false}:c));
+      await supabase.from(T("canh_bao_khan")).update({phan_hoi_moi:false}).eq("id",id);
+    }catch(e){console.error("dbDanhDauDaXemPhanHoi:",e);}
   };
 
   // ── Derived ──
@@ -4532,14 +4578,17 @@ export default function App(){
   // ngoài ngay lập tức; nếu máy không hỗ trợ chia sẻ, copy nội dung vào clipboard để dán tay.
   const guiCanhBaoKhan=async(chosenItems,ghiChu,donViChon)=>{
     const ts=new Date().toISOString();
+    const dongXeGui = activeLine||"minibus";
+    const nhanDX = nhanDongXe(dongXeGui);
     const row={
       id:uid(), pid, ten_du_an:proj?.ten||"",
       danh_sach:chosenItems.map(v=>({ma:v.ma,ten:v.ten,dv:v.dv,can:v.can,daGiao:v.daGiao||0,conThieu:v.conThieu})),
       ghi_chu:ghiChu||"", nguoi_gui:user.ten, don_vi_gui:user.don_vi,
-      don_vi_nhan:donViChon, ts, doc_boi:[], phan_hoi:[]
+      don_vi_nhan:donViChon, ts, doc_boi:[], phan_hoi:[],
+      dong_xe:dongXeGui, phan_hoi_moi:false
     };
     await dbGuiCanhBao(row);
-    const noiDung=`🚨 BÁO KHẨN CẤP — VẬT TƯ THIẾU GẤP\n`+
+    const noiDung=`(${nhanDX.icon} ${nhanDX.text}) 🚨 BÁO KHẨN CẤP — VẬT TƯ THIẾU GẤP\n`+
       `Dự án: ${proj?.icon||""} ${proj?.ten||""}\n`+
       `Người gửi: ${user.ten} (${user.don_vi})\n`+
       `Thời gian: ${new Date(ts).toLocaleString("vi-VN")}\n\n`+
@@ -5968,8 +6017,14 @@ Bạn có chắc chắn không?`;
   // 🚨 Danh sách đơn vị để chọn "gửi đến" khi báo khẩn cấp — lấy trực tiếp từ danh sách
   // tài khoản thật (users) để luôn khớp với các đơn vị đang thực sự tồn tại trong hệ thống.
   const donViOptions = Array.from(new Set(users.map(u=>u.don_vi).filter(Boolean))).sort();
-  // 🔔 Số cảnh báo khẩn cấp CHƯA ĐỌC gửi đến đơn vị của tài khoản đang đăng nhập
-  const canhBaoChuaDoc = canhBaoKhan.filter(c=>(c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi)).length;
+  // 🔔 Số cảnh báo khẩn cấp CHƯA ĐỌC gửi đến đơn vị của tài khoản đang đăng nhập, CỘNG THÊM
+  // số cảnh báo mình đã GỬI mà có phản hồi mới chưa xem (phan_hoi_moi) — để người gửi gốc biết
+  // ngay khi có phản hồi, không cần chủ động mở lại từng cảnh báo.
+  const canhBaoChuaDoc = canhBaoKhan.filter(c=>{
+    const laNguoiNhanChuaDoc = (c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi);
+    const laNguoiGuiCoPhanHoiMoi = c.don_vi_gui===user.don_vi&&c.phan_hoi_moi;
+    return laNguoiNhanChuaDoc||laNguoiGuiCoPhanHoiMoi;
+  }).length;
   // Danh sách hiển thị trong modal 🔔 — mọi cảnh báo mà đơn vị của mình LIÊN QUAN (nhận hoặc đã gửi)
   const canhBaoLienQuan = canhBaoKhan.filter(c=>(c.don_vi_nhan||[]).includes(user.don_vi)||c.don_vi_gui===user.don_vi);
 
@@ -8140,6 +8195,7 @@ Bạn có chắc chắn không?`;
           onClose={()=>setKhanCapModal(null)}
           onSubmit={guiCanhBaoKhan}
           preSelectMa={khanCapModal.preSelectMa}
+          activeLine={activeLine}
         />
       )}
 
@@ -8151,6 +8207,7 @@ Bạn có chắc chắn không?`;
           onClose={()=>setShowCanhBaoList(false)}
           onMarkRead={dbDanhDauDocCanhBao}
           onReply={dbPhanHoiCanhBao}
+          onMarkReplySeen={dbDanhDauDaXemPhanHoi}
         />
       )}
 
