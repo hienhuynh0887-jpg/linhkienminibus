@@ -1067,8 +1067,12 @@ const LINE_QUYEN_DEFAULT = {
 //     don_vi_gui text,
 //     don_vi_nhan jsonb not null default '[]'::jsonb, -- ["KHO VẬT TƯ","Nhà máy THCK",...]
 //     ts timestamptz default now(),
-//     doc_boi jsonb not null default '[]'::jsonb       -- đơn vị nào đã xem: ["KHO VẬT TƯ",...]
+//     doc_boi jsonb not null default '[]'::jsonb,      -- đơn vị nào đã xem: ["KHO VẬT TƯ",...]
+//     phan_hoi jsonb not null default '[]'::jsonb      -- phản hồi: [{nguoi,don_vi,noi_dung,ts}]
 //   );
+// (Nếu bảng đã tạo từ trước, chạy thêm: alter table canh_bao_khan add column if not exists
+//  phan_hoi jsonb not null default '[]'::jsonb;  — nhớ chạy cho CẢ 3 bảng theo dòng xe:
+//  canh_bao_khan, canh_bao_khan_citybus, canh_bao_khan_12m.)
 // (Vì dùng chung quy ước T() như các bảng khác, nếu tên bảng có hậu tố dòng xe — VD
 // "canh_bao_khan_citybus" — hãy tạo thêm bảng tương ứng hoặc bỏ hậu tố tùy nhu cầu.)
 const TAB_META = [
@@ -2499,8 +2503,10 @@ function ExportBar({onExcel, onPDF, shareTitle="", shareText="", label="", fluid
 // 🚨 Modal soạn & gửi "Báo khẩn cấp" — cho phép bỏ bớt mã, ghi chú, chọn đơn vị nhận,
 // gửi song song 2 nơi: (1) lưu vào Supabase để hiện trong 🔔 app của đơn vị nhận,
 // (2) mở Web Share API (Zalo/SMS/Email/Messenger...) để gửi ra ngoài ngay lập tức.
-function KhanCapModal({items, proj, donViOptions, onClose, onSubmit}){
-  const [checked,setChecked]=useState(()=>Object.fromEntries(items.map(v=>[v.ma,true])));
+function KhanCapModal({items, proj, donViOptions, onClose, onSubmit, preSelectMa}){
+  const [checked,setChecked]=useState(()=>preSelectMa
+    ? Object.fromEntries(items.map(v=>[v.ma, v.ma===preSelectMa]))
+    : Object.fromEntries(items.map(v=>[v.ma,true])));
   const [ghiChu,setGhiChu]=useState("");
   const [donViChon,setDonViChon]=useState([]);
   const [sending,setSending]=useState(false);
@@ -2561,7 +2567,9 @@ function KhanCapModal({items, proj, donViOptions, onClose, onSubmit}){
 }
 
 // 🔔 Modal xem danh sách "Báo khẩn cấp" đã nhận/đã gửi — tự đánh dấu đã đọc khi mở lên.
-function CanhBaoListModal({list, user, onClose, onMarkRead}){
+function CanhBaoListModal({list, user, onClose, onMarkRead, onReply}){
+  const [replyOpenId,setReplyOpenId]=useState(null);
+  const [replyText,setReplyText]=useState("");
   useEffect(()=>{
     list.forEach(c=>{
       if((c.don_vi_nhan||[]).includes(user.don_vi)&&!(c.doc_boi||[]).includes(user.don_vi)){
@@ -2593,7 +2601,36 @@ function CanhBaoListModal({list, user, onClose, onMarkRead}){
                   <div key={i}>• <b>{v.ma}</b> — {v.ten}: thiếu <b style={{color:"#b45309"}}>{fmt(v.conThieu)} {v.dv}</b></div>
                 ))}
               </div>
-              {c.ghi_chu&&<div style={{marginTop:6,fontSize:11,fontStyle:"italic",color:"#6b7280"}}>"{c.ghi_chu}"</div>}
+              {c.ghi_chu&&<div style={{marginTop:6,fontSize:15,fontWeight:800,fontStyle:"italic",color:"#dc2626"}}>"{c.ghi_chu}"</div>}
+              {(c.phan_hoi||[]).length>0&&(
+                <div style={{marginTop:8,paddingTop:8,borderTop:"1px dashed #fca5a5",display:"flex",flexDirection:"column",gap:6}}>
+                  {(c.phan_hoi||[]).map((r,i)=>(
+                    <div key={i} style={{fontSize:11,background:"#fff",border:"1px solid #f3d4d4",borderRadius:8,padding:"6px 8px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",gap:6}}>
+                        <b style={{color:"#1d4ed8"}}>{r.nguoi} ({r.don_vi})</b>
+                        <span style={{color:"#9ca3af",whiteSpace:"nowrap",fontSize:10}}>{r.ts?new Date(r.ts).toLocaleString("vi-VN"):""}</span>
+                      </div>
+                      <div style={{color:"#374151",marginTop:2}}>{r.noi_dung}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{marginTop:8,display:"flex",gap:6}}>
+                {replyOpenId===c.id?(
+                  <>
+                    <input autoFocus value={replyText} onChange={e=>setReplyText(e.target.value)}
+                      onKeyDown={e=>{if(e.key==="Enter"&&replyText.trim()){onReply(c,replyText.trim());setReplyText("");setReplyOpenId(null);}}}
+                      placeholder="Nhập phản hồi..." style={{flex:1,border:"1.5px solid #fca5a5",borderRadius:8,padding:"6px 10px",fontSize:12,outline:"none"}}/>
+                    <button onClick={()=>{if(replyText.trim()){onReply(c,replyText.trim());setReplyText("");setReplyOpenId(null);}}}
+                      style={{border:"none",background:"#dc2626",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Gửi</button>
+                    <button onClick={()=>{setReplyOpenId(null);setReplyText("");}}
+                      style={{border:"1px solid #e5e7eb",background:"#fff",color:"#6b7280",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer"}}>Hủy</button>
+                  </>
+                ):(
+                  <button onClick={()=>{setReplyOpenId(c.id);setReplyText("");}}
+                    style={{border:"1px solid #dc2626",background:"#fff",color:"#dc2626",borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>↩ Phản hồi</button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -3646,6 +3683,23 @@ export default function App(){
       await supabase.from(T("canh_bao_khan")).update({doc_boi:docBoiMoi}).eq("id",id);
     }catch(e){console.error("dbDanhDauDocCanhBao:",e);}
   };
+  // 💬 Phản hồi lại 1 cảnh báo khẩn cấp — cộng dồn vào phan_hoi (không ghi đè), lưu Supabase
+  // để TẤT CẢ đơn vị liên quan (người gửi gốc + các đơn vị nhận) đều thấy phản hồi này khi
+  // mở lại 🔔.
+  const dbPhanHoiCanhBao=async(cb,noiDung)=>{
+    try{
+      const reply={nguoi:user.ten, don_vi:user.don_vi, noi_dung:noiDung, ts:new Date().toISOString()};
+      const phanHoiMoi=[...(cb.phan_hoi||[]),reply];
+      setCanhBaoKhan(cs=>cs.map(c=>c.id===cb.id?{...c,phan_hoi:phanHoiMoi}:c));
+      const {error}=await supabase.from(T("canh_bao_khan")).update({phan_hoi:phanHoiMoi}).eq("id",cb.id);
+      if(error){
+        console.error("dbPhanHoiCanhBao:",error);
+        alert("⚠️ Chưa lưu được phản hồi lên hệ thống: "+error.message+"\n(Có thể cần chạy: alter table canh_bao_khan add column if not exists phan_hoi jsonb not null default '[]'::jsonb; — cho cả 3 bảng theo dòng xe.)");
+        return;
+      }
+      flash("💬 Đã gửi phản hồi");
+    }catch(e){console.error("dbPhanHoiCanhBao:",e);}
+  };
 
   // ── Derived ──
   const bom   = bomDB[pid]  || [];
@@ -4482,7 +4536,7 @@ export default function App(){
       id:uid(), pid, ten_du_an:proj?.ten||"",
       danh_sach:chosenItems.map(v=>({ma:v.ma,ten:v.ten,dv:v.dv,can:v.can,daGiao:v.daGiao||0,conThieu:v.conThieu})),
       ghi_chu:ghiChu||"", nguoi_gui:user.ten, don_vi_gui:user.don_vi,
-      don_vi_nhan:donViChon, ts, doc_boi:[]
+      don_vi_nhan:donViChon, ts, doc_boi:[], phan_hoi:[]
     };
     await dbGuiCanhBao(row);
     const noiDung=`🚨 BÁO KHẨN CẤP — VẬT TƯ THIẾU GẤP\n`+
@@ -5935,7 +5989,7 @@ Bạn có chắc chắn không?`;
             )}
           </div>
           <div style={{minWidth:0,flex:1}}>
-            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#0f172a"}}>{t("brandTitle")}</div>
+            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#c2410c"}}>{t("brandTitle")}</div>
             <div style={{fontSize:13,fontWeight:800,color:"#2563eb",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
               {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
             </div>
@@ -6338,17 +6392,18 @@ Bạn có chắc chắn không?`;
                   <Prog p={pct} done={xong} h={10}/>
                   <span style={{fontWeight:700,fontSize:13,color:xong?"#16a34a":"#92400e",minWidth:80,textAlign:"right",flexShrink:0}}>{soMaHoanThanh}/{bom.length} ({pct}%)</span>
                 </div>
-                {/* ── Thẻ thống kê nhanh (lưới 2x2) — tính trên TOÀN BỘ dự án, coi mã "đã duyệt đủ" là đã hoàn thành ── */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {/* ── Thẻ thống kê nhanh (1 hàng, 4 cột) — tính trên TOÀN BỘ dự án, coi mã "đã duyệt đủ" là đã hoàn thành ── */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
                   {[
                     ["📄","Tổng mã",bom.length,"#1d4ed8","#eff6ff"],
                     ["✅","Đã soạn",soMaHoanThanh,"#16a34a","#f0fdf4"],
                     ["⏳","Chưa soạn",soMaChuaSoanTong,"#dc2626","#fef2f2"],
                     ["⚠️","Thiếu SL",soanThieuSet.size,"#b45309","#fffbeb"],
                   ].map(([ic,l,v,c,bg])=>(
-                    <div key={l} style={{background:bg,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{width:34,height:34,borderRadius:"50%",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,0.12)"}}>{ic}</span>
-                      <div><div style={{fontWeight:800,fontSize:18,color:c,lineHeight:1.1}}>{v}</div><div style={{fontSize:10,color:c,fontWeight:600,opacity:.85}}>{l}</div></div>
+                    <div key={l} style={{background:bg,borderRadius:12,padding:"10px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,textAlign:"center"}}>
+                      <span style={{width:26,height:26,borderRadius:"50%",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,0.12)"}}>{ic}</span>
+                      <div style={{fontWeight:800,fontSize:16,color:c,lineHeight:1.1}}>{v}</div>
+                      <div style={{fontSize:9,color:c,fontWeight:600,opacity:.85}}>{l}</div>
                     </div>
                   ))}
                 </div>
@@ -6523,8 +6578,15 @@ Bạn có chắc chắn không?`;
                           </div>
                           <div style={{width:20,height:20,borderRadius:"50%",background:on?"#d1fae5":"#f1f5f9",color:on?"#065f46":"#9ca3af",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,flexShrink:0}}>{v.stt}</div>
                           {canhBao&&(
-                            <button onClick={()=>setKhanCapModal({items:[{ma:v.ma,ten:v.ten,dv:v.dv,can:slCN,daGiao:daGiaoXHDuyet,conThieu}]})}
-                              title="Báo khẩn cấp mã này" style={{border:"none",background:"#fee2e2",color:"#dc2626",borderRadius:8,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"pointer",flexShrink:0}}>
+                            <button onClick={()=>{
+                                const allThieu=bom.filter(x=>soanThieuSet.has(x.ma)).map(x=>{
+                                  const thX=thByMa[x.ma];const slCNx=x.dm*soXe;
+                                  const canNhanX=thX?.cn??slCNx;const daGiaoX=thX?.dnXN||0;
+                                  return {ma:x.ma,ten:x.ten,dv:x.dv,can:canNhanX,daGiao:daGiaoX,conThieu:Math.max(0,canNhanX-daGiaoX)};
+                                });
+                                setKhanCapModal({items:allThieu.length?allThieu:[{ma:v.ma,ten:v.ten,dv:v.dv,can:slCN,daGiao:daGiaoXHDuyet,conThieu}], preSelectMa:v.ma});
+                              }}
+                              title="Báo khẩn cấp mã này (có thể chọn thêm mã khác)" style={{border:"none",background:"#fee2e2",color:"#dc2626",borderRadius:8,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"pointer",flexShrink:0}}>
                               🚨
                             </button>
                           )}
@@ -8095,6 +8157,7 @@ Bạn có chắc chắn không?`;
           donViOptions={donViOptions.filter(dv=>dv!==user.don_vi)}
           onClose={()=>setKhanCapModal(null)}
           onSubmit={guiCanhBaoKhan}
+          preSelectMa={khanCapModal.preSelectMa}
         />
       )}
 
@@ -8105,6 +8168,7 @@ Bạn có chắc chắn không?`;
           user={user}
           onClose={()=>setShowCanhBaoList(false)}
           onMarkRead={dbDanhDauDocCanhBao}
+          onReply={dbPhanHoiCanhBao}
         />
       )}
 
