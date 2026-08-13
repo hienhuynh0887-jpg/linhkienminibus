@@ -3877,7 +3877,7 @@ export default function App(){
   const flash=m=>{setMsg(m);setTimeout(()=>setMsg(""),2500);};
 
   const addLS=(p2,r)=>setLsDB(s=>({...s,[p2]:[{id:uid(),ts:new Date().toISOString(),...r},...(s[p2]||[])].slice(0,200)}));
-  const sw=useCallback(id=>{setPid(id);setSearch("");setFdm("Tất cả");setTab("ds");localStorage.setItem("lastPid",id);},[]);
+  const sw=useCallback(id=>{setPid(id);setSearch("");setFdm("Tất cả");localStorage.setItem("lastPid",id);},[]);
 
   // ✅ Đánh dấu 1 dự án là "Hoàn thành" — chuyển sang hiển thị ở màn "Đã thực hiện".
   // Dự án nào bấm "Hoàn thành" SAU CÙNG luôn hiện STT 1 (sắp theo hoan_thanh_ts giảm dần).
@@ -6279,7 +6279,7 @@ Bạn có chắc chắn không?`;
                     color:active?"#2563eb":"#8a94ad",background:active?"#ffffff":"transparent",
                     boxShadow:active?"0 1px 5px rgba(15,23,42,0.14)":"none",
                     padding:"9px 8px",fontSize:12.5,whiteSpace:"nowrap"}}>
-                    {k==="soan"&&soaned>0?`${label} (${soaned}/${bom.length})`:label}
+                    {label}
                   </button>
                 );
               })}
@@ -6291,7 +6291,7 @@ Bạn có chắc chắn không?`;
       {/* DASHBOARD TỔNG QUAN — hiển thị THƯỜNG TRỰC trên mọi tab NGOẠI TRỪ tab "👥 Người dùng"
           (trang quản lý tài khoản/phân quyền không liên quan tới 1 dự án/dòng xe cụ thể nào,
           nên khối "Dòng xe / Dự án / Tổng quan dự án" không có ý nghĩa và gây rối mắt ở đây). */}
-      {tab!=="users" && (()=>{
+      {tab!=="users" && tab!=="bom_mau" && (()=>{
         const daGiao=Math.min((ls||[]).filter(r=>r.loai==="Giao xe").reduce((s,r)=>s+(Number(r.sl)||0),0),soXe);
         const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
         return(
