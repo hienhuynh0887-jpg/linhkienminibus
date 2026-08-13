@@ -3047,6 +3047,7 @@ export default function App(){
   const [showPh,   setShowPh]   = useState(false);
   const [viewPh,   setViewPh]   = useState(null);
   const phieuRef = useRef(null); // vùng nội dung phiếu GN để chụp thành ảnh khi bấm "Chia sẻ"
+  const bcCardRef = useRef(null); // vùng toàn bộ thẻ Báo Cáo (banner+thống kê+donut+biểu đồ+bảng) để chụp thành ảnh khi bấm "Xuất báo cáo"
   const [dangChiaSe, setDangChiaSe] = useState(false);
   const [slThucEdit, setSlThucEdit] = useState<Record<string,number>>({}); // ctid -> sl thực nhận đang sửa
   const [editPh,   setEditPh]   = useState(null);  // phiếu đang chỉnh sửa {id, sp, ngay, gc, ct:[]}
@@ -7236,29 +7237,135 @@ Bạn có chắc chắn không?`;
           const togExp=ma=>setBcExp(s=>({...s,[ma]:!s[ma]}));
           return(
             <div>
-              <div style={{background:duAll?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#312e81,#4f46e5)",borderRadius:12,padding:"20px 22px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12,marginBottom:14}}>
-                  <div>
-                    <div style={{fontSize:17,fontWeight:700}}>{duAll?t("titleBcDone"):t("titleBc")}</div>
-                    <div style={{fontSize:12,opacity:.8,marginTop:3}}>{proj.icon} {proj.ten} · 🚌 {soXe} xe · {phList.length} phiếu</div>
+              {/* ── Toàn bộ thẻ Báo Cáo (banner + thống kê + donut + biểu đồ + bảng) — bọc trong bcCardRef để chụp thành ảnh khi bấm "Xuất báo cáo" ── */}
+              <div ref={bcCardRef}>
+              {/* ── Header banner (giống ảnh 2) ── */}
+              <div style={{background:duAll?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#312e81,#4338ca)",borderRadius:16,padding:"18px 18px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                  <div style={{width:40,height:40,borderRadius:10,background:"rgba(255,255,255,0.16)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>📊</div>
+                  <div style={{fontSize:16,fontWeight:800,lineHeight:1.25}}>{duAll?t("titleBcDone"):t("titleBc")}</div>
+                </div>
+                <div style={{fontSize:12,opacity:.85,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                  <span>{proj.icon} {proj.ten}</span><span style={{opacity:.45}}>|</span><span>🚌 {soXe} xe</span><span style={{opacity:.45}}>·</span><span>{phList.length} phiếu</span>
+                </div>
+                {(proj.ngay_khoi_tao||proj.ngay_hoan_thanh)&&(
+                  <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.28)",borderRadius:9,padding:"6px 12px",fontSize:11.5,fontWeight:700}}>
+                    📅 {proj.ngay_khoi_tao||"—"} → {proj.ngay_hoan_thanh||"Đang thực hiện"}
                   </div>
-                  <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                    {[["Tổng mã",bom.length,"#c7d2fe"],["Đã nhận ✅",maDone,"#6ee7b7"],["Chưa nhận 📭",maChuaSoan,"#e2e8f0"],["Giao thiếu 📉",maGiaoThieu,"#fde68a"],["Phiếu",phList.length,"#a5f3fc"]].map(([l,v,c])=>(
-                      <div key={l} style={{textAlign:"center",background:"rgba(255,255,255,0.12)",borderRadius:10,padding:"8px 16px",minWidth:70}}>
-                        <div style={{fontWeight:700,fontSize:22,color:c}}>{v}</div>
-                        <div style={{fontSize:10,opacity:.8,marginTop:1}}>{l}</div>
-                      </div>
-                    ))}
+                )}
+              </div>
+
+              {/* ── 4 thẻ thống kê (giống ảnh 2) ── */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                {[
+                  {l:"Tổng mã vật tư",v:bom.length,p:100,icon:"📦",bg:"#dbeafe",fg:"#2563eb"},
+                  {l:"Đã nhận",v:maDone,p:bom.length?Math.round(maDone/bom.length*10000)/100:0,icon:"✅",bg:"#dcfce7",fg:"#16a34a"},
+                  {l:"Giao thiếu",v:maGiaoThieu,p:bom.length?Math.round(maGiaoThieu/bom.length*10000)/100:0,icon:"🚚",bg:"#ffedd5",fg:"#ea580c"},
+                  {l:"Chưa nhận",v:maChuaSoan,p:bom.length?Math.round(maChuaSoan/bom.length*10000)/100:0,icon:"⏰",bg:"#fee2e2",fg:"#dc2626"},
+                ].map(s=>(
+                  <div key={s.l} style={{background:"#fff",borderRadius:14,padding:"16px 10px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                    <div style={{width:44,height:44,borderRadius:"50%",background:s.bg,color:s.fg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,margin:"0 auto 8px"}}>{s.icon}</div>
+                    <div style={{fontSize:11,color:"#6b7280",fontWeight:600,marginBottom:2}}>{s.l}</div>
+                    <div style={{fontSize:22,fontWeight:900,color:"#1f2937"}}>{s.v}</div>
+                    <div style={{fontSize:10.5,color:"#9ca3af",marginTop:1}}>{s.p}%</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Donut Tiến độ nhận vật tư (giống ảnh 2) ── */}
+              <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:11.5,fontWeight:900,color:"#374151",letterSpacing:.4,marginBottom:14,textTransform:"uppercase"}}>Tiến Độ Nhận Vật Tư</div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+                  <div style={{position:"relative",width:160,height:160}}>
+                    <svg width="160" height="160" viewBox="0 0 160 160" style={{transform:"rotate(-90deg)"}}>
+                      <circle cx="80" cy="80" r="66" stroke="#eef0fb" strokeWidth="16" fill="none"/>
+                      <circle cx="80" cy="80" r="66" stroke="#4f46e5" strokeWidth="16" fill="none"
+                        strokeDasharray={`${2*Math.PI*66}`}
+                        strokeDashoffset={`${2*Math.PI*66*(1-pctT/100)}`}
+                        strokeLinecap="round"/>
+                    </svg>
+                    <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                      <div style={{fontSize:26,fontWeight:900,color:"#4338ca"}}>{pctT}%</div>
+                      <div style={{fontSize:10.5,color:"#9ca3af",fontWeight:700}}>Hoàn thành</div>
+                    </div>
                   </div>
                 </div>
-                <div style={{marginBottom:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.8,marginBottom:4}}>
-                    <span>{t("progTienDoTichLuy")}</span>
-                    <span style={{fontWeight:700,fontSize:13}}>{pctT}%</span>
-                  </div>
-                  <Prog p={pctT} done={duAll} h={14}/>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {[["Đã nhận","#22c55e",maDone],["Giao thiếu","#f59e0b",maGiaoThieu],["Chưa nhận","#ef4444",maChuaSoan]].map(([l,c,v])=>(
+                    <div key={l} style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12.5}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:9,height:9,borderRadius:"50%",background:c,flexShrink:0}}/><span style={{color:"#374151",fontWeight:600}}>{l}</span></div>
+                      <span style={{fontWeight:800,color:"#1f2937"}}>{v} mã</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:14,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:"9px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:12,color:"#15803d",fontWeight:700,display:"flex",alignItems:"center",gap:6}}>✅ {t("progTienDoTichLuy")}</span>
+                  <span style={{fontSize:14,fontWeight:900,color:"#15803d"}}>{pctT}%</span>
                 </div>
               </div>
+
+              {/* ── Biểu đồ tiến độ theo phiếu (giống ảnh 2, dùng dữ liệu phiếu thực tế) ── */}
+              {phList.filter(p=>p.ngay).length>1&&(()=>{
+                const sorted=[...phList].filter(p=>p.ngay).sort((a,b)=>new Date(a.ngay)-new Date(b.ngay));
+                const n=sorted.length;
+                const w=280,h=140,padL=26,padB=18,padT=10,padR=8;
+                const xScale=i=>padL+(n<=1?0:(i/(n-1))*(w-padL-padR));
+                const yScale=v=>padT+(1-v/100)*(h-padT-padB);
+                const pts=sorted.map((p,i)=>({x:i,y:Math.round((i+1)/n*100)}));
+                const path=pts.map((p,i)=>`${i===0?"M":"L"} ${xScale(p.x).toFixed(1)} ${yScale(p.y).toFixed(1)}`).join(" ");
+                const last=pts[pts.length-1];
+                return(
+                  <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                    <div style={{fontSize:11.5,fontWeight:900,color:"#374151",letterSpacing:.4,marginBottom:10,textTransform:"uppercase"}}>Biểu Đồ Tiến Độ Theo Phiếu</div>
+                    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{overflow:"visible"}}>
+                      {[0,25,50,75,100].map(g=>(
+                        <g key={g}>
+                          <line x1={padL} x2={w-padR} y1={yScale(g)} y2={yScale(g)} stroke="#f1f5f9" strokeWidth="1"/>
+                          <text x={0} y={yScale(g)+3} fontSize="8" fill="#9ca3af">{g}%</text>
+                        </g>
+                      ))}
+                      <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      {last&&<circle cx={xScale(last.x)} cy={yScale(last.y)} r="3.5" fill="#4f46e5"/>}
+                    </svg>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#9ca3af",marginTop:2}}>
+                      <span>{sorted[0]?.ngay}</span><span>{sorted[n-1]?.ngay}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Chi tiết theo trạng thái (giống ảnh 2) ── */}
+              <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:11.5,fontWeight:900,color:"#374151",letterSpacing:.4,marginBottom:8,textTransform:"uppercase"}}>Chi Tiết Theo Trạng Thái</div>
+                {[
+                  {l:"Đã nhận",icon:"✅",c:"#16a34a",v:maDone,mota:"Vật tư đã được nhận đủ"},
+                  {l:"Giao thiếu",icon:"🚚",c:"#ea580c",v:maGiaoThieu,mota:"Vật tư đang giao thiếu đến trạm"},
+                  {l:"Chưa nhận",icon:"⏰",c:"#dc2626",v:maChuaSoan,mota:"Chưa nhận vật tư"},
+                ].map(r=>{
+                  const pct=bom.length?Math.round(r.v/bom.length*10000)/100:0;
+                  return(
+                    <div key={r.l} style={{padding:"10px 0",borderBottom:"1px solid #f1f5f9"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,flexWrap:"wrap",gap:4}}>
+                        <span style={{fontSize:12.5,fontWeight:700,color:"#1f2937",display:"flex",alignItems:"center",gap:6}}>{r.icon} {r.l}</span>
+                        <span style={{fontSize:12.5,fontWeight:800,color:r.c}}>{r.v} mã · {pct}%</span>
+                      </div>
+                      <div style={{fontSize:10.5,color:"#9ca3af",marginBottom:5}}>{r.mota}</div>
+                      <div style={{height:6,background:"#f1f5f9",borderRadius:4,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:r.c,borderRadius:4}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{display:"flex",justifyContent:"space-between",paddingTop:10,fontSize:12.5,fontWeight:900,color:"#4338ca"}}>
+                  <span>TỔNG CỘNG</span><span>{bom.length} mã · 100%</span>
+                </div>
+              </div>
+              </div>
+              {/* Nút xuất ảnh — đặt NGOÀI vùng bcCardRef để không bị lọt vào chính tấm ảnh xuất ra */}
+              <button onClick={()=>chiaSePhieuAnh(bcCardRef.current,{sp:proj.ten})}
+                style={{width:"100%",background:"linear-gradient(135deg,#312e81,#4338ca)",border:"none",borderRadius:12,color:"#fff",fontWeight:700,fontSize:13,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",fontFamily:"inherit",marginBottom:14,boxShadow:"0 4px 14px rgba(49,46,129,0.25)"}}>
+                ⬆️ Xuất báo cáo (ảnh)
+              </button>
               <div style={{background:"#fff",borderRadius:10,padding:"14px 18px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Tiến độ theo Vị trí</div>
                 <button onClick={()=>setBcViTriChiTiet(x=>!x)}
