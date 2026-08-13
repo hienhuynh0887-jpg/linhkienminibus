@@ -6268,16 +6268,17 @@ Bạn có chắc chắn không?`;
       {(()=>{
         const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
         return(
-          <div style={{background:"#ffffff",borderBottom:"1px solid #e4e9f2",padding:"10px 16px 14px"}}>
-            <div style={{display:"flex",gap:4,background:"#eef1f6",borderRadius:12,padding:4,overflowX:"auto"}}>
+          <div style={{background:"#2e1065",borderBottom:"1px solid #1e0a47",padding:"10px 16px 14px"}}>
+            <div style={{display:"flex",gap:4,background:"#3b0764",borderRadius:12,padding:4,overflowX:"auto"}}>
               {TABS_NOW.map(([k])=>{
                 const active=tab===k;
                 const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`);
                 return(
                   <button key={k} onClick={()=>setTab(k)} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
                     flex:"1 0 auto",minWidth:76,borderRadius:9,fontWeight:800,textAlign:"center",
-                    color:active?"#2563eb":"#8a94ad",background:active?"#ffffff":"transparent",
-                    boxShadow:active?"0 1px 5px rgba(15,23,42,0.14)":"none",
+                    color:"#ffffff",background:active?"#8b5cf6":"transparent",
+                    opacity:active?1:0.68,
+                    boxShadow:active?"0 1px 6px rgba(0,0,0,0.35)":"none",
                     padding:"9px 8px",fontSize:12.5,whiteSpace:"nowrap"}}>
                     {label}
                   </button>
@@ -6299,24 +6300,28 @@ Bạn có chắc chắn không?`;
             {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗ */}
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               {/* DÒNG XE */}
-              <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"14px 12px",cursor:linesPickable.length>1?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-                <div style={{fontSize:9.5,fontWeight:900,color:"#9ca3af",letterSpacing:.7,textTransform:"uppercase"}}>Dòng Xe</div>
-                <div style={{fontSize:16,fontWeight:900,color:"#1f2937",marginTop:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.2}}>
-                  {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}
-                  {linesPickable.length>1&&<span style={{marginLeft:4,color:"#d1d5db",fontWeight:700}}>▾</span>}
+              <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e5e7eb",borderLeft:"3px solid #ec4899",borderRadius:12,padding:"12px",cursor:linesPickable.length>1?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:38,height:38,borderRadius:"50%",background:"#fce7f3",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:18}}>🚐</div>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontSize:9.5,fontWeight:900,color:"#ec4899",letterSpacing:.7,textTransform:"uppercase"}}>Dòng Xe</div>
+                  <div style={{fontSize:15,fontWeight:900,color:"#1f2937",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.2}}>
+                    {KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}
+                    {linesPickable.length>1&&<span style={{marginLeft:4,color:"#d1d5db",fontWeight:700}}>▾</span>}
+                  </div>
                 </div>
               </div>
               
               {/* DỰ ÁN — nổi bật hơn với hình xe */}
-              <div onClick={()=>setProjPickerOpen(true)} style={{flex:1,minWidth:0,background:"#f0fdf4",border:"1.5px solid #10b981",borderRadius:12,padding:"12px",cursor:"pointer",position:"relative",overflow:"hidden",boxShadow:"0 2px 8px rgba(16,185,129,0.1)"}}>
-                <div style={{position:"relative",zIndex:2}}>
+              <div onClick={()=>setProjPickerOpen(true)} style={{flex:1,minWidth:0,background:"#f0fdf4",border:"1px solid #e5e7eb",borderLeft:"3px solid #10b981",borderRadius:12,padding:"12px",cursor:"pointer",position:"relative",overflow:"hidden",boxShadow:"0 2px 8px rgba(16,185,129,0.1)",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:38,height:38,borderRadius:"50%",background:"#d1fae5",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:18,position:"relative",zIndex:2}}>📁</div>
+                <div style={{minWidth:0,flex:1,position:"relative",zIndex:2}}>
                   <div style={{fontSize:9.5,fontWeight:900,color:"#10b981",letterSpacing:.7,textTransform:"uppercase"}}>Dự Án</div>
-                  <div style={{fontSize:15,fontWeight:900,color:"#059669",marginTop:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.2}}>
+                  <div style={{fontSize:14,fontWeight:900,color:"#059669",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.2}}>
                     {proj.ten} <span style={{fontWeight:700}}>▾</span>
                   </div>
                 </div>
                 {/* Hình xe buýt vô hình ở phía sau */}
-                <div style={{position:"absolute",right:-10,bottom:-15,fontSize:80,opacity:0.08,pointerEvents:"none",transform:"scaleX(-1)"}}>🚌</div>
+                <div style={{position:"absolute",right:-10,bottom:-15,fontSize:80,opacity:0.06,pointerEvents:"none",transform:"scaleX(-1)"}}>🚌</div>
               </div>
             </div>
 
@@ -6328,21 +6333,29 @@ Bạn có chắc chắn không?`;
               </div>
               {/* Nhãn + tên dự án */}
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:10.5,fontWeight:900,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.6,marginBottom:4}}>Tiến Độ Dự Án</div>
-                <div style={{fontSize:14.5,fontWeight:800,color:"#0f172a",lineHeight:1.35}}>
-                  {proj.ten} · {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
+                <div style={{fontSize:10.5,fontWeight:900,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.6,marginBottom:4,display:"flex",alignItems:"center",gap:4}}>
+                  <span style={{fontSize:11}}>📶</span>Tiến Độ Dự Án
+                </div>
+                <div style={{fontSize:14.5,fontWeight:800,color:"#0f172a",lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                  {proj.ten}
+                </div>
+                <div style={{fontSize:12.5,fontWeight:700,color:"#9ca3af",lineHeight:1.3,marginTop:2}}>
+                  {fmt(daGiao)}/{fmt(soXe)} xe cập nhật
                 </div>
               </div>
-              {/* Vòng tròn phần trăm (donut) */}
-              <div style={{position:"relative",width:58,height:58,flexShrink:0}}>
-                <svg width="58" height="58" viewBox="0 0 58 58" style={{transform:"rotate(-90deg)"}}>
-                  <circle cx="29" cy="29" r="24" fill="none" stroke="#e5f7ee" strokeWidth="5.5"/>
-                  <circle cx="29" cy="29" r="24" fill="none" stroke="#10b981" strokeWidth="5.5"
-                    strokeDasharray={`${2*Math.PI*24}`}
-                    strokeDashoffset={`${2*Math.PI*24*(1-pctGiao/100)}`}
-                    strokeLinecap="round"/>
-                </svg>
-                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13.5,fontWeight:900,color:"#16a34a"}}>{pctGiao}%</div>
+              {/* Vòng tròn phần trăm (donut) + nhãn Tiến Độ */}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}>
+                <div style={{position:"relative",width:58,height:58}}>
+                  <svg width="58" height="58" viewBox="0 0 58 58" style={{transform:"rotate(-90deg)"}}>
+                    <circle cx="29" cy="29" r="24" fill="none" stroke="#e5f7ee" strokeWidth="5.5"/>
+                    <circle cx="29" cy="29" r="24" fill="none" stroke="#10b981" strokeWidth="5.5"
+                      strokeDasharray={`${2*Math.PI*24}`}
+                      strokeDashoffset={`${2*Math.PI*24*(1-pctGiao/100)}`}
+                      strokeLinecap="round"/>
+                  </svg>
+                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13.5,fontWeight:900,color:"#16a34a"}}>{pctGiao}%</div>
+                </div>
+                <div style={{fontSize:8.5,fontWeight:900,color:"#9ca3af",letterSpacing:.5,textTransform:"uppercase"}}>Tiến Độ</div>
               </div>
             </div>
 
@@ -6367,16 +6380,16 @@ Bạn có chắc chắn không?`;
         const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥"};
         const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
         return(
-          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#fff",borderTop:"1px solid #e4e9f2",boxShadow:"0 -2px 12px rgba(15,23,42,0.06)",display:"flex",overflowX:"auto"}}>
+          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#2e1065",borderTop:"1px solid #1e0a47",boxShadow:"0 -2px 12px rgba(0,0,0,0.35)",display:"flex",overflowX:"auto"}}>
             {TABS_NOW.map(([k])=>{
               const active=tab===k;
               const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
               return(
-                <button key={k} onClick={()=>setTab(k)} style={{flex:"1 0 auto",minWidth:64,border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",
+                <button key={k} onClick={()=>setTab(k)} style={{flex:"1 0 auto",minWidth:64,border:"none",background:active?"rgba(255,255,255,0.14)":"none",cursor:"pointer",fontFamily:"inherit",
                   display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"10px 6px 8px",
-                  borderTop:active?`2.5px solid ${mauRole}`:"2.5px solid transparent"}}>
-                  <span style={{fontSize:19,filter:active?"none":"grayscale(65%)",opacity:active?1:.55}}>{TAB_ICON[k]||"•"}</span>
-                  <span style={{fontSize:10.5,fontWeight:800,color:active?mauRole:"#94a3b8",whiteSpace:"nowrap"}}>{label}</span>
+                  borderTop:active?"2.5px solid #ffffff":"2.5px solid transparent"}}>
+                  <span style={{fontSize:19,filter:"none",opacity:active?1:.6}}>{TAB_ICON[k]||"•"}</span>
+                  <span style={{fontSize:10.5,fontWeight:800,color:"#ffffff",opacity:active?1:.6,whiteSpace:"nowrap"}}>{label}</span>
                 </button>
               );
             })}
