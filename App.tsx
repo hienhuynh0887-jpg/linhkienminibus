@@ -2787,7 +2787,7 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReply
       <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:201,background:"#fff",borderRadius:"18px 18px 0 0",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 -6px 24px rgba(0,0,0,0.25)"}}>
         <div style={{padding:"16px 18px 10px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <span style={{fontSize:20}}>🔔</span>
-          <div style={{fontWeight:800,fontSize:15}}>Cảnh báo khẩn cấp</div>
+          <div style={{fontWeight:800,fontSize:13,letterSpacing:".03em",textTransform:"uppercase",background:"#dc2626",color:"#fff",borderRadius:999,padding:"5px 14px"}}>Cảnh báo khẩn cấp</div>
           <button onClick={onClose} style={{marginLeft:"auto",border:"none",background:"none",fontSize:18,color:"#9ca3af",cursor:"pointer"}}>✕</button>
         </div>
         <div style={{overflowY:"auto",padding:"12px 14px",flex:1}}>
