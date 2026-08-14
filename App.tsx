@@ -7255,84 +7255,86 @@ Bạn có chắc chắn không?`;
                 )}
               </div>
 
-              {/* ── 4 thẻ thống kê (giống ảnh 2) ── */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {/* ── 4 thẻ thống kê — 1 hàng, bo viền, đổ màu nổi bật, vừa màn hình mobile ── */}
+              <div style={{display:"flex",gap:6,marginBottom:14}}>
                 {[
-                  {l:"Tổng mã vật tư",v:bom.length,p:100,icon:"📦",bg:"#dbeafe",fg:"#2563eb"},
-                  {l:"Đã nhận",v:maDone,p:bom.length?Math.round(maDone/bom.length*10000)/100:0,icon:"✅",bg:"#dcfce7",fg:"#16a34a"},
-                  {l:"Giao thiếu",v:maGiaoThieu,p:bom.length?Math.round(maGiaoThieu/bom.length*10000)/100:0,icon:"🚚",bg:"#ffedd5",fg:"#ea580c"},
-                  {l:"Chưa nhận",v:maChuaSoan,p:bom.length?Math.round(maChuaSoan/bom.length*10000)/100:0,icon:"⏰",bg:"#fee2e2",fg:"#dc2626"},
+                  {l:"Tổng mã vật tư",v:bom.length,p:100,icon:"📦",bg:"#2563eb",bgLight:"#eff6ff",border:"#bfdbfe"},
+                  {l:"Đã nhận",v:maDone,p:bom.length?Math.round(maDone/bom.length*10000)/100:0,icon:"✅",bg:"#16a34a",bgLight:"#f0fdf4",border:"#bbf7d0"},
+                  {l:"Giao thiếu",v:maGiaoThieu,p:bom.length?Math.round(maGiaoThieu/bom.length*10000)/100:0,icon:"🚚",bg:"#ea580c",bgLight:"#fff7ed",border:"#fed7aa"},
+                  {l:"Chưa nhận",v:maChuaSoan,p:bom.length?Math.round(maChuaSoan/bom.length*10000)/100:0,icon:"⏰",bg:"#dc2626",bgLight:"#fef2f2",border:"#fecaca"},
                 ].map(s=>(
-                  <div key={s.l} style={{background:"#fff",borderRadius:14,padding:"16px 10px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-                    <div style={{width:44,height:44,borderRadius:"50%",background:s.bg,color:s.fg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,margin:"0 auto 8px"}}>{s.icon}</div>
-                    <div style={{fontSize:11,color:"#6b7280",fontWeight:600,marginBottom:2}}>{s.l}</div>
-                    <div style={{fontSize:22,fontWeight:900,color:"#1f2937"}}>{s.v}</div>
-                    <div style={{fontSize:10.5,color:"#9ca3af",marginTop:1}}>{s.p}%</div>
+                  <div key={s.l} style={{flex:"1 1 0",minWidth:0,background:s.bgLight,border:`1.5px solid ${s.border}`,borderRadius:12,padding:"9px 4px",textAlign:"center"}}>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:s.bg,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,margin:"0 auto 5px",boxShadow:`0 2px 6px ${s.bg}55`}}>{s.icon}</div>
+                    <div style={{fontSize:8.5,color:"#6b7280",fontWeight:700,marginBottom:2,lineHeight:1.15,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.l}</div>
+                    <div style={{fontSize:16,fontWeight:900,color:s.bg}}>{s.v}</div>
+                    <div style={{fontSize:8.5,color:"#9ca3af",marginTop:0}}>{s.p}%</div>
                   </div>
                 ))}
               </div>
 
-              {/* ── Donut Tiến độ nhận vật tư (giống ảnh 2) ── */}
-              <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-                <div style={{fontSize:11.5,fontWeight:900,color:"#374151",letterSpacing:.4,marginBottom:14,textTransform:"uppercase"}}>Tiến Độ Nhận Vật Tư</div>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-                  <div style={{position:"relative",width:160,height:160}}>
-                    <svg width="160" height="160" viewBox="0 0 160 160" style={{transform:"rotate(-90deg)"}}>
-                      <circle cx="80" cy="80" r="66" stroke="#eef0fb" strokeWidth="16" fill="none"/>
-                      <circle cx="80" cy="80" r="66" stroke="#4f46e5" strokeWidth="16" fill="none"
-                        strokeDasharray={`${2*Math.PI*66}`}
-                        strokeDashoffset={`${2*Math.PI*66*(1-pctT/100)}`}
-                        strokeLinecap="round"/>
-                    </svg>
-                    <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                      <div style={{fontSize:26,fontWeight:900,color:"#4338ca"}}>{pctT}%</div>
-                      <div style={{fontSize:10.5,color:"#9ca3af",fontWeight:700}}>Hoàn thành</div>
+              {/* ── Hàng: Tiến độ nhận vật tư (donut) + Biểu đồ tiến độ theo phiếu — chia đôi đều nhau, tối ưu cho màn hình mobile hẹp ── */}
+              <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"stretch"}}>
+                {/* ── Donut Tiến độ nhận vật tư (giống ảnh 2) ── */}
+                <div style={{flex:"1 1 0",minWidth:0,background:"#fff",borderRadius:12,padding:"10px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                  <div style={{fontSize:9.5,fontWeight:900,color:"#374151",letterSpacing:.2,marginBottom:10,textTransform:"uppercase",lineHeight:1.25}}>Tiến Độ Nhận Vật Tư</div>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:10}}>
+                    <div style={{position:"relative",width:84,height:84}}>
+                      <svg width="84" height="84" viewBox="0 0 160 160" style={{transform:"rotate(-90deg)"}}>
+                        <circle cx="80" cy="80" r="66" stroke="#eef0fb" strokeWidth="18" fill="none"/>
+                        <circle cx="80" cy="80" r="66" stroke="#4f46e5" strokeWidth="18" fill="none"
+                          strokeDasharray={`${2*Math.PI*66}`}
+                          strokeDashoffset={`${2*Math.PI*66*(1-pctT/100)}`}
+                          strokeLinecap="round"/>
+                      </svg>
+                      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                        <div style={{fontSize:14,fontWeight:900,color:"#4338ca"}}>{pctT}%</div>
+                      </div>
                     </div>
                   </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                    {[["Đã nhận","#22c55e",maDone],["Giao thiếu","#f59e0b",maGiaoThieu],["Chưa nhận","#ef4444",maChuaSoan]].map(([l,c,v])=>(
+                      <div key={l} style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:9.5,gap:4}}>
+                        <div style={{display:"flex",alignItems:"center",gap:4,minWidth:0}}><span style={{width:6,height:6,borderRadius:"50%",background:c,flexShrink:0}}/><span style={{color:"#374151",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l}</span></div>
+                        <span style={{fontWeight:800,color:"#1f2937",flexShrink:0}}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{marginTop:10,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"6px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                    <span style={{fontSize:8.5,color:"#15803d",fontWeight:700,textAlign:"center",lineHeight:1.2}}>✅ Tích lũy</span>
+                    <span style={{fontSize:13,fontWeight:900,color:"#15803d"}}>{pctT}%</span>
+                  </div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {[["Đã nhận","#22c55e",maDone],["Giao thiếu","#f59e0b",maGiaoThieu],["Chưa nhận","#ef4444",maChuaSoan]].map(([l,c,v])=>(
-                    <div key={l} style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12.5}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:9,height:9,borderRadius:"50%",background:c,flexShrink:0}}/><span style={{color:"#374151",fontWeight:600}}>{l}</span></div>
-                      <span style={{fontWeight:800,color:"#1f2937"}}>{v} mã</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{marginTop:14,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:"9px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontSize:12,color:"#15803d",fontWeight:700,display:"flex",alignItems:"center",gap:6}}>✅ {t("progTienDoTichLuy")}</span>
-                  <span style={{fontSize:14,fontWeight:900,color:"#15803d"}}>{pctT}%</span>
-                </div>
-              </div>
 
-              {/* ── Biểu đồ tiến độ theo phiếu (giống ảnh 2, dùng dữ liệu phiếu thực tế) ── */}
-              {phList.filter(p=>p.ngay).length>1&&(()=>{
-                const sorted=[...phList].filter(p=>p.ngay).sort((a,b)=>new Date(a.ngay)-new Date(b.ngay));
-                const n=sorted.length;
-                const w=280,h=140,padL=26,padB=18,padT=10,padR=8;
-                const xScale=i=>padL+(n<=1?0:(i/(n-1))*(w-padL-padR));
-                const yScale=v=>padT+(1-v/100)*(h-padT-padB);
-                const pts=sorted.map((p,i)=>({x:i,y:Math.round((i+1)/n*100)}));
-                const path=pts.map((p,i)=>`${i===0?"M":"L"} ${xScale(p.x).toFixed(1)} ${yScale(p.y).toFixed(1)}`).join(" ");
-                const last=pts[pts.length-1];
-                return(
-                  <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-                    <div style={{fontSize:11.5,fontWeight:900,color:"#374151",letterSpacing:.4,marginBottom:10,textTransform:"uppercase"}}>Biểu Đồ Tiến Độ Theo Phiếu</div>
-                    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{overflow:"visible"}}>
-                      {[0,25,50,75,100].map(g=>(
-                        <g key={g}>
-                          <line x1={padL} x2={w-padR} y1={yScale(g)} y2={yScale(g)} stroke="#f1f5f9" strokeWidth="1"/>
-                          <text x={0} y={yScale(g)+3} fontSize="8" fill="#9ca3af">{g}%</text>
-                        </g>
-                      ))}
-                      <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      {last&&<circle cx={xScale(last.x)} cy={yScale(last.y)} r="3.5" fill="#4f46e5"/>}
-                    </svg>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#9ca3af",marginTop:2}}>
-                      <span>{sorted[0]?.ngay}</span><span>{sorted[n-1]?.ngay}</span>
+                {/* ── Biểu đồ tiến độ theo phiếu (giống ảnh 2, dùng dữ liệu phiếu thực tế) ── */}
+                {phList.filter(p=>p.ngay).length>1&&(()=>{
+                  const sorted=[...phList].filter(p=>p.ngay).sort((a,b)=>new Date(a.ngay)-new Date(b.ngay));
+                  const n=sorted.length;
+                  const w=200,h=170,padL=22,padB=16,padT=10,padR=6;
+                  const xScale=i=>padL+(n<=1?0:(i/(n-1))*(w-padL-padR));
+                  const yScale=v=>padT+(1-v/100)*(h-padT-padB);
+                  const pts=sorted.map((p,i)=>({x:i,y:Math.round((i+1)/n*100)}));
+                  const path=pts.map((p,i)=>`${i===0?"M":"L"} ${xScale(p.x).toFixed(1)} ${yScale(p.y).toFixed(1)}`).join(" ");
+                  const last=pts[pts.length-1];
+                  return(
+                    <div style={{flex:"1 1 0",minWidth:0,background:"#fff",borderRadius:12,padding:"10px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                      <div style={{fontSize:9.5,fontWeight:900,color:"#374151",letterSpacing:.2,marginBottom:6,textTransform:"uppercase",lineHeight:1.25}}>Biểu Đồ Tiến Độ</div>
+                      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{overflow:"visible"}}>
+                        {[0,25,50,75,100].map(g=>(
+                          <g key={g}>
+                            <line x1={padL} x2={w-padR} y1={yScale(g)} y2={yScale(g)} stroke="#f1f5f9" strokeWidth="1"/>
+                            <text x={0} y={yScale(g)+3} fontSize="7.5" fill="#9ca3af">{g}%</text>
+                          </g>
+                        ))}
+                        <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        {last&&<circle cx={xScale(last.x)} cy={yScale(last.y)} r="3.5" fill="#4f46e5"/>}
+                      </svg>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:8,color:"#9ca3af",marginTop:2}}>
+                        <span>{sorted[0]?.ngay}</span><span>{sorted[n-1]?.ngay}</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
+              </div>
 
               {/* ── Chi tiết theo trạng thái (giống ảnh 2) ── */}
               <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
