@@ -737,6 +737,50 @@ const KL_LOGIN_CSS = `
   .kl-select-login .lines{grid-template-columns:1fr; max-width:320px;}
 }
 
+/* ---------- TOPBAR (logo + tên hệ thống + đăng xuất) — luôn 1 hàng trên mobile ---------- */
+.kl-topbar{padding:22px 6vw 14px; display:flex; align-items:stretch; gap:14px; flex-wrap:wrap;}
+.kl-topbar-brand{display:flex; align-items:stretch; gap:14px; cursor:pointer; flex:1 1 auto; min-width:0;}
+.kl-topbar-logo{background:#0d1318; border:1px solid #232f3b; border-radius:14px; padding:10px; display:flex; align-items:center; justify-content:center; width:78px; height:78px; flex-shrink:0;}
+.kl-topbar-logo img{width:100%; height:100%; object-fit:contain;}
+.kl-topbar-title{position:relative; flex:1 1 auto; min-width:200px; max-width:420px; background:linear-gradient(180deg,#0b0f1a 0%,#161c28 100%); border:2px solid #dc2626; clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px); padding:12px 22px; display:flex; flex-direction:column; justify-content:center; gap:3px; box-shadow:0 0 26px rgba(220,38,38,0.18);}
+.kl-topbar-eyebrow{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.28em; color:#9ca3af; text-transform:uppercase; text-align:center; white-space:nowrap;}
+.kl-topbar-line1{font-family:'Oswald',sans-serif; font-weight:800; font-size:21px; letter-spacing:.02em; color:#f5f9fb; text-align:center; line-height:1.08; text-transform:uppercase;}
+.kl-topbar-line2{font-family:'Oswald',sans-serif; font-weight:900; font-size:28px; letter-spacing:.02em; color:#ef4444; text-align:center; line-height:1.08; text-transform:uppercase; text-shadow:0 0 18px rgba(239,68,68,.5);}
+.kl-topbar-logout{background:linear-gradient(135deg,#7f1d1d,#dc2626); border:none; color:#fff; cursor:pointer; font-family:inherit; clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%); padding:14px 30px; min-width:132px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; box-shadow:0 8px 20px -8px rgba(220,38,38,0.6);}
+.kl-topbar-logout .kl-logout-main{font-weight:800; font-size:13px; white-space:nowrap;}
+.kl-topbar-logout .kl-logout-sub{font-weight:500; font-size:10px; opacity:.8; white-space:nowrap;}
+@media (max-width:640px){
+  .kl-topbar{flex-wrap:nowrap; align-items:center; gap:6px; padding:14px 4vw 10px;}
+  .kl-topbar-brand{gap:6px;}
+  .kl-topbar-logo{width:42px; height:42px; padding:4px; border-radius:9px;}
+  .kl-topbar-title{min-width:0; padding:5px 8px; gap:0; border-width:1.5px; border-radius:8px;}
+  .kl-topbar-eyebrow{font-size:5.5px; letter-spacing:.1em;}
+  .kl-topbar-line1{font-size:9px;}
+  .kl-topbar-line2{font-size:13px;}
+  .kl-topbar-logout{padding:7px 8px; min-width:0; gap:0; border-radius:6px; flex-shrink:0;}
+  .kl-topbar-logout svg{width:14px !important; height:14px !important;}
+  .kl-topbar-logout .kl-logout-main{font-size:8.5px;}
+  .kl-topbar-logout .kl-logout-sub{display:none;}
+}
+
+/* ---------- 4 ô tính năng (Bảo mật / Hiệu quả / Chính xác / Kết nối) — luôn 1 hàng trên mobile ---------- */
+.kl-feature-grid{margin:18px 6vw 0; display:flex; gap:12px; flex-wrap:wrap;}
+.kl-feature-card{flex:1 1 130px; min-width:130px; background:linear-gradient(180deg,#141b24 0%,#0f151d 100%); border:1px solid #232f3b; border-radius:14px; padding:18px 10px 14px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;}
+.kl-feature-icon{width:64px; height:64px; clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.kl-feature-name{color:#f1f5f9; font-weight:800; font-size:13.5px;}
+.kl-feature-desc{color:#94a3b8; font-size:10.5px;}
+.kl-feature-bar{width:26px; height:2px; border-radius:2px; margin-top:2px;}
+@media (max-width:640px){
+  .kl-feature-grid{flex-wrap:nowrap; gap:5px; margin:12px 4vw 0;}
+  .kl-feature-card{min-width:0; padding:8px 3px 7px; gap:3px; border-radius:9px;}
+  .kl-feature-icon{width:34px; height:34px;}
+  .kl-feature-icon svg{width:15px !important; height:15px !important;}
+  .kl-feature-name{font-size:8.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
+  .kl-feature-desc{font-size:6.8px; line-height:1.15;}
+  .kl-feature-bar{display:none;}
+  .kl-feature-chevron{display:none;}
+}
+
 /* ---------- GATE LOGIN (tài khoản / mật khẩu) ---------- */
 .kl-select-login .gate-grid{
   width:100%;
@@ -1531,35 +1575,23 @@ function LoginScreen({onLogin, resume, onLogout}){
 
       {/* ══════════════════ HEADER — thiết kế lại theo Ảnh 1 (hexagon/chamfered, tông đỏ) ══════════════════
           Logic xử lý giữ NGUYÊN 100%: backToSelect, đăng xuất (setAuthedUser/setStep/onLogout). */}
-      <header style={{border:"none",padding:"22px 6vw 14px",display:"flex",alignItems:"stretch",gap:14,flexWrap:"wrap"}}>
-        <div onClick={backToSelect} title="Về trang chọn dòng xe" style={{display:"flex",alignItems:"stretch",gap:14,cursor:"pointer",flex:"1 1 auto",minWidth:0}}>
-          <div style={{background:"#0d1318",border:"1px solid #232f3b",borderRadius:14,padding:10,display:"flex",alignItems:"center",justifyContent:"center",width:78,height:78,flexShrink:0}}>
-            <img src={KL_LOGO_B64} alt="Kim Long Motor" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
+      <header className="kl-topbar" style={{border:"none"}}>
+        <div className="kl-topbar-brand" onClick={backToSelect} title="Về trang chọn dòng xe">
+          <div className="kl-topbar-logo">
+            <img src={KL_LOGO_B64} alt="Kim Long Motor"/>
           </div>
-          <div style={{
-            position:"relative",flex:"1 1 auto",minWidth:200,maxWidth:420,
-            background:"linear-gradient(180deg,#0b0f1a 0%,#161c28 100%)",
-            border:"2px solid #dc2626",
-            clipPath:"polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px)",
-            padding:"12px 22px",display:"flex",flexDirection:"column",justifyContent:"center",gap:3,boxShadow:"0 0 26px rgba(220,38,38,0.18)"
-          }}>
-            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:".28em",color:"#9ca3af",textTransform:"uppercase",textAlign:"center"}}>— Production System —</div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:21,letterSpacing:".02em",color:"#f5f9fb",textAlign:"center",lineHeight:1.08,textTransform:"uppercase"}}>Kim Long</div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:28,letterSpacing:".02em",color:"#ef4444",textAlign:"center",lineHeight:1.08,textTransform:"uppercase",textShadow:"0 0 18px rgba(239,68,68,.5)"}}>Motor</div>
+          <div className="kl-topbar-title">
+            <div className="kl-topbar-eyebrow">— Production System —</div>
+            <div className="kl-topbar-line1">Kim Long</div>
+            <div className="kl-topbar-line2">Motor</div>
           </div>
         </div>
 
         {/* Nút Đăng xuất — hexagon đỏ, GIỮ NGUYÊN handler cũ */}
-        <button onClick={()=>{setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất"
-          style={{
-            background:"linear-gradient(135deg,#7f1d1d,#dc2626)",border:"none",color:"#fff",cursor:"pointer",fontFamily:"inherit",
-            clipPath:"polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%)",
-            padding:"14px 30px",minWidth:132,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,
-            boxShadow:"0 8px 20px -8px rgba(220,38,38,0.6)"
-          }}>
+        <button className="kl-topbar-logout" onClick={()=>{setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất">
           <KlIconPower size={19} color="#fff"/>
-          <span style={{fontWeight:800,fontSize:13}}>Đăng xuất</span>
-          <span style={{fontWeight:500,fontSize:10,opacity:.8}}>Thoát khỏi hệ thống</span>
+          <span className="kl-logout-main">Đăng xuất</span>
+          <span className="kl-logout-sub">Thoát khỏi hệ thống</span>
         </button>
       </header>
 
@@ -1601,26 +1633,23 @@ function LoginScreen({onLogin, resume, onLogout}){
       </div>
 
       {/* ══════════════════ 4 icon: Bảo mật / Hiệu quả / Chính xác / Kết nối — thuần trang trí, giống Ảnh 1 ══════════════════ */}
-      <div style={{margin:"18px 6vw 0",display:"flex",gap:12,flexWrap:"wrap"}}>
+      <div className="kl-feature-grid">
         {[
           {ten:"Bảo mật",mo:"An toàn dữ liệu",Icon:KlIconShieldCheck,mau:"#dc2626"},
           {ten:"Hiệu quả",mo:"Tối ưu quy trình",Icon:KlIconGauge,mau:"#2f8fff"},
           {ten:"Chính xác",mo:"Dữ liệu tin cậy",Icon:KlIconTrendingUp,mau:"#a855f7"},
           {ten:"Kết nối",mo:"Hệ thống đồng bộ",Icon:KlIconGear,mau:"#f59e0b"},
         ].map(f=>(
-          <div key={f.ten} style={{flex:"1 1 130px",minWidth:130,background:"linear-gradient(180deg,#141b24 0%,#0f151d 100%)",border:"1px solid #232f3b",borderRadius:14,padding:"18px 10px 14px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-            <div style={{
-              width:64,height:64,
-              clipPath:"polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)",
+          <div key={f.ten} className="kl-feature-card">
+            <div className="kl-feature-icon" style={{
               background:`radial-gradient(circle at 50% 35%, ${f.mau}33, transparent 70%)`,
               border:`1.5px solid ${f.mau}`,
-              display:"flex",alignItems:"center",justifyContent:"center",
               boxShadow:`0 0 18px ${f.mau}55`
             }}><f.Icon size={27} color="#f5f9fb" strokeWidth={1.7}/></div>
-            <div style={{color:"#f1f5f9",fontWeight:800,fontSize:13.5}}>{f.ten}</div>
-            <div style={{color:"#94a3b8",fontSize:10.5}}>{f.mo}</div>
-            <div style={{width:26,height:2,background:f.mau,borderRadius:2,marginTop:2}}/>
-            <KlIconChevronRight size={14} color={f.mau}/>
+            <div className="kl-feature-name">{f.ten}</div>
+            <div className="kl-feature-desc">{f.mo}</div>
+            <div className="kl-feature-bar" style={{background:f.mau}}/>
+            <span className="kl-feature-chevron"><KlIconChevronRight size={14} color={f.mau}/></span>
           </div>
         ))}
       </div>
