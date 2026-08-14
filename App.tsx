@@ -1479,7 +1479,8 @@ function LoginScreen({onLogin, resume, onLogout}){
           trang trong luồng đăng nhập (Chọn dòng xe / Chọn trạng thái dự án), gộp cảnh báo
           của CẢ 3 dòng xe cho đơn vị của tài khoản đang đăng nhập, không phụ thuộc dòng xe
           đang mở hay đã vào Hệ thống chính hay chưa. */}
-      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,padding:"10px 6vw 0"}}>
+      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,padding:"10px 6vw 0",flexWrap:"wrap"}}>
+        {authedUser&&<span style={{color:"#fff",fontSize:12.5,fontWeight:700,opacity:.9,whiteSpace:"nowrap"}}>Xin chào: <span style={{color:"#a3e635"}}>{authedUser.ten||authedUser.id}</span></span>}
         {authedUser&&<GlobalCanhBaoBell donVi={authedUser.don_vi} ten={authedUser.ten}/>}
         <button onClick={()=>{setShowCpw2(true);setCpwForm2({cur:"",next:"",confirm:""});setCpwShow2({cur:false,next:false,confirm:false});setCpwErr2("");setCpwOk2("");}}
           title="Đổi mật khẩu"
