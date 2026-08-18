@@ -1192,11 +1192,15 @@ const baseRoleOfDonViName = (dv) => {
 // vị" để bớt/thêm cho đúng nhiệm vụ thực tế đã phân công).
 const TAB_QUYEN_DEFAULT = {
   "Nhà máy THCK": TABS_THCK_KEYS,
-  // ✅ "XƯỞNG HÀN" (khối chỉ theo dõi — xh01/xh02/xh03, role "khth") CHỈ XEM: bỏ Soạn Hàng /
-  // Nhận Hàng (Duyệt) / BOM Mẫu / Người dùng — giống Phòng KT, Ban CN, Ban LĐNM, Phòng KH-TH.
+  // ✅ "XƯỞNG HÀN" (xh01/xh02/xh03, role "khth" — CHỈ XEM, không thao tác) được xem TẤT CẢ
+  // các tab nghiệp vụ (📦 Vật tư/📋 Soạn Hàng/✅ Nhận Hàng/📄 Phiếu GN/📈 Báo Cáo/🗂️ BOM Mẫu),
+  // CHỈ ẩn "👥 Người dùng" — riêng cho đơn vị này (khác với Phòng KT, Ban CN, Ban LĐNM,
+  // Phòng KH-TH vẫn giữ nguyên TABS_KHTH_KEYS — chỉ 3 tab xem). Vì role vẫn là "khth" nên
+  // các nút thao tác (thêm vật tư, import...) bên trong từng tab vẫn ẩn theo isKHTH — đây là
+  // XEM ĐƯỢC MỌI TAB để theo dõi, không phải được thao tác.
   // (Các đơn vị chuyên trách thật sự duyệt/nhận hàng theo dòng xe là "XH_MINIBUS",
   // "XH_CITYBUS", "XH_12" bên dưới — vẫn giữ nguyên đầy đủ chức năng.)
-  "XƯỞNG HÀN":    TABS_KHTH_KEYS,
+  "XƯỞNG HÀN":    TABS_XUONGHAN_KEYS,
   "KHO VẬT TƯ":   TABS_KHO_KEYS,
   "Phòng KH-TH":  TABS_KHTH_KEYS,
   "KHO CITYBUS":  TABS_KHO_KEYS,
@@ -1646,6 +1650,30 @@ function LoginScreen({onLogin, resume, onLogout}){
             </span>
             <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
               Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Lối tắt "Truy cập hệ thống chính" cho nhóm "theo dõi tổng thể" (role "khth" — Xưởng
+          Hàn, Ban CN, Phòng KT, Ban LĐNM, Phòng KH-TH, và mọi đơn vị khth được cấp nhiều hơn 1
+          dòng xe). Trước đây các đơn vị này CHỈ vào được màn "Tổng Quan" độc lập (chỉ xem số
+          liệu, không có tab) sau khi chọn dòng xe + trạng thái dự án — không bao giờ chạm tới
+          hệ thống chính có đủ tab (📦 Vật tư / 📄 Phiếu GN / 📈 Báo Cáo). Nay cho vào thẳng
+          hệ thống chính ở tab "📦 Vật tư" (tab đầu tiên mà khth được xem), dùng dòng xe đang
+          được chọn trên màn hình (activeLine), mặc định "minibus" nếu chưa chọn — vẫn có thể
+          đổi dòng xe sau khi đã vào hệ thống chính (không mất chức năng chọn dòng xe). */}
+      {authedUser?.role==="khth"&&authedUser?.id!=="xh04"&&getAllowedLines(authedUser).length>1&&(
+        <div style={{margin:"18px 3vw 0",paddingTop:18,borderTop:"1px dashed rgba(255,255,255,0.16)",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+          <div onClick={()=>{const l=activeLine||"minibus";setActiveLine(l);onLogin(authedUser,userList,{openNewProject:false,line:l,directTab:"ds"});}}
+            style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,width:"100%",
+              background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
+              borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center",boxSizing:"border-box"}}>
+            <span style={{color:"#f59e0b",fontWeight:800,fontSize:14}}>
+              ⚡ Truy cập hệ thống chính →
+            </span>
+            <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
+              Xem Vật tư / Phiếu GN / Báo cáo của dòng xe đang chọn bên dưới
             </span>
           </div>
         </div>
