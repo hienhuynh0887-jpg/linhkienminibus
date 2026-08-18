@@ -1192,7 +1192,11 @@ const baseRoleOfDonViName = (dv) => {
 // vị" để bớt/thêm cho đúng nhiệm vụ thực tế đã phân công).
 const TAB_QUYEN_DEFAULT = {
   "Nhà máy THCK": TABS_THCK_KEYS,
-  "XƯỞNG HÀN":    TABS_XUONGHAN_KEYS,
+  // ✅ "XƯỞNG HÀN" (khối chỉ theo dõi — xh01/xh02/xh03, role "khth") CHỈ XEM: bỏ Soạn Hàng /
+  // Nhận Hàng (Duyệt) / BOM Mẫu / Người dùng — giống Phòng KT, Ban CN, Ban LĐNM, Phòng KH-TH.
+  // (Các đơn vị chuyên trách thật sự duyệt/nhận hàng theo dòng xe là "XH_MINIBUS",
+  // "XH_CITYBUS", "XH_12" bên dưới — vẫn giữ nguyên đầy đủ chức năng.)
+  "XƯỞNG HÀN":    TABS_KHTH_KEYS,
   "KHO VẬT TƯ":   TABS_KHO_KEYS,
   "Phòng KH-TH":  TABS_KHTH_KEYS,
   "KHO CITYBUS":  TABS_KHO_KEYS,
@@ -1626,6 +1630,27 @@ function LoginScreen({onLogin, resume, onLogout}){
         ))}
       </div>
 
+      {/* ✅ Trường hợp ĐẶC BIỆT riêng cho tài khoản "xh04" — cho vào thẳng "Hệ thống chính" ở tab
+          "✅ Nhận Hàng" (duyệt), bỏ qua bước chọn Trạng thái dự án, y hệt quyền của 1 đơn vị
+          chuyên trách. Không áp dụng cho bất kỳ tài khoản nào khác.
+          ✅ ĐẶT Ở PHẦN DÙNG CHUNG (cùng cấp với header/lời chào/4 icon) — LUÔN HIỂN THỊ xuyên
+          suốt mọi bước (Chọn dòng xe / Chọn trạng thái dự án), không biến mất khi điều hướng. */}
+      {authedUser?.id==="xh04"&&(
+        <div style={{margin:"18px 3vw 0",paddingTop:18,borderTop:"1px dashed rgba(255,255,255,0.16)",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+          <div onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
+            style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,width:"100%",
+              background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
+              borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center",boxSizing:"border-box"}}>
+            <span style={{color:"#f59e0b",fontWeight:800,fontSize:14}}>
+              ⚡ Truy cập hệ thống chính →
+            </span>
+            <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
+              Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan
+            </span>
+          </div>
+        </div>
+      )}
+
       {showCpw2&&authedUser&&(
         <div onClick={e=>{if(e.target===e.currentTarget){setShowCpw2(false);}}}
           style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:16}}>
@@ -1704,26 +1729,6 @@ function LoginScreen({onLogin, resume, onLogout}){
                   );
                 })}
               </div>
-              {/* ✅ Trường hợp ĐẶC BIỆT riêng cho tài khoản "xh04" — cho vào thẳng "Hệ thống
-                  chính" ở tab "✅ Nhận Hàng" (duyệt), bỏ qua bước chọn Trạng thái dự án, y hệt
-                  quyền của 1 đơn vị chuyên trách. Không áp dụng cho bất kỳ tài khoản nào khác.
-                  Đặt NGAY DƯỚI CÙNG của 3 thẻ dòng xe (12M/City Bus/Mini Bus), gộp chung 1 khối
-                  bo tròn nền đen nhạt, toàn bộ chữ trắng. */}
-              {authedUser?.id==="xh04"&&(
-                <div style={{marginTop:40,paddingTop:26,borderTop:"1px dashed rgba(255,255,255,0.16)",width:"100%",maxWidth:520,display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-                  <div onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
-                    style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,
-                      background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
-                      borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center"}}>
-                    <span style={{color:"#f59e0b",fontWeight:800,fontSize:14}}>
-                      ⚡ Truy cập hệ thống chính →
-                    </span>
-                    <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
-                      Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           </main>
           {err&&(
