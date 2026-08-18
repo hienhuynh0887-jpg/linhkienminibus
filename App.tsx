@@ -1530,22 +1530,23 @@ function LoginScreen({onLogin, resume, onLogout}){
       <style>{KL_LOGIN_CSS}</style>
 
       {/* ══════════════════ HEADER — thiết kế lại theo Ảnh 1 (hexagon/chamfered, tông đỏ) ══════════════════
-          Logic xử lý giữ NGUYÊN 100%: backToSelect, đăng xuất (setAuthedUser/setStep/onLogout). */}
-      <header style={{border:"none",padding:"22px 6vw 14px",display:"flex",alignItems:"stretch",gap:14,flexWrap:"wrap"}}>
-        <div onClick={backToSelect} title="Về trang chọn dòng xe" style={{display:"flex",alignItems:"stretch",gap:14,cursor:"pointer",flex:"1 1 auto",minWidth:0}}>
-          <div style={{background:"#0d1318",border:"1px solid #232f3b",borderRadius:14,padding:10,display:"flex",alignItems:"center",justifyContent:"center",width:78,height:78,flexShrink:0}}>
+          Logic xử lý giữ NGUYÊN 100%: backToSelect, đăng xuất (setAuthedUser/setStep/onLogout).
+          ✅ Bắt buộc 1 HÀNG DUY NHẤT trên mobile: flexWrap "nowrap" + thu nhỏ kích thước từng khối. */}
+      <header style={{border:"none",padding:"16px 3vw 12px",display:"flex",alignItems:"stretch",gap:6,flexWrap:"nowrap"}}>
+        <div onClick={backToSelect} title="Về trang chọn dòng xe" style={{display:"flex",alignItems:"stretch",gap:6,cursor:"pointer",flex:"1 1 auto",minWidth:0}}>
+          <div style={{background:"#0d1318",border:"1px solid #232f3b",borderRadius:10,padding:5,display:"flex",alignItems:"center",justifyContent:"center",width:46,height:46,flexShrink:0}}>
             <img src={KL_LOGO_B64} alt="Kim Long Motor" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
           </div>
           <div style={{
-            position:"relative",flex:"1 1 auto",minWidth:200,maxWidth:420,
+            position:"relative",flex:"1 1 auto",minWidth:0,
             background:"linear-gradient(180deg,#0b0f1a 0%,#161c28 100%)",
             border:"2px solid #dc2626",
-            clipPath:"polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px)",
-            padding:"12px 22px",display:"flex",flexDirection:"column",justifyContent:"center",gap:3,boxShadow:"0 0 26px rgba(220,38,38,0.18)"
+            clipPath:"polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)",
+            padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"center",gap:1,boxShadow:"0 0 16px rgba(220,38,38,0.18)"
           }}>
-            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:".28em",color:"#9ca3af",textTransform:"uppercase",textAlign:"center"}}>— Production System —</div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:21,letterSpacing:".02em",color:"#f5f9fb",textAlign:"center",lineHeight:1.08,textTransform:"uppercase"}}>Kim Long</div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:28,letterSpacing:".02em",color:"#ef4444",textAlign:"center",lineHeight:1.08,textTransform:"uppercase",textShadow:"0 0 18px rgba(239,68,68,.5)"}}>Motor</div>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:6.5,letterSpacing:".18em",color:"#9ca3af",textTransform:"uppercase",textAlign:"center",whiteSpace:"nowrap"}}>— PRODUCTION —</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:11.5,letterSpacing:".01em",color:"#f5f9fb",textAlign:"center",lineHeight:1.05,textTransform:"uppercase",whiteSpace:"nowrap"}}>Kim Long</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:15,letterSpacing:".01em",color:"#ef4444",textAlign:"center",lineHeight:1.05,textTransform:"uppercase",textShadow:"0 0 12px rgba(239,68,68,.5)"}}>Motor</div>
           </div>
         </div>
 
@@ -1553,13 +1554,12 @@ function LoginScreen({onLogin, resume, onLogout}){
         <button onClick={()=>{setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất"
           style={{
             background:"linear-gradient(135deg,#7f1d1d,#dc2626)",border:"none",color:"#fff",cursor:"pointer",fontFamily:"inherit",
-            clipPath:"polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%)",
-            padding:"14px 30px",minWidth:132,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,
-            boxShadow:"0 8px 20px -8px rgba(220,38,38,0.6)"
+            clipPath:"polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)",
+            padding:"8px 12px",minWidth:66,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1,
+            boxShadow:"0 6px 14px -6px rgba(220,38,38,0.6)"
           }}>
-          <KlIconPower size={19} color="#fff"/>
-          <span style={{fontWeight:800,fontSize:13}}>Đăng xuất</span>
-          <span style={{fontWeight:500,fontSize:10,opacity:.8}}>Thoát khỏi hệ thống</span>
+          <KlIconPower size={14} color="#fff"/>
+          <span style={{fontWeight:800,fontSize:9.5,whiteSpace:"nowrap"}}>Đăng xuất</span>
         </button>
       </header>
 
@@ -1600,27 +1600,28 @@ function LoginScreen({onLogin, resume, onLogout}){
         </div>
       </div>
 
-      {/* ══════════════════ 4 icon: Bảo mật / Hiệu quả / Chính xác / Kết nối — thuần trang trí, giống Ảnh 1 ══════════════════ */}
-      <div style={{margin:"18px 6vw 0",display:"flex",gap:12,flexWrap:"wrap"}}>
+      {/* ══════════════════ 4 icon: Bảo mật / Hiệu quả / Chính xác / Kết nối — thuần trang trí, giống Ảnh 1 ══════════════════
+          ✅ Bắt buộc 1 HÀNG DUY NHẤT trên mobile: flexWrap "nowrap" + thu nhỏ kích thước từng thẻ. */}
+      <div style={{margin:"14px 3vw 0",display:"flex",gap:6,flexWrap:"nowrap"}}>
         {[
           {ten:"Bảo mật",mo:"An toàn dữ liệu",Icon:KlIconShieldCheck,mau:"#dc2626"},
           {ten:"Hiệu quả",mo:"Tối ưu quy trình",Icon:KlIconGauge,mau:"#2f8fff"},
           {ten:"Chính xác",mo:"Dữ liệu tin cậy",Icon:KlIconTrendingUp,mau:"#a855f7"},
           {ten:"Kết nối",mo:"Hệ thống đồng bộ",Icon:KlIconGear,mau:"#f59e0b"},
         ].map(f=>(
-          <div key={f.ten} style={{flex:"1 1 130px",minWidth:130,background:"linear-gradient(180deg,#141b24 0%,#0f151d 100%)",border:"1px solid #232f3b",borderRadius:14,padding:"18px 10px 14px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+          <div key={f.ten} style={{flex:"1 1 0",minWidth:0,background:"linear-gradient(180deg,#141b24 0%,#0f151d 100%)",border:"1px solid #232f3b",borderRadius:10,padding:"10px 4px 8px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
             <div style={{
-              width:64,height:64,
+              width:38,height:38,
               clipPath:"polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)",
               background:`radial-gradient(circle at 50% 35%, ${f.mau}33, transparent 70%)`,
               border:`1.5px solid ${f.mau}`,
               display:"flex",alignItems:"center",justifyContent:"center",
-              boxShadow:`0 0 18px ${f.mau}55`
-            }}><f.Icon size={27} color="#f5f9fb" strokeWidth={1.7}/></div>
-            <div style={{color:"#f1f5f9",fontWeight:800,fontSize:13.5}}>{f.ten}</div>
-            <div style={{color:"#94a3b8",fontSize:10.5}}>{f.mo}</div>
-            <div style={{width:26,height:2,background:f.mau,borderRadius:2,marginTop:2}}/>
-            <KlIconChevronRight size={14} color={f.mau}/>
+              boxShadow:`0 0 10px ${f.mau}55`
+            }}><f.Icon size={16} color="#f5f9fb" strokeWidth={1.7}/></div>
+            <div style={{color:"#f1f5f9",fontWeight:800,fontSize:9.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%"}}>{f.ten}</div>
+            <div style={{color:"#94a3b8",fontSize:7.5,lineHeight:1.2}}>{f.mo}</div>
+            <div style={{width:16,height:2,background:f.mau,borderRadius:2,marginTop:1}}/>
+            <KlIconChevronRight size={11} color={f.mau}/>
           </div>
         ))}
       </div>
@@ -1710,16 +1711,15 @@ function LoginScreen({onLogin, resume, onLogout}){
                   bo tròn nền đen nhạt, toàn bộ chữ trắng. */}
               {authedUser?.id==="xh04"&&(
                 <div style={{marginTop:40,paddingTop:26,borderTop:"1px dashed rgba(255,255,255,0.16)",width:"100%",maxWidth:520,display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-                  <span style={{fontSize:10,letterSpacing:".18em",color:"#6b7280",fontWeight:800,textTransform:"uppercase"}}>Hoặc</span>
                   <div onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
                     style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,
                       background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
                       borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center"}}>
+                    <span style={{color:"#f59e0b",fontWeight:800,fontSize:14}}>
+                      ⚡ Truy cập hệ thống chính →
+                    </span>
                     <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
                       Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan
-                    </span>
-                    <span style={{color:"#fff",fontWeight:800,fontSize:13.5}}>
-                      ⚡ Truy cập hệ thống chính →
                     </span>
                   </div>
                 </div>
