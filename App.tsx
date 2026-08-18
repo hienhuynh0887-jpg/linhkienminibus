@@ -737,50 +737,6 @@ const KL_LOGIN_CSS = `
   .kl-select-login .lines{grid-template-columns:1fr; max-width:320px;}
 }
 
-/* ---------- TOPBAR (logo + tên hệ thống + đăng xuất) — luôn 1 hàng trên mobile ---------- */
-.kl-topbar{padding:22px 6vw 14px; display:flex; align-items:stretch; gap:14px; flex-wrap:wrap;}
-.kl-topbar-brand{display:flex; align-items:stretch; gap:14px; cursor:pointer; flex:1 1 auto; min-width:0;}
-.kl-topbar-logo{background:#0d1318; border:1px solid #232f3b; border-radius:14px; padding:10px; display:flex; align-items:center; justify-content:center; width:78px; height:78px; flex-shrink:0;}
-.kl-topbar-logo img{width:100%; height:100%; object-fit:contain;}
-.kl-topbar-title{position:relative; flex:1 1 auto; min-width:200px; max-width:420px; background:linear-gradient(180deg,#0b0f1a 0%,#161c28 100%); border:2px solid #dc2626; clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px); padding:12px 22px; display:flex; flex-direction:column; justify-content:center; gap:3px; box-shadow:0 0 26px rgba(220,38,38,0.18);}
-.kl-topbar-eyebrow{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.28em; color:#9ca3af; text-transform:uppercase; text-align:center; white-space:nowrap;}
-.kl-topbar-line1{font-family:'Oswald',sans-serif; font-weight:800; font-size:21px; letter-spacing:.02em; color:#f5f9fb; text-align:center; line-height:1.08; text-transform:uppercase;}
-.kl-topbar-line2{font-family:'Oswald',sans-serif; font-weight:900; font-size:28px; letter-spacing:.02em; color:#ef4444; text-align:center; line-height:1.08; text-transform:uppercase; text-shadow:0 0 18px rgba(239,68,68,.5);}
-.kl-topbar-logout{background:linear-gradient(135deg,#7f1d1d,#dc2626); border:none; color:#fff; cursor:pointer; font-family:inherit; clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%); padding:14px 30px; min-width:132px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; box-shadow:0 8px 20px -8px rgba(220,38,38,0.6);}
-.kl-topbar-logout .kl-logout-main{font-weight:800; font-size:13px; white-space:nowrap;}
-.kl-topbar-logout .kl-logout-sub{font-weight:500; font-size:10px; opacity:.8; white-space:nowrap;}
-@media (max-width:640px){
-  .kl-topbar{flex-wrap:nowrap; align-items:center; gap:6px; padding:14px 4vw 10px;}
-  .kl-topbar-brand{gap:6px;}
-  .kl-topbar-logo{width:42px; height:42px; padding:4px; border-radius:9px;}
-  .kl-topbar-title{min-width:0; padding:5px 8px; gap:0; border-width:1.5px; border-radius:8px;}
-  .kl-topbar-eyebrow{font-size:5.5px; letter-spacing:.1em;}
-  .kl-topbar-line1{font-size:9px;}
-  .kl-topbar-line2{font-size:13px;}
-  .kl-topbar-logout{padding:7px 8px; min-width:0; gap:0; border-radius:6px; flex-shrink:0;}
-  .kl-topbar-logout svg{width:14px !important; height:14px !important;}
-  .kl-topbar-logout .kl-logout-main{font-size:8.5px;}
-  .kl-topbar-logout .kl-logout-sub{display:none;}
-}
-
-/* ---------- 4 ô tính năng (Bảo mật / Hiệu quả / Chính xác / Kết nối) — luôn 1 hàng trên mobile ---------- */
-.kl-feature-grid{margin:18px 6vw 0; display:flex; gap:12px; flex-wrap:wrap;}
-.kl-feature-card{flex:1 1 130px; min-width:130px; background:linear-gradient(180deg,#141b24 0%,#0f151d 100%); border:1px solid #232f3b; border-radius:14px; padding:18px 10px 14px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;}
-.kl-feature-icon{width:64px; height:64px; clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-.kl-feature-name{color:#f1f5f9; font-weight:800; font-size:13.5px;}
-.kl-feature-desc{color:#94a3b8; font-size:10.5px;}
-.kl-feature-bar{width:26px; height:2px; border-radius:2px; margin-top:2px;}
-@media (max-width:640px){
-  .kl-feature-grid{flex-wrap:nowrap; gap:5px; margin:12px 4vw 0;}
-  .kl-feature-card{min-width:0; padding:8px 3px 7px; gap:3px; border-radius:9px;}
-  .kl-feature-icon{width:34px; height:34px;}
-  .kl-feature-icon svg{width:15px !important; height:15px !important;}
-  .kl-feature-name{font-size:8.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
-  .kl-feature-desc{font-size:6.8px; line-height:1.15;}
-  .kl-feature-bar{display:none;}
-  .kl-feature-chevron{display:none;}
-}
-
 /* ---------- GATE LOGIN (tài khoản / mật khẩu) ---------- */
 .kl-select-login .gate-grid{
   width:100%;
@@ -1575,23 +1531,35 @@ function LoginScreen({onLogin, resume, onLogout}){
 
       {/* ══════════════════ HEADER — thiết kế lại theo Ảnh 1 (hexagon/chamfered, tông đỏ) ══════════════════
           Logic xử lý giữ NGUYÊN 100%: backToSelect, đăng xuất (setAuthedUser/setStep/onLogout). */}
-      <header className="kl-topbar" style={{border:"none"}}>
-        <div className="kl-topbar-brand" onClick={backToSelect} title="Về trang chọn dòng xe">
-          <div className="kl-topbar-logo">
-            <img src={KL_LOGO_B64} alt="Kim Long Motor"/>
+      <header style={{border:"none",padding:"22px 6vw 14px",display:"flex",alignItems:"stretch",gap:14,flexWrap:"wrap"}}>
+        <div onClick={backToSelect} title="Về trang chọn dòng xe" style={{display:"flex",alignItems:"stretch",gap:14,cursor:"pointer",flex:"1 1 auto",minWidth:0}}>
+          <div style={{background:"#0d1318",border:"1px solid #232f3b",borderRadius:14,padding:10,display:"flex",alignItems:"center",justifyContent:"center",width:78,height:78,flexShrink:0}}>
+            <img src={KL_LOGO_B64} alt="Kim Long Motor" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
           </div>
-          <div className="kl-topbar-title">
-            <div className="kl-topbar-eyebrow">— Production System —</div>
-            <div className="kl-topbar-line1">Kim Long</div>
-            <div className="kl-topbar-line2">Motor</div>
+          <div style={{
+            position:"relative",flex:"1 1 auto",minWidth:200,maxWidth:420,
+            background:"linear-gradient(180deg,#0b0f1a 0%,#161c28 100%)",
+            border:"2px solid #dc2626",
+            clipPath:"polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px)",
+            padding:"12px 22px",display:"flex",flexDirection:"column",justifyContent:"center",gap:3,boxShadow:"0 0 26px rgba(220,38,38,0.18)"
+          }}>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:".28em",color:"#9ca3af",textTransform:"uppercase",textAlign:"center"}}>— Production System —</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:21,letterSpacing:".02em",color:"#f5f9fb",textAlign:"center",lineHeight:1.08,textTransform:"uppercase"}}>Kim Long</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:28,letterSpacing:".02em",color:"#ef4444",textAlign:"center",lineHeight:1.08,textTransform:"uppercase",textShadow:"0 0 18px rgba(239,68,68,.5)"}}>Motor</div>
           </div>
         </div>
 
         {/* Nút Đăng xuất — hexagon đỏ, GIỮ NGUYÊN handler cũ */}
-        <button className="kl-topbar-logout" onClick={()=>{setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất">
+        <button onClick={()=>{setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất"
+          style={{
+            background:"linear-gradient(135deg,#7f1d1d,#dc2626)",border:"none",color:"#fff",cursor:"pointer",fontFamily:"inherit",
+            clipPath:"polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%)",
+            padding:"14px 30px",minWidth:132,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,
+            boxShadow:"0 8px 20px -8px rgba(220,38,38,0.6)"
+          }}>
           <KlIconPower size={19} color="#fff"/>
-          <span className="kl-logout-main">Đăng xuất</span>
-          <span className="kl-logout-sub">Thoát khỏi hệ thống</span>
+          <span style={{fontWeight:800,fontSize:13}}>Đăng xuất</span>
+          <span style={{fontWeight:500,fontSize:10,opacity:.8}}>Thoát khỏi hệ thống</span>
         </button>
       </header>
 
@@ -1633,23 +1601,26 @@ function LoginScreen({onLogin, resume, onLogout}){
       </div>
 
       {/* ══════════════════ 4 icon: Bảo mật / Hiệu quả / Chính xác / Kết nối — thuần trang trí, giống Ảnh 1 ══════════════════ */}
-      <div className="kl-feature-grid">
+      <div style={{margin:"18px 6vw 0",display:"flex",gap:12,flexWrap:"wrap"}}>
         {[
           {ten:"Bảo mật",mo:"An toàn dữ liệu",Icon:KlIconShieldCheck,mau:"#dc2626"},
           {ten:"Hiệu quả",mo:"Tối ưu quy trình",Icon:KlIconGauge,mau:"#2f8fff"},
           {ten:"Chính xác",mo:"Dữ liệu tin cậy",Icon:KlIconTrendingUp,mau:"#a855f7"},
           {ten:"Kết nối",mo:"Hệ thống đồng bộ",Icon:KlIconGear,mau:"#f59e0b"},
         ].map(f=>(
-          <div key={f.ten} className="kl-feature-card">
-            <div className="kl-feature-icon" style={{
+          <div key={f.ten} style={{flex:"1 1 130px",minWidth:130,background:"linear-gradient(180deg,#141b24 0%,#0f151d 100%)",border:"1px solid #232f3b",borderRadius:14,padding:"18px 10px 14px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+            <div style={{
+              width:64,height:64,
+              clipPath:"polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)",
               background:`radial-gradient(circle at 50% 35%, ${f.mau}33, transparent 70%)`,
               border:`1.5px solid ${f.mau}`,
+              display:"flex",alignItems:"center",justifyContent:"center",
               boxShadow:`0 0 18px ${f.mau}55`
             }}><f.Icon size={27} color="#f5f9fb" strokeWidth={1.7}/></div>
-            <div className="kl-feature-name">{f.ten}</div>
-            <div className="kl-feature-desc">{f.mo}</div>
-            <div className="kl-feature-bar" style={{background:f.mau}}/>
-            <span className="kl-feature-chevron"><KlIconChevronRight size={14} color={f.mau}/></span>
+            <div style={{color:"#f1f5f9",fontWeight:800,fontSize:13.5}}>{f.ten}</div>
+            <div style={{color:"#94a3b8",fontSize:10.5}}>{f.mo}</div>
+            <div style={{width:26,height:2,background:f.mau,borderRadius:2,marginTop:2}}/>
+            <KlIconChevronRight size={14} color={f.mau}/>
           </div>
         ))}
       </div>
@@ -1713,36 +1684,47 @@ function LoginScreen({onLogin, resume, onLogout}){
             <p>Chọn dòng sản phẩm để tiếp tục vào hệ thống quản lý sản xuất tương ứng.</p>
           </div>
           <main>
-            <div className="lines">
-              {KL_LINES.map(l=>{
-                const allowed=getAllowedLines(authedUser).includes(l.id);
-                return (
-                  <div key={l.id} className={`card${allowed?"":" card-locked"}`} tabIndex={0} style={{"--accent":l.accent}}
-                    onClick={()=>chooseLine(l)}
-                    onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseLine(l);}}}>
-                    <div className="icon-wrap">{l.icon}</div>
-                    <div>
-                      <div className="tag">{l.tagText}</div>
-                      <h3>{l.title}</h3>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
+              <div className="lines">
+                {KL_LINES.map(l=>{
+                  const allowed=getAllowedLines(authedUser).includes(l.id);
+                  return (
+                    <div key={l.id} className={`card${allowed?"":" card-locked"}`} tabIndex={0} style={{"--accent":l.accent}}
+                      onClick={()=>chooseLine(l)}
+                      onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseLine(l);}}}>
+                      <div className="icon-wrap">{l.icon}</div>
+                      <div>
+                        <div className="tag">{l.tagText}</div>
+                        <h3>{l.title}</h3>
+                      </div>
+                      <div className="desc">{l.desc}</div>
+                      <div className="enter">{allowed?"Truy cập →":"🔒 Chưa có quyền"}</div>
                     </div>
-                    <div className="desc">{l.desc}</div>
-                    <div className="enter">{allowed?"Truy cập →":"🔒 Chưa có quyền"}</div>
-                  </div>
-                );
-              })}
-            </div>
-            {/* ✅ Trường hợp ĐẶC BIỆT riêng cho tài khoản "xh04" — cho vào thẳng "Hệ thống
-                chính" ở tab "✅ Nhận Hàng" (duyệt), bỏ qua bước chọn Trạng thái dự án, y hệt
-                quyền của 1 đơn vị chuyên trách. Không áp dụng cho bất kỳ tài khoản nào khác. */}
-            {authedUser?.id==="xh04"&&(
-              <div style={{marginTop:18,textAlign:"center"}}>
-                <span onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
-                  style={{display:"inline-block",cursor:"pointer",color:"#fdba74",fontWeight:700,fontSize:13,
-                    borderBottom:"1.5px dashed #fdba74",padding:"4px 2px"}}>
-                  ⚡ Truy cập hệ thống chính →
-                </span>
+                  );
+                })}
               </div>
-            )}
+              {/* ✅ Trường hợp ĐẶC BIỆT riêng cho tài khoản "xh04" — cho vào thẳng "Hệ thống
+                  chính" ở tab "✅ Nhận Hàng" (duyệt), bỏ qua bước chọn Trạng thái dự án, y hệt
+                  quyền của 1 đơn vị chuyên trách. Không áp dụng cho bất kỳ tài khoản nào khác.
+                  Đặt NGAY DƯỚI CÙNG của 3 thẻ dòng xe (12M/City Bus/Mini Bus), gộp chung 1 khối
+                  bo tròn nền đen nhạt, toàn bộ chữ trắng. */}
+              {authedUser?.id==="xh04"&&(
+                <div style={{marginTop:40,paddingTop:26,borderTop:"1px dashed rgba(255,255,255,0.16)",width:"100%",maxWidth:520,display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+                  <span style={{fontSize:10,letterSpacing:".18em",color:"#6b7280",fontWeight:800,textTransform:"uppercase"}}>Hoặc</span>
+                  <div onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
+                    style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,
+                      background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
+                      borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center"}}>
+                    <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
+                      Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan
+                    </span>
+                    <span style={{color:"#fff",fontWeight:800,fontSize:13.5}}>
+                      ⚡ Truy cập hệ thống chính →
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </main>
           {err&&(
             <div style={{margin:"0 6vw 20px",background:"rgba(220,38,38,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"9px 13px",fontSize:12,color:"#fca5a5"}}>
@@ -2412,6 +2394,15 @@ const E0={stt:0,ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:"",anh:""};
 
 // ── Thứ tự chuẩn Nguồn gốc: SUB MINI 1 → SUB MINI 2 → UB → MB → FT ──
 const DM_ORDER=["SUB MINI 1","SUB MINI 2","UB","MB","FT"];
+// ✅ Nhãn 5 "trang" vật tư (tab Xưởng hàn) — mỗi trang gộp đúng 1 nhóm trong DM_ORDER,
+// nhãn phụ chỉ mang tính mô tả trực quan cho người dùng (dải mã tham khảo).
+const TRANG_VT=[
+  {ten:"SUB MINI 1",mo:"Vị trí SUB MINI 1"},
+  {ten:"SUB MINI 2",mo:"Vị trí SUB MINI 2"},
+  {ten:"UB",mo:"UB10 → UB80"},
+  {ten:"MB",mo:"MB10 → MB90"},
+  {ten:"FT",mo:"FT01 → FT08"},
+];
 const dmPriority=(dm)=>{
   const u=String(dm||"").toUpperCase();
   for(let i=0;i<DM_ORDER.length;i++){if(u.startsWith(DM_ORDER[i]))return i;}
@@ -2787,7 +2778,7 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReply
       <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:201,background:"#fff",borderRadius:"18px 18px 0 0",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 -6px 24px rgba(0,0,0,0.25)"}}>
         <div style={{padding:"16px 18px 10px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <span style={{fontSize:20}}>🔔</span>
-          <div style={{fontWeight:800,fontSize:13,letterSpacing:".03em",textTransform:"uppercase",background:"#dc2626",color:"#fff",borderRadius:999,padding:"5px 14px"}}>Cảnh báo khẩn cấp</div>
+          <div style={{fontWeight:800,fontSize:15}}>Cảnh báo khẩn cấp</div>
           <button onClick={onClose} style={{marginLeft:"auto",border:"none",background:"none",fontSize:18,color:"#9ca3af",cursor:"pointer"}}>✕</button>
         </div>
         <div style={{overflowY:"auto",padding:"12px 14px",flex:1}}>
@@ -3198,6 +3189,9 @@ export default function App(){
   const [xhDaXNShowAll, setXhDaXNShowAll] = useState(false);
   const [search,   setSearch]   = useState("");
   const [fdm,      setFdm]      = useState("Tất cả");
+  // ✅ Trang vật tư (tab "Xưởng hàn"/ds): chia danh sách theo 5 nhóm Nguồn gốc cố định
+  // Trang 1: SUB MINI 1 · Trang 2: SUB MINI 2 · Trang 3: UB10→UB80 · Trang 4: MB10→MB90 · Trang 5: FT01→FT08
+  const [trangVT,  setTrangVT]  = useState(0);
   const [sCol,     setSCol]     = useState("stt");
   const [sAsc,     setSAsc]     = useState(true);
   const [modal,    setModal]    = useState(null);
@@ -5406,10 +5400,11 @@ Bạn có chắc chắn không?`;
   const Arr=({col})=><span style={{opacity:sCol===col?1:.2,marginLeft:2,fontSize:9}}>{sCol===col&&!sAsc?"▼":"▲"}</span>;
   const filtered=useMemo(()=>{
     let d=fdm!=="Tất cả"?bom.filter(v=>v.ng===fdm):bom;
+    d=d.filter(v=>dmPriority(v.vt)===trangVT);
     if(search){const q=search.toLowerCase();d=d.filter(v=>String(v.stt).includes(q)||v.ma.toLowerCase().includes(q)||v.ten.toLowerCase().includes(q)||(v.vt||"").toLowerCase().includes(q));}
     const km={stt:"stt",ma:"ma",ten:"ten",ng:"",vt:"vt",jig:"jig",dv:"dv",dm:"dm",gc:"gc"};
     return[...d].sort((a,b)=>{const k=km[sCol]||sCol;let va=a[k],vb=b[k];if(typeof va==="string"){va=va.toLowerCase();vb=vb.toLowerCase();}return sAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});
-  },[bom,search,fdm,sCol,sAsc]);
+  },[bom,search,fdm,trangVT,sCol,sAsc]);
 
   const statDM=useMemo(()=>{
     const m={};bom.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!m[k])m[k]={n:0,t:0};m[k].n++;m[k].t+=v.dm;});
@@ -6614,6 +6609,25 @@ Bạn có chắc chắn không?`;
               {!isKHTH&&<button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>}
               {isXH&&<button onClick={()=>{setCur({...E0,ng:DMS[0]||""});setModal("add");}} style={{...btn,background:mauP,color:"#fff",padding:"7px 10px",fontSize:13,width:"100%",justifyContent:"center",gridColumn:"1 / -1"}}>+ Thêm mới</button>}
             </div>
+
+            {/* ── Chọn trang vật tư — 5 trang cố định theo nhóm Vị trí, đặt ngay dưới nút "Thêm mới" ── */}
+            <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",paddingBottom:2}}>
+              {TRANG_VT.map((tr,i)=>{
+                const active=trangVT===i;
+                return(
+                  <button key={i} onClick={()=>setTrangVT(i)} title={tr.mo} style={{
+                    flex:"1 0 auto",minWidth:64,border:active?"1.5px solid "+mauP:"1.5px solid #e5e7eb",
+                    borderRadius:10,cursor:"pointer",fontFamily:"inherit",padding:"7px 10px",textAlign:"center",
+                    background:active?mauP:"#fff",color:active?"#fff":"#374151",
+                    boxShadow:active?"0 3px 10px -3px "+mauP+"aa":"none"
+                  }}>
+                    <div style={{fontSize:9.5,fontWeight:900,opacity:.85}}>Trang {i+1}</div>
+                    <div style={{fontSize:11,fontWeight:800,whiteSpace:"nowrap"}}>{tr.ten}</div>
+                  </button>
+                );
+              })}
+            </div>
+
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
               {filtered.length===0&&(
                 <div style={{textAlign:"center",padding:"40px 20px",color:"#9ca3af",fontSize:13,background:"#fff",borderRadius:10,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
@@ -6657,7 +6671,7 @@ Bạn có chắc chắn không?`;
                 </div>
               ))}
               <div style={{padding:"10px 4px 4px",fontSize:11,color:"#9ca3af",display:"flex",justifyContent:"space-between"}}>
-                <span>{filtered.length}/{bom.length} mã</span>
+                <span>{filtered.length}/{bom.filter(v=>dmPriority(v.vt)===trangVT).length} mã · Trang {trangVT+1}: {TRANG_VT[trangVT].ten}</span>
                 <span style={{display:"flex",gap:16}}>
                   <span>ĐM tổng: <b>{fmt(filtered.reduce((s,v)=>s+v.dm,0))}</b></span>
                   <span style={{color:"#065f46"}}>{t("thCanNhan")} ({soXe} xe): <b>{fmt(filtered.reduce((s,v)=>s+v.dm*soXe,0))}</b></span>
