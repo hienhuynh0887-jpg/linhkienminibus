@@ -2766,13 +2766,26 @@ function KhanCapModal({items, proj, donViOptions, onClose, onSubmit, preSelectMa
           </div>
           <div style={{fontWeight:700,fontSize:12,color:"#374151",marginBottom:6}}>Ghi chú thêm (tùy chọn)</div>
           <textarea value={ghiChu} onChange={e=>setGhiChu(e.target.value)} placeholder="VD: Cần gấp trước 14h chiều nay để kịp ráp xe..." rows={3} style={{...inp,marginBottom:14,resize:"vertical"}}/>
-          <div style={{fontWeight:700,fontSize:12,color:"#374151",marginBottom:6}}>Gửi đến đơn vị nào?</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:6}}>
-            {donViOptions.map(dv=>(
-              <button key={dv} type="button" onClick={()=>toggleDv(dv)}
-                style={{border:`1.5px solid ${donViChon.includes(dv)?"#dc2626":"#e5e7eb"}`,background:donViChon.includes(dv)?"#fef2f2":"#fff",color:donViChon.includes(dv)?"#b91c1c":"#374151",borderRadius:20,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                {donViChon.includes(dv)&&"✓ "}{dv}
-              </button>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+            <div style={{fontWeight:700,fontSize:12,color:"#374151"}}>Gửi đến đơn vị nào? ({donViChon.length}/{donViOptions.length} chọn)</div>
+            <button type="button" onClick={()=>setDonViChon(s=>s.length===donViOptions.length?[]:[...donViOptions])}
+              style={{border:"none",background:"none",color:"#dc2626",fontWeight:700,fontSize:11.5,cursor:"pointer",padding:"2px 0"}}>
+              {donViChon.length===donViOptions.length?"Bỏ chọn tất cả":"Chọn tất cả"}
+            </button>
+          </div>
+          {/* ✅ Dạng tích chọn (ô vuông) thay vì nút bo tròn — mỗi đơn vị 1 dòng riêng, xếp dọc
+              cho vừa màn hình mobile (không bị wrap lệch dòng như dạng pill trước đây). Danh
+              sách LUÔN lấy từ donViOptions (tự động cập nhật khi Admin thêm đơn vị mới ở "👥
+              Người dùng"), và được sắp xếp theo alphabet tiếng Việt (sortAZ) để đơn vị mới thêm
+              sau tự chèn đúng vị trí — không cần sửa code khi có thêm đơn vị mới. Container có
+              maxHeight + cuộn riêng để danh sách dài (nhiều đơn vị) không đẩy nút "Gửi" ra ngoài
+              màn hình. */}
+          <div style={{border:"1px solid #fecaca",borderRadius:10,overflow:"hidden",marginBottom:6,maxHeight:220,overflowY:"auto"}}>
+            {[...donViOptions].sort((a,b)=>a.localeCompare(b,"vi")).map((dv,i,arr)=>(
+              <label key={dv} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 10px",borderBottom:i<arr.length-1?"1px solid #fef2f2":"none",background:donViChon.includes(dv)?"#fef2f2":"#fff",cursor:"pointer"}}>
+                <input type="checkbox" checked={donViChon.includes(dv)} onChange={()=>toggleDv(dv)}/>
+                <div style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:donViChon.includes(dv)?"#b91c1c":"#374151"}}>{dv}</div>
+              </label>
             ))}
           </div>
         </div>
@@ -2811,7 +2824,7 @@ function CanhBaoListModal({list, user, onClose, onMarkRead, onReply, onMarkReply
       <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:201,background:"#fff",borderRadius:"18px 18px 0 0",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 -6px 24px rgba(0,0,0,0.25)"}}>
         <div style={{padding:"16px 18px 10px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <span style={{fontSize:20}}>🔔</span>
-          <div style={{fontWeight:800,fontSize:15}}>Cảnh báo khẩn cấp</div>
+          <div style={{fontWeight:800,fontSize:13,letterSpacing:0.4,textTransform:"uppercase",color:"#fff",background:"linear-gradient(135deg,#ef4444,#b91c1c)",borderRadius:999,padding:"6px 14px",boxShadow:"0 2px 6px rgba(239,68,68,0.35)"}}>Cảnh báo khẩn cấp</div>
           <button onClick={onClose} style={{marginLeft:"auto",border:"none",background:"none",fontSize:18,color:"#9ca3af",cursor:"pointer"}}>✕</button>
         </div>
         <div style={{overflowY:"auto",padding:"12px 14px",flex:1}}>
