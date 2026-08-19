@@ -1546,7 +1546,7 @@ function LoginScreen({onLogin, resume, onLogout}){
             <img src={KL_LOGO_B64} alt="Kim Long Motor" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
           </div>
           <div style={{
-            position:"relative",flex:"0 1 auto",width:"fit-content",minWidth:0,
+            position:"relative",flex:"1 1 auto",minWidth:0,
             background:"linear-gradient(180deg,#0b0f1a 0%,#161c28 100%)",
             border:"2px solid #dc2626",
             clipPath:"polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)",
@@ -3238,8 +3238,6 @@ export default function App(){
   // ✅ Trang vật tư (tab "Xưởng hàn"/ds): chia danh sách theo 5 nhóm Nguồn gốc cố định
   // Trang 1: SUB MINI 1 · Trang 2: SUB MINI 2 · Trang 3: UB10→UB80 · Trang 4: MB10→MB90 · Trang 5: FT01→FT08
   const [trangVT,  setTrangVT]  = useState(0);
-  const [sCol,     setSCol]     = useState("stt");
-  const [sAsc,     setSAsc]     = useState(true);
   const [modal,    setModal]    = useState(null);
   const [cur,      setCur]      = useState(E0);
   const [anhPv,    setAnhPv]    = useState(null);
@@ -3260,8 +3258,6 @@ export default function App(){
   const [phF,      setPhF]      = useState({sp:"",ngay:new Date().toISOString().slice(0,10),gc:""});
   const [phIt,     setPhIt]     = useState([]);
   const [addIt,    setAddIt]    = useState({ma:"",sl:1});
-  const [bcFlt,    setBcFlt]    = useState("all");
-  const [bcExp,    setBcExp]    = useState({});
   const [bcDmO,    setBcDmO]    = useState({});
   const [bcViTriChiTiet, setBcViTriChiTiet] = useState(false); // ẩn/hiện 2 bảng THCK · CKD trong "Tiến độ theo Vị trí"
   const [bcBlockOpen, setBcBlockOpen] = useState({THCK:"", CKD:""}); // lọc theo nguồn: ""(đóng) · "done"(Đã nhận) · "thieu"(Còn thiếu)
@@ -3274,8 +3270,6 @@ export default function App(){
   const [soanSearch, setSoanSearch] = useState("");
   const [soanFilter, setSoanFilter] = useState("all"); // "all" | "chua" | "da" | "thieu" — bộ lọc nhanh tab Soạn Hàng
   const [soanCollapsed, setSoanCollapsed] = useState({}); // {[viTri]: true} — nhóm vị trí nào đang thu gọn
-  const [showThemMa, setShowThemMa] = useState(false);
-  const [themMaForm, setThemMaForm] = useState({ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:""});
   const [showChangePw, setShowChangePw] = useState(false);
   const [cpwForm, setCpwForm] = useState({cur:"",next:"",confirm:""});
   const [showSignPad, setShowSignPad] = useState(false);
@@ -4078,7 +4072,6 @@ export default function App(){
   const proj  = projs.find(p=>p.id===pid) || projs[0] || {mau:"#1d4ed8",icon:"🚐",ten:"",so_xe:1};
   const soXe  = proj.so_xe||1;
   const DMS   = [...new Set(bom.map(v=>v.ng).filter(Boolean))].sort(sapXepDM);
-  const soaned= Object.values(soan).filter(x=>x.on).length;
 
   // ── Helpers ──
   const flash=m=>{setMsg(m);setTimeout(()=>setMsg(""),2500);};
@@ -4877,7 +4870,6 @@ export default function App(){
     // tick, sửa số lượng chỉ cập nhật số, không làm mã bị "rớt" khỏi danh sách đã soạn.
     return{...s,[pid]:{...(s[pid]||{}),[ma]:{...c,sl:v,on:c.on??false,chuaDu:slCN!==undefined&&v<slCN}}};
   });
-  const rstSoan=()=>{if(!window.confirm("Reset checklist soạn hàng? Dữ liệu đã tick sẽ bị xóa."))return;setSoanDB(s=>{const n={...s,[pid]:{}};try{localStorage.setItem("soanDB",JSON.stringify(n));}catch{}return n;});flash("✓ Reset");};
   const togGrp=(items,all)=>setSoanDB(s=>{
     const c=s[pid]||{};const p={};
     items.forEach(v=>{
@@ -5449,20 +5441,16 @@ Bạn có chắc chắn không?`;
   };
 
   // ── Sort/filter ──
-  const sortBy=col=>{if(sCol===col)setSAsc(a=>!a);else{setSCol(col);setSAsc(true);}};
-  const Arr=({col})=><span style={{opacity:sCol===col?1:.2,marginLeft:2,fontSize:9}}>{sCol===col&&!sAsc?"▼":"▲"}</span>;
+  // ✅ Gọn lại: sCol/sAsc (cột sắp xếp / chiều sắp xếp) trước đây có state nhưng KHÔNG có
+  // control nào trên UI để đổi (hàm sortBy từng cho phép đổi đã không còn được gọi ở đâu) —
+  // nghĩa là luôn cố định "stt" tăng dần. Bỏ state, sắp xếp thẳng theo stt tăng dần — HÀNH VI
+  // GIỮ NGUYÊN 100%, chỉ gọn code hơn.
   const filtered=useMemo(()=>{
     let d=fdm!=="Tất cả"?bom.filter(v=>v.ng===fdm):bom;
     d=d.filter(v=>dmPriority(v.vt)===trangVT);
     if(search){const q=search.toLowerCase();d=d.filter(v=>String(v.stt).includes(q)||v.ma.toLowerCase().includes(q)||v.ten.toLowerCase().includes(q)||(v.vt||"").toLowerCase().includes(q));}
-    const km={stt:"stt",ma:"ma",ten:"ten",ng:"",vt:"vt",jig:"jig",dv:"dv",dm:"dm",gc:"gc"};
-    return[...d].sort((a,b)=>{const k=km[sCol]||sCol;let va=a[k],vb=b[k];if(typeof va==="string"){va=va.toLowerCase();vb=vb.toLowerCase();}return sAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});
-  },[bom,search,fdm,trangVT,sCol,sAsc]);
-
-  const statDM=useMemo(()=>{
-    const m={};bom.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!m[k])m[k]={n:0,t:0};m[k].n++;m[k].t+=v.dm;});
-    return Object.entries(m).sort((a,b)=>sapXepDM(a[0],b[0]));
-  },[bom]);
+    return[...d].sort((a,b)=>{let va=a.stt,vb=b.stt;if(typeof va==="string"){va=va.toLowerCase();vb=vb.toLowerCase();}return va<vb?-1:va>vb?1:0;});
+  },[bom,search,fdm,trangVT]);
 
   // ── Tích lũy ──
   const {dnMap,dnXNMap,hasOkMap,phByMa}=useMemo(()=>{
@@ -5545,13 +5533,9 @@ Bạn có chắc chắn không?`;
   const maDone=th.filter(v=>v.done).length;
   const maChuaSoan=th.filter(v=>v.chuaSoan).length;
   const maGiaoThieu=th.filter(v=>v.giaoThieu).length;
-  // ── Thiếu THCK / CKD — đọc thẳng từ field đã tính sẵn trong th (nguồn duy nhất) ──
-  const maThieuTHCK=th.filter(v=>v.thieuTHCK).length;
-  const maThieuCKD =th.filter(v=>v.thieuCKD).length;
   const totCN=th.reduce((s,v)=>s+v.cn,0);
   const totDN=th.reduce((s,v)=>s+v.dn,0);
   const totCT=th.reduce((s,v)=>s+v.ct,0);
-  const totVT=th.reduce((s,v)=>s+v.vuot,0);
   const pctT=bom.length>0?Math.round(maDone/bom.length*100):0;
   const duAll=maDone===bom.length&&bom.length>0;
 
@@ -6142,7 +6126,6 @@ Bạn có chắc chắn không?`;
               — Chưa có dự án nào hoàn thành cho dòng xe này —
             </div>
           );
-          const tenDongXe=KL_LINES.find(l=>l.id===activeLine)?.title||"—";
           // ✅ Sop (từ số → đến số): lấy TOÀN BỘ SOP đã ghi nhận trong lịch sử "Giao xe" của
           // từng dự án (lsDB[p.id]), lấy giá trị nhỏ nhất → lớn nhất.
           const sopRange=(p)=>{
@@ -6771,7 +6754,6 @@ Bạn có chắc chắn không?`;
                             : soanFilter==="da"    ? bom.filter(v=>hoanThanhSet.has(v.ma))
                             : soanFilter==="chua"  ? bomHienThiGoc.filter(v=>!soan[v.ma]?.on)
                             : bomHienThiGoc;
-          const daSoanHienGoc=bomHienThiGoc.filter(v=>soan[v.ma]?.on).length;
           // ✅ FIX: số mã dùng cho popup xác nhận "Gửi X mã đã soạn?" và điều kiện khoá nút Gửi —
           // PHẢI loại các mã đã "duyệt đủ" (daDuyetDuSet), khớp đúng với những gì guiDon() thực
           // sự gửi đi (guiDon cũng đã loại các mã này). Trước đây dùng biến `soaned` đếm TOÀN BỘ
@@ -7474,7 +7456,6 @@ Bạn có chắc chắn không?`;
         {/* ── BÁO CÁO ── */}
         {tab==="bc"&&(()=>{
           const togDm=dm=>setBcDmO(s=>({...s,[dm]:!s[dm]}));
-          const togExp=ma=>setBcExp(s=>({...s,[ma]:!s[ma]}));
           return(
             <div>
               {/* ── Toàn bộ thẻ Báo Cáo (banner + thống kê + donut + biểu đồ + bảng) — bọc trong bcCardRef để chụp thành ảnh khi bấm "Xuất báo cáo" ── */}
