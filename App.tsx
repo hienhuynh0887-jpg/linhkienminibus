@@ -1546,11 +1546,11 @@ function LoginScreen({onLogin, resume, onLogout}){
             <img src={KL_LOGO_B64} alt="Kim Long Motor" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
           </div>
           <div style={{
-            position:"relative",flex:"1 1 auto",minWidth:0,
+            position:"relative",flex:"0 1 auto",width:"fit-content",minWidth:0,
             background:"linear-gradient(180deg,#0b0f1a 0%,#161c28 100%)",
             border:"2px solid #dc2626",
             clipPath:"polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)",
-            padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"center",gap:1,boxShadow:"0 0 16px rgba(220,38,38,0.18)"
+            padding:"6px 12px",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",gap:1,boxShadow:"0 0 16px rgba(220,38,38,0.18)"
           }}>
             <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:6.5,letterSpacing:".18em",color:"#9ca3af",textTransform:"uppercase",textAlign:"center",whiteSpace:"nowrap"}}>— PRODUCTION —</div>
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:11.5,letterSpacing:".01em",color:"#f5f9fb",textAlign:"center",lineHeight:1.05,textTransform:"uppercase",whiteSpace:"nowrap"}}>Kim Long</div>
