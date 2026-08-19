@@ -4932,8 +4932,15 @@ export default function App(){
     const bomRole = isKHO ? bom.filter(v=>(v.ng||"").trim().toUpperCase()==="CKD")
                   : isTHCK ? bom.filter(v=>(v.ng||"").trim().toUpperCase()==="THCK")
                   : bom;
-    // Chỉ gửi các mã đã soạn (có tick ✓)
-    const daSoan=bomRole.filter(v=>soan[v.ma]?.on);
+    // ✅ FIX: loại các mã ĐÃ DUYỆT ĐỦ (Xưởng Hàn đã duyệt đủ SL) ra khỏi phiếu gửi, dù cờ
+    // "on" trong state `soan` của mã đó vẫn còn sót lại true từ trước (cờ này chỉ được dọn
+    // trong chính guiDon() khi tự tay gửi đủ SL — không được dọn khi XƯỞNG HÀN duyệt đủ qua
+    // đường khác). Nếu không loại, những mã đã ẩn khỏi danh sách Soạn Hàng (banner "ẩn N mã
+    // đã duyệt đủ") vẫn có thể lọt vào phiếu gửi ngoài ý muốn, khiến số mã gửi > số mã tick
+    // đang hiển thị (VD tick 1 mã nhưng phiếu lại ghi "gửi 3 mã").
+    const daDuyetDuSet = new Set(thFull.filter(v=>v.done).map(v=>v.ma));
+    // Chỉ gửi các mã đã soạn (có tick ✓) và CHƯA duyệt đủ
+    const daSoan=bomRole.filter(v=>soan[v.ma]?.on&&!daDuyetDuSet.has(v.ma));
     if(daSoan.length===0){flash("⚠️ Chưa soạn mã nào!");return;}
 
     // Cộng dồn: gộp mã đã có trong phiếu cũ + SL hiện tại soạn
@@ -6752,6 +6759,13 @@ Bạn có chắc chắn không?`;
                             : soanFilter==="chua"  ? bomHienThiGoc.filter(v=>!soan[v.ma]?.on)
                             : bomHienThiGoc;
           const daSoanHienGoc=bomHienThiGoc.filter(v=>soan[v.ma]?.on).length;
+          // ✅ FIX: số mã dùng cho popup xác nhận "Gửi X mã đã soạn?" và điều kiện khoá nút Gửi —
+          // PHẢI loại các mã đã "duyệt đủ" (daDuyetDuSet), khớp đúng với những gì guiDon() thực
+          // sự gửi đi (guiDon cũng đã loại các mã này). Trước đây dùng biến `soaned` đếm TOÀN BỘ
+          // mã có cờ `on:true` kể cả mã đã ẩn khỏi danh sách vì đã duyệt đủ (cờ `on` không được
+          // dọn khi XƯỞNG HÀN duyệt qua đường khác) → popup hiện số mã NHIỀU HƠN số mã tick đang
+          // thấy trên màn hình (VD tick 1 mã hiển thị nhưng popup báo "Gửi 3 mã").
+          const soanedThucGui = bom.filter(v=>soan[v.ma]?.on&&!daDuyetDuSet.has(v.ma)).length;
           const soanFilterLabel = soanFilter==="da"?"Đã soạn":soanFilter==="chua"?"Chưa soạn":soanFilter==="thieu"?"Thiếu SL":"Tất cả";
           const soanFilterSlug = soanFilter==="da"?"DaSoan":soanFilter==="chua"?"ChuaSoan":soanFilter==="thieu"?"ThieuSL":"TatCa";
           const soMaDaDuyet=daDuyetDuSet.size;
@@ -6868,7 +6882,7 @@ Bạn có chắc chắn không?`;
                         </tbody></table>`,`SoanHang_${proj.ten}_${soanFilterSlug}`);
                     }}
                   />
-                  <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soaned===0}
+                  <button onClick={()=>{if(!window.confirm(`Gửi ${soanedThucGui} mã đã soạn đến XƯỞNG HÀN?`))return;guiDon();}} disabled={soanedThucGui===0}
                     style={{border:"none",cursor:"pointer",fontFamily:"inherit",flex:1,minWidth:0,background:xong?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#f59e0b,#d97706)",color:"#fff",padding:"11px 6px",fontSize:11.5,fontWeight:800,opacity:bom.length===0?.5:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:12,boxShadow:xong?"0 3px 10px rgba(22,163,74,0.35)":"0 3px 10px rgba(217,119,6,0.35)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                     <span>{xong?"✅":"📤"}</span>
                     <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{xong?"Gửi XH":`Gửi (${soMaHoanThanh}/${bom.length})`}</span>
@@ -6988,7 +7002,7 @@ Bạn có chắc chắn không?`;
                       {xong?"Nhấn Gửi XƯỞNG HÀN để hoàn tất":`Còn ${bomHienThi.length} mã cần soạn${soMaDaDuyet>0?` · ${soMaDaDuyet} mã đã duyệt đủ`:""}`}
                     </div>
                   </div>
-                  <button onClick={()=>{if(!window.confirm(`Gửi ${soaned} mã đã soạn?`))return;guiDon();}}
+                  <button onClick={()=>{if(!window.confirm(`Gửi ${soanedThucGui} mã đã soạn?`))return;guiDon();}}
                     style={{...btn,background:"#fff",color:xong?"#16a34a":"#1d4ed8",padding:"10px 24px",fontSize:14,fontWeight:700,borderRadius:10}}>
                     📤 {xong?"Gửi XƯỞNG HÀN":"Gửi đơn ngay"}
                   </button>
