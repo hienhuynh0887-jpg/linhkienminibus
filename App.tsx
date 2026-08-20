@@ -127,9 +127,9 @@ const USERS_DEF = [
   {id:"khth",   ten:"PHÒNG KH-TH",  pw:"khth2024", role:"khth",     don_vi:"PHÒNG KH-TH",  avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị "theo dõi tổng thể" — chỉ xem (Vật tư · Phiếu GN · Báo Cáo), không
   // soạn hàng/nhận hàng/quản lý BOM/người dùng. Vai trò suy ra từ donViBaseRole (mặc định "khth").
-  {id:"phongkt01", ten:"NV PHÒNG KT",   pw:"phongkt01", role:"khth", don_vi:"Phòng KT",   avatar:"📋", mau:"#7c3aed"},
-  {id:"bancn01",   ten:"NV BAN CN",     pw:"bancn01",   role:"khth", don_vi:"Ban CN",     avatar:"📋", mau:"#7c3aed"},
-  {id:"banldnm01", ten:"NV BAN LĐNM",   pw:"banldnm01", role:"khth", don_vi:"Ban LĐNM",   avatar:"📋", mau:"#7c3aed"},
+  {id:"phongkt01", ten:"NV PHÒNG KT",   pw:"phongkt01", role:"khth", don_vi:"PHÒNG KT",   avatar:"📋", mau:"#7c3aed"},
+  {id:"bancn01",   ten:"NV BAN CN",     pw:"bancn01",   role:"khth", don_vi:"BAN CN",     avatar:"📋", mau:"#7c3aed"},
+  {id:"banldnm01", ten:"NV BAN LĐNM",   pw:"banldnm01", role:"khth", don_vi:"BAN LĐNM",   avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị chuyên trách riêng từng dòng xe — mỗi đơn vị chỉ Soạn Hàng/Nhận Hàng
   // đúng dòng xe được cấp quyền (xem LINE_QUYEN_DEFAULT). Vai trò suy ra từ quy ước tên
   // (donViBaseRole): "KHO ..." → kho (Soạn Hàng), "XH_..." → xuonghan (Duyệt/Nhận Hàng).
@@ -431,8 +431,8 @@ const useLang = ()=>useContext(LangCtx);
 
 const LOGIN_I18N = {
   vi: {
-    brand: "Quản Lý Vật Tư BOM",
-    brandSub: "Xưởng hàn xe buýt",
+    brand: "QUẢN LÝ VẬT TƯ BOM",
+    brandSub: "XƯỞNG HÀN XE BUÝT",
     title: "Đăng nhập hệ thống",
     accLabel: "Tài khoản",
     accPlaceholder: "Nhập hoặc chọn tài khoản...",
@@ -1229,9 +1229,9 @@ const LINE_QUYEN_DEFAULT = {
   "XH_CITYBUS":   ["citybus"],
   "XH_12":        ["12m"],
   // ✅ Các đơn vị "theo dõi tổng thể" — xem toàn bộ 3 dòng xe (không thao tác soạn/nhận):
-  "Phòng KT":     ["minibus","citybus","12m"],
-  "Ban CN":       ["minibus","citybus","12m"],
-  "Ban LĐNM":     ["minibus","citybus","12m"],
+  "PHÒNG KT":     ["minibus","citybus","12m"],
+  "BAN CN":       ["minibus","citybus","12m"],
+  "BAN LĐNM":     ["minibus","citybus","12m"],
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1325,9 +1325,9 @@ const TAB_QUYEN_DEFAULT = {
   "XH_MINIBUS":   TABS_XUONGHAN_KEYS,
   "XH_CITYBUS":   TABS_XUONGHAN_KEYS,
   "XH_12":        TABS_XUONGHAN_KEYS,
-  "Phòng KT":     TABS_KHTH_KEYS,
-  "Ban CN":       TABS_KHTH_KEYS,
-  "Ban LĐNM":     TABS_KHTH_KEYS,
+  "PHÒNG KT":     TABS_KHTH_KEYS,
+  "BAN CN":       TABS_KHTH_KEYS,
+  "BAN LĐNM":     TABS_KHTH_KEYS,
 };
 // Lấy bộ chức năng áp dụng cho 1 đơn vị: ưu tiên bảng đã cấu hình (tabQuyen, có thể đã
 // được Admin chỉnh tay hoặc tải từ Supabase) → nếu chưa có, dùng TAB_QUYEN_DEFAULT → nếu
@@ -2009,7 +2009,7 @@ function SignaturePad({initial, onSave, onClose}){
 // localStorage lẫn Supabase "custom_depts") để "KHO CITYBUS", "KHO 12M", "XH_MINIBUS",
 // "XH_CITYBUS", "XH_12" hiện diện ngay trong Hệ thống chính, không cần bấm "+ Thêm" thủ công.
 // Kèm theo các đơn vị "theo dõi tổng thể" (chỉ xem): "Phòng KT", "Ban CN", "Ban LĐNM".
-const DEFAULT_CUSTOM_DEPTS = ["KHO CITYBUS","KHO 12M","XH_MINIBUS","XH_CITYBUS","XH_12","Phòng KT","Ban CN","Ban LĐNM"];
+const DEFAULT_CUSTOM_DEPTS = ["KHO CITYBUS","KHO 12M","XH_MINIBUS","XH_CITYBUS","XH_12","PHÒNG KT","BAN CN","BAN LĐNM"];
 
 // ── Khối gấp/mở (accordion) dùng chung cho trang "Người dùng" — giúp gom các bảng lớn
 // (phân quyền, form thêm tài khoản, danh sách theo đơn vị) lại gọn gàng, đỡ rối mắt. ──
