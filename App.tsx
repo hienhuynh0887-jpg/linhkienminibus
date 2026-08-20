@@ -87,8 +87,8 @@ const slugifyLoaiId = (ten) => {
 
 // (Đã bỏ SEED — dự án khởi tạo với BOM rỗng, dữ liệu thật chỉ đến từ Supabase.)
 const PROJS_DEF = [
-  {id:"proj_xh", ten:"XE KIM MAI 9", mo_ta:"BOM XE KIM MAI 9 ( Bản mới ) · Nhà Máy Bus", mau:"#1d4ed8", icon:"🚐", so_xe:1},
-  {id:"proj_mb2",ten:"XE MINIBUS X9",  mo_ta:"BOM XE MINIBUS X9 ( Bản mới ) · Nhà Máy Bus",  mau:"#b45309", icon:"🚐", so_xe:1},
+  {id:"proj_xh", ten:"XE KIM MAI 9", mo_ta:"BOM XE KIM MAI 9 ( BẢN MỚI ) · NHÀ MÁY BUS", mau:"#1d4ed8", icon:"🚐", so_xe:1},
+  {id:"proj_mb2",ten:"XE MINIBUS X9",  mo_ta:"BOM XE MINIBUS X9 ( BẢN MỚI ) · NHÀ MÁY BUS",  mau:"#b45309", icon:"🚐", so_xe:1},
 ];
 const uid=()=>`id${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`;
 
@@ -113,32 +113,149 @@ PROJS_DEF.forEach(p=>{initBom[p.id]=[];}); // Không seed — chờ dữ liệu 
 //  USERS & AUTH
 // ═══════════════════════════════════════════════════════════════
 const USERS_DEF = [
-  {id:"admin",  ten:"Quản trị viên", pw:"thck2024", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"🏭", mau:"#1d4ed8"},
-  {id:"thck01", ten:"Nguyễn Văn An", pw:"thck01",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"thck02", ten:"Trần Thị Bích", pw:"thck02",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"xh01",   ten:"Lê Văn Cường",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
-  {id:"xh02",   ten:"Phạm Thị Dung", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
-  {id:"xh03",   ten:"Hoàng Văn Em",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
-  {id:"kho",    ten:"Quản lý Kho",   pw:"kho2024",  role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"📦", mau:"#0f766e"},
-  {id:"kho01",  ten:"Trần Văn Hùng", pw:"kho01",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"kho02",  ten:"Nguyễn Thị Lan",pw:"kho02",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"kho03",  ten:"Lê Văn Minh",   pw:"kho03",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"kho04",  ten:"Phạm Thị Nga",  pw:"kho04",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"admin",  ten:"QUẢN TRỊ VIÊN", pw:"thck2024", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"🏭", mau:"#1d4ed8"},
+  {id:"thck01", ten:"NGUYỄN VĂN AN", pw:"thck01",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
+  {id:"thck02", ten:"TRẦN THỊ BÍCH", pw:"thck02",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
+  {id:"xh01",   ten:"LÊ VĂN CƯỜNG",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh02",   ten:"PHẠM THỊ DUNG", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh03",   ten:"HOÀNG VĂN EM",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"kho",    ten:"QUẢN LÝ KHO",   pw:"kho2024",  role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"📦", mau:"#0f766e"},
+  {id:"kho01",  ten:"TRẦN VĂN HÙNG", pw:"kho01",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"kho02",  ten:"NGUYỄN THỊ LAN",pw:"kho02",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"kho03",  ten:"LÊ VĂN MINH",   pw:"kho03",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"kho04",  ten:"PHẠM THỊ NGA",  pw:"kho04",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"khth",   ten:"PHÒNG KH-TH",  pw:"khth2024", role:"khth",     don_vi:"PHÒNG KH-TH",  avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị "theo dõi tổng thể" — chỉ xem (Vật tư · Phiếu GN · Báo Cáo), không
   // soạn hàng/nhận hàng/quản lý BOM/người dùng. Vai trò suy ra từ donViBaseRole (mặc định "khth").
-  {id:"phongkt01", ten:"NV Phòng KT",   pw:"phongkt01", role:"khth", don_vi:"Phòng KT",   avatar:"📋", mau:"#7c3aed"},
-  {id:"bancn01",   ten:"NV Ban CN",     pw:"bancn01",   role:"khth", don_vi:"Ban CN",     avatar:"📋", mau:"#7c3aed"},
-  {id:"banldnm01", ten:"NV Ban LĐNM",   pw:"banldnm01", role:"khth", don_vi:"Ban LĐNM",   avatar:"📋", mau:"#7c3aed"},
+  {id:"phongkt01", ten:"NV PHÒNG KT",   pw:"phongkt01", role:"khth", don_vi:"Phòng KT",   avatar:"📋", mau:"#7c3aed"},
+  {id:"bancn01",   ten:"NV BAN CN",     pw:"bancn01",   role:"khth", don_vi:"Ban CN",     avatar:"📋", mau:"#7c3aed"},
+  {id:"banldnm01", ten:"NV BAN LĐNM",   pw:"banldnm01", role:"khth", don_vi:"Ban LĐNM",   avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị chuyên trách riêng từng dòng xe — mỗi đơn vị chỉ Soạn Hàng/Nhận Hàng
   // đúng dòng xe được cấp quyền (xem LINE_QUYEN_DEFAULT). Vai trò suy ra từ quy ước tên
   // (donViBaseRole): "KHO ..." → kho (Soạn Hàng), "XH_..." → xuonghan (Duyệt/Nhận Hàng).
-  {id:"kho_citybus01", ten:"NV Kho CityBus",  pw:"citybus01", role:"kho",      don_vi:"KHO CITYBUS", avatar:"📦", mau:"#0fe0a4"},
-  {id:"kho_12m01",     ten:"NV Kho 12M",      pw:"kho12m01",  role:"kho",      don_vi:"KHO 12M",     avatar:"📦", mau:"#2f8fff"},
-  {id:"xh_minibus01",  ten:"NV Xưởng Minibus",pw:"xhmini01",  role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#ff9a1f"},
-  {id:"xh_citybus01",  ten:"NV Xưởng CityBus",pw:"xhcity01",  role:"xuonghan", don_vi:"XH_CITYBUS",  avatar:"🚌", mau:"#0fe0a4"},
-  {id:"xh_12_01",      ten:"NV Xưởng 12M",    pw:"xh12m01",   role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
+  {id:"kho_citybus01", ten:"NV KHO CITYBUS",  pw:"citybus01", role:"kho",      don_vi:"KHO CITYBUS", avatar:"📦", mau:"#0fe0a4"},
+  {id:"kho_12m01",     ten:"NV KHO 12M",      pw:"kho12m01",  role:"kho",      don_vi:"KHO 12M",     avatar:"📦", mau:"#2f8fff"},
+  {id:"xh_minibus01",  ten:"NV XƯỞNG MINIBUS",pw:"xhmini01",  role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#ff9a1f"},
+  {id:"xh_citybus01",  ten:"NV XƯỞNG CITYBUS",pw:"xhcity01",  role:"xuonghan", don_vi:"XH_CITYBUS",  avatar:"🚌", mau:"#0fe0a4"},
+  {id:"xh_12_01",      ten:"NV XƯỞNG 12M",    pw:"xh12m01",   role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
 ];
+
+// ═══════════════════════════════════════════════════════════════
+//  ✅ UNIT SYNCHRONIZATION & CONSOLIDATION UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Synchronize units by name
+ * Groups users by their normalized unit names (UPPERCASE, trimmed)
+ * Returns: { "UNIT NAME": [user_id1, user_id2, ...], ... }
+ */
+const getUnitSync = (users) => {
+  const unitsByName = {};
+  users.forEach(u => {
+    const unitName = (u.don_vi || '').toUpperCase().trim();
+    if (!unitsByName[unitName]) unitsByName[unitName] = [];
+    unitsByName[unitName].push(u.id);
+  });
+  return unitsByName;
+};
+
+/**
+ * Get unique synchronized unit names, sorted for display
+ */
+const getUnitOptions = (users) => {
+  const unitSync = getUnitSync(users);
+  return Object.keys(unitSync).sort((a, b) => {
+    const aPriority = a.includes('_') ? 0 : 1;
+    const bPriority = b.includes('_') ? 0 : 1;
+    return aPriority - bPriority || a.localeCompare(b, 'vi');
+  });
+};
+
+/**
+ * Consolidate line permissions (phân quyền dòng xe theo đơn vị)
+ * Ensures all users in the same unit have identical vehicle line permissions
+ * Parameters:
+ *   - lineQuyen: { userId: [line1, line2, ...], ... }
+ *   - users: list of user objects with don_vi field
+ * Returns: consolidated lineQuyen with permissions synced by unit
+ */
+const consolidateLinePermissions = (lineQuyen, users) => {
+  const unitSync = getUnitSync(users);
+  const consolidated = {};
+  
+  // Collect all permissions for each unit
+  const unitPermissions = {};
+  Object.entries(lineQuyen).forEach(([userId, lines]) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      const unitName = (user.don_vi || '').toUpperCase().trim();
+      if (!unitPermissions[unitName]) unitPermissions[unitName] = new Set();
+      lines.forEach(line => unitPermissions[unitName].add(line));
+    }
+  });
+  
+  // Apply consolidated permissions to ALL users in each unit
+  Object.entries(unitPermissions).forEach(([unitName, lines]) => {
+    const usersInUnit = unitSync[unitName] || [];
+    usersInUnit.forEach(uid => {
+      consolidated[uid] = Array.from(lines);
+    });
+  });
+  
+  return consolidated;
+};
+
+/**
+ * Consolidate function permissions (phân quyền chức năng theo đơn vị)
+ * Ensures all users in the same unit have identical function/role permissions
+ * Parameters:
+ *   - roleByUnit: { unitName: role, ... }
+ *   - users: list of user objects
+ * Returns: consolidated permissions with all users in same unit getting same role
+ */
+const consolidateFunctionPermissions = (roleByUnit, users) => {
+  const unitSync = getUnitSync(users);
+  const consolidated = {};
+  
+  // For each unit and its assigned role, apply to ALL users in that unit
+  Object.entries(roleByUnit).forEach(([unitName, role]) => {
+    const normalizedUnit = unitName.toUpperCase().trim();
+    const usersInUnit = unitSync[normalizedUnit] || [];
+    usersInUnit.forEach(uid => {
+      consolidated[uid] = role;
+    });
+  });
+  
+  return consolidated;
+};
+
+/**
+ * Apply all synchronization at once
+ * Returns object with synced lineQuyen and roleByUnit
+ */
+const applyUnitSync = (users, lineQuyen, roleByUnit) => {
+  return {
+    users,
+    lineQuyen: consolidateLinePermissions(lineQuyen, users),
+    roleByUnit: consolidateFunctionPermissions(roleByUnit, users)
+  };
+};
+
+/**
+ * Get all users in a specific unit (by name or by user id)
+ */
+const getUsersByUnit = (users, unitName) => {
+  const normalized = (unitName || '').toUpperCase().trim();
+  return users.filter(u => (u.don_vi || '').toUpperCase().trim() === normalized);
+};
+
+/**
+ * Check if two units are synchronized (have the same name)
+ */
+const isSyncedUnit = (unit1, unit2) => {
+  return (unit1 || '').toUpperCase().trim() === (unit2 || '').toUpperCase().trim();
+};
+
 
 // Cả 2 role đều thấy đủ tabs — chỉ khác quyền hành động
 // THCK  → Soạn hàng, tạo phiếu, gửi đơn (KHÔNG xác nhận/duyệt)
@@ -1167,13 +1284,13 @@ const LINE_QUYEN_DEFAULT = {
 // (Vì dùng chung quy ước T() như các bảng khác, nếu tên bảng có hậu tố dòng xe — VD
 // "canh_bao_khan_citybus" — hãy tạo thêm bảng tương ứng hoặc bỏ hậu tố tùy nhu cầu.)
 const TAB_META = [
-  {id:"ds",      label:"📦 Vật tư"},
-  {id:"soan",    label:"📋 Soạn Hàng / Kiểm tra"},
-  {id:"duyet",   label:"✅ Nhận Hàng / Xác nhận"},
-  {id:"pgn",     label:"📄 Phiếu GN"},
-  {id:"bc",      label:"📈 Báo Cáo"},
-  {id:"bom_mau", label:"🗂️ BOM Mẫu"},
-  {id:"users",   label:"👥 Người dùng"},
+  {id:"ds",      label:"📦 VẬT TƯ"},
+  {id:"soan",    label:"📋 SOẠN HÀNG / KIỂM TRA"},
+  {id:"duyet",   label:"✅ NHẬN HÀNG / XÁC NHẬN"},
+  {id:"pgn",     label:"📄 PHIẾU GN"},
+  {id:"bc",      label:"📈 BÁO CÁO"},
+  {id:"bom_mau", label:"🗂️ BOM MẪU"},
+  {id:"users",   label:"👥 NGƯỜI DÙNG"},
 ];
 // Xác định vai trò GỐC của 1 tên đơn vị theo quy ước đặt tên (dùng để suy ra bộ tab mặc
 // định cho đơn vị chưa có dòng riêng trong bảng phân quyền chức năng).
@@ -1612,10 +1729,10 @@ function LoginScreen({onLogin, resume, onLogout}){
           ✅ Bắt buộc 1 HÀNG DUY NHẤT trên mobile: flexWrap "nowrap" + thu nhỏ kích thước từng thẻ. */}
       <div style={{margin:"14px 3vw 0",display:"flex",gap:6,flexWrap:"nowrap"}}>
         {[
-          {ten:"Bảo mật",mo:"An toàn dữ liệu",Icon:KlIconShieldCheck,mau:"#dc2626"},
-          {ten:"Hiệu quả",mo:"Tối ưu quy trình",Icon:KlIconGauge,mau:"#2f8fff"},
-          {ten:"Chính xác",mo:"Dữ liệu tin cậy",Icon:KlIconTrendingUp,mau:"#a855f7"},
-          {ten:"Kết nối",mo:"Hệ thống đồng bộ",Icon:KlIconGear,mau:"#f59e0b"},
+          {ten:"BẢO MẬT",mo:"An toàn dữ liệu",Icon:KlIconShieldCheck,mau:"#dc2626"},
+          {ten:"HIỆU QUẢ",mo:"Tối ưu quy trình",Icon:KlIconGauge,mau:"#2f8fff"},
+          {ten:"CHÍNH XÁC",mo:"Dữ liệu tin cậy",Icon:KlIconTrendingUp,mau:"#a855f7"},
+          {ten:"KẾT NỐI",mo:"Hệ thống đồng bộ",Icon:KlIconGear,mau:"#f59e0b"},
         ].map(f=>(
           <div key={f.ten} style={{flex:"1 1 0",minWidth:0,background:"linear-gradient(180deg,#141b24 0%,#0f151d 100%)",border:"1px solid #232f3b",borderRadius:10,padding:"10px 4px 8px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
             <div style={{
@@ -1987,10 +2104,20 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [customDepts, setCustomDepts] = useState(()=>{
     try{
       const s=localStorage.getItem("customDepts");
-      if(s){
+      // ⚠️ FIX BUG NGHIÊM TRỌNG ("xoá xong reload lại hiện y như cũ"): code cũ ép HỢP NHẤT
+      // (union) danh sách đã lưu với DEFAULT_CUSTOM_DEPTS ("XH_12","Phòng KT","Ban CN",
+      // "Ban LĐNM"...) ở MỌI LẦN mở app — kể cả khi người dùng đã chủ động XOÁ hoặc ĐỔI TÊN
+      // các đơn vị này từ lâu. Vì DEFAULT_CUSTOM_DEPTS là hằng số cứng trong code, nó cứ bị
+      // "hồi sinh" lại mỗi lần tải trang, rồi bị đồng bộ (upsert) NGƯỢC LẠI lên Supabase ở
+      // effect merge bên dưới — khiến đơn vị tưởng đã xoá vĩnh viễn lại tự xuất hiện lại y
+      // hệt cũ (kèm theo bị TRÙNG LẶP nếu người dùng đã đổi tên đơn vị đó, ví dụ vừa có
+      // "PHÒNG KT" mới lẫn "Phòng KT" cũ bị hồi sinh — đúng như ảnh chụp màn hình báo lỗi).
+      // Nay: DEFAULT_CUSTOM_DEPTS CHỈ được dùng làm dữ liệu khởi tạo lần đầu tiên (khi máy
+      // CHƯA TỪNG lưu customDepts bao giờ — s===null). Nếu đã từng lưu (kể cả mảng rỗng "[]"
+      // sau khi xoá hết), luôn tôn trọng đúng dữ liệu đã lưu, không ép thêm mặc định vào nữa.
+      if(s!==null){
         const saved=JSON.parse(s);
-        // Đảm bảo các đơn vị mặc định mới luôn có mặt, kể cả với máy đã từng lưu customDepts trước đó
-        return Array.from(new Set([...saved,...DEFAULT_CUSTOM_DEPTS]));
+        return Array.isArray(saved)?saved:[...DEFAULT_CUSTOM_DEPTS];
       }
       return [...DEFAULT_CUSTOM_DEPTS];
     }catch{return [...DEFAULT_CUSTOM_DEPTS];}
@@ -2011,7 +2138,13 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       setCustomDepts(local=>{
         const merged=Array.from(new Set([...local,...remoteList]));
         try{localStorage.setItem("customDepts",JSON.stringify(merged));}catch{}
-        const missingOnServer=local.filter(d=>!remoteList.includes(d));
+        // ⚠️ PHÒNG THỦ THÊM: KHÔNG tự đẩy (upsert) lên Supabase những tên nằm trong
+        // DEFAULT_CUSTOM_DEPTS nếu chúng không có trên server — vì nếu server không có, rất có
+        // thể đây là đơn vị NGƯỜI DÙNG ĐÃ CHỦ ĐỘNG XOÁ (không phải mới thêm offline), tự đẩy
+        // lên sẽ vô tình "hồi sinh" lại đúng lỗi đã sửa ở effect dọn trùng lặp bên dưới. Một
+        // đơn vị TỰ THÊM thật sự (qua nút "Thêm đơn vị") sẽ không trùng tên với 8 tên mặc định
+        // cứng này, nên cách phân biệt này an toàn cho luồng thêm mới bình thường.
+        const missingOnServer=local.filter(d=>!remoteList.includes(d)&&!DEFAULT_CUSTOM_DEPTS.includes(d));
         if(missingOnServer.length){
           supabase.from("custom_depts").upsert(missingOnServer.map(ten=>({ten})),{onConflict:"ten"})
             .then(({error})=>{ if(error) console.warn("Đồng bộ lại đơn vị lên Supabase thất bại:",error.message); });
@@ -2085,6 +2218,73 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       dbUpsertUser&&dbUpsertUser(fixedUser);
     });
   },[customDepts,users]);
+
+  // ═══════════════════════════════════════════════════════════════
+  //  🧹 TỰ ĐỘNG DỌN DẸP ĐƠN VỊ BỊ TRÙNG LẶP (di sản của lỗi cũ ở trên)
+  // ═══════════════════════════════════════════════════════════════
+  // ⚠️ NGUYÊN NHÂN GỐC của việc "xoá xong reload lại hiện y như cũ": phần khởi tạo
+  // customDepts phía trên (nay đã sửa) từng ÉP HỢP NHẤT danh sách đã lưu với
+  // DEFAULT_CUSTOM_DEPTS ("XH_12","Phòng KT","Ban CN","Ban LĐNM"...) ở MỌI LẦN mở app, kể cả
+  // khi người dùng đã chủ động xoá/đổi tên các đơn vị này từ lâu — khiến chúng bị "hồi sinh"
+  // liên tục, rồi effect merge Supabase bên trên lại tưởng đây là đơn vị mới thêm trên máy
+  // nên tự ĐẨY NGƯỢC (upsert) chúng trở lại server. Kết quả: dữ liệu cũ trên localStorage lẫn
+  // Supabase của các máy đã dùng app từ trước có thể đã bị lưu TRÙNG LẶP (VD vừa có "PHÒNG KT"
+  // người dùng đã đổi tên, vừa có "Phòng KT" bị hồi sinh) — đúng như trong ảnh chụp màn hình.
+  // Lỗi gốc đã được sửa (xem phần khởi tạo customDepts), nhưng dữ liệu trùng đã lỡ lưu từ
+  // trước cần được DỌN 1 LẦN. Effect dưới đây tự phát hiện các đơn vị trùng tên (không phân
+  // biệt hoa/thường/khoảng trắng thừa), gộp quyền dòng xe + quyền chức năng, chuyển tài khoản
+  // đang thuộc bản trùng sang bản được giữ lại, rồi xoá hẳn bản trùng khỏi local + Supabase.
+  // Idempotent: chỉ thao tác khi THỰC SỰ phát hiện trùng lặp, nên chạy lại nhiều lần vẫn an toàn.
+  const dedupBusyRef=useRef(false);
+  useEffect(()=>{
+    if(dedupBusyRef.current||!customDepts.length) return;
+    const normKey=s=>String(s||"").trim().toUpperCase().replace(/\s+/g," "); // bản viết HOA TOÀN BỘ, chuẩn hoá khoảng trắng
+    const groups={};
+    customDepts.forEach(d=>{ const k=normKey(d); (groups[k]=groups[k]||[]).push(d); });
+    const dupEntries=Object.entries(groups).filter(([,g])=>g.length>1);
+    if(!dupEntries.length) return;
+    dedupBusyRef.current=true;
+    (async()=>{
+      for(const [keep,group] of dupEntries){
+        // ✅ Theo yêu cầu: LUÔN giữ lại đúng bản VIẾT HOA TOÀN BỘ ("keep" chính là normKey —
+        // bản viết hoa 100% + gộp khoảng trắng thừa) — kể cả khi trong nhóm trùng chưa có sẵn
+        // bản nào đúng y hệt dạng viết hoa này (VD nhóm chỉ có "Phòng KT"/"phòng kt", chưa có
+        // bản viết hoa sẵn) thì vẫn tự tạo/đổi thành đúng bản viết hoa "PHÒNG KT".
+        const removeList = group.filter(d=>d!==keep);
+        if(!removeList.length) continue; // nhóm đã đúng chuẩn viết hoa, không có gì để dọn
+        for(const removeName of removeList){
+          // Gộp quyền dòng xe (hợp cả 2 bên, không mất quyền đã tick)
+          const mergedLines = Array.from(new Set([...(lineQuyen[keep]||[]),...(lineQuyen[removeName]||[])]));
+          setLineQuyen(q=>{ const {[removeName]:_,...rest}=q; return {...rest,[keep]:mergedLines}; });
+          dbUpsertQuyenDongXe&&dbUpsertQuyenDongXe(keep,mergedLines);
+          // Gộp quyền chức năng
+          const mergedTabs = Array.from(new Set([...getTabKeysForDonVi(tabQuyen,keep),...getTabKeysForDonVi(tabQuyen,removeName)]));
+          setTabQuyen(q=>{ const {[removeName]:_,...rest}=q; return {...rest,[keep]:mergedTabs}; });
+          dbUpsertQuyenChucNang&&dbUpsertQuyenChucNang(keep,mergedTabs);
+          // Chuyển tài khoản đang thuộc bản trùng sang bản được giữ lại
+          users.filter(u=>u.don_vi===removeName).forEach(u=>{
+            const updatedUser={...u,don_vi:keep};
+            setUsers(us=>us.map(x=>x.id===u.id?updatedUser:x));
+            dbUpsertUser&&dbUpsertUser(updatedUser);
+          });
+          // Xoá hẳn bản trùng khỏi Supabase (không chỉ localStorage) để không bị hồi sinh lại
+          try{ await supabase.from("custom_depts").delete().eq("ten",removeName); }
+          catch(e){ console.warn("Dọn đơn vị trùng lặp thất bại:",removeName,e.message); }
+        }
+        // Đảm bảo bản viết hoa "keep" có mặt trên Supabase (kể cả khi phải tự tạo mới)
+        try{ await supabase.from("custom_depts").upsert({ten:keep},{onConflict:"ten"}); }
+        catch(e){ console.warn("Lưu bản viết hoa lên Supabase thất bại:",keep,e.message); }
+        setCustomDepts(l=>{
+          const updated=Array.from(new Set([...l.filter(d=>!removeList.includes(d)),keep]));
+          try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
+          return updated;
+        });
+      }
+      const tongSoDon=dupEntries.reduce((n,[,g])=>n+g.length-1,0);
+      if(tongSoDon>0) fl(`🧹 Đã tự động dọn ${tongSoDon} đơn vị bị trùng lặp, giữ lại bản viết hoa toàn bộ (dữ liệu/tài khoản đã được gộp an toàn).`);
+      dedupBusyRef.current=false;
+    })();
+  },[customDepts,users,lineQuyen,tabQuyen]);
 
   // ✅ Đổi tên 1 đơn vị tùy chỉnh — cập nhật đồng bộ: danh sách đơn vị, phân quyền dòng xe,
   // và toàn bộ tài khoản đang thuộc đơn vị đó (đổi sang tên mới), cả trên Supabase.
@@ -2225,7 +2425,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   };
 
   // ── Phân quyền dòng xe theo đơn vị (áp dụng cho cả đơn vị, không phải từng tài khoản) ──
-  const ALL_LINES_META=[{id:"12m",label:"Xe 12M"},{id:"citybus",label:"City Bus"},{id:"minibus",label:"Mini Bus"}];
+  const ALL_LINES_META=[{id:"12m",label:"XE 12M"},{id:"citybus",label:"CITY BUS"},{id:"minibus",label:"MINI BUS"}];
   const BASE_DON_VI=["NHÀ MÁY THCK","XƯỞNG HÀN","KHO VẬT TƯ","PHÒNG KH-TH"];
   const allDonViGroups=[...BASE_DON_VI, ...customDepts.filter(d=>!BASE_DON_VI.includes(d))];
   const toggleLineQuyen=(donVi,lineId)=>{
@@ -8811,9 +9011,9 @@ Bạn có chắc chắn không?`;
             <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>🔑 Đổi mật khẩu</div>
             <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Tài khoản: <b>{user.avatar} {user.ten}</b> ({user.id})</div>
             {[
-              {label:"Mật khẩu hiện tại",key:"cur",placeholder:"Nhập MK hiện tại"},
-              {label:"Mật khẩu mới",key:"next",placeholder:"Tối thiểu 4 ký tự"},
-              {label:"Xác nhận mật khẩu mới",key:"confirm",placeholder:"Nhập lại MK mới"},
+              {label:"MẬT KHẨU HIỆN TẠI",key:"cur",placeholder:"NHẬP MK HIỆN TẠI"},
+              {label:"MẬT KHẨU MỚI",key:"next",placeholder:"TỐI THIỂU 4 KÝ TỰ"},
+              {label:"XÁC NHẬN MẬT KHẨU MỚI",key:"confirm",placeholder:"NHẬP LẠI MK MỚI"},
             ].map(({label,key,placeholder})=>(
               <div key={key} style={{marginBottom:14}}>
                 <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:4}}>{label}</label>
