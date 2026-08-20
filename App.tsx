@@ -113,9 +113,9 @@ PROJS_DEF.forEach(p=>{initBom[p.id]=[];}); // Không seed — chờ dữ liệu 
 //  USERS & AUTH
 // ═══════════════════════════════════════════════════════════════
 const USERS_DEF = [
-  {id:"admin",  ten:"Quản trị viên", pw:"thck2024", role:"thck",     don_vi:"Nhà máy THCK", avatar:"🏭", mau:"#1d4ed8"},
-  {id:"thck01", ten:"Nguyễn Văn An", pw:"thck01",   role:"thck",     don_vi:"Nhà máy THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"thck02", ten:"Trần Thị Bích", pw:"thck02",   role:"thck",     don_vi:"Nhà máy THCK", avatar:"👤", mau:"#1d4ed8"},
+  {id:"admin",  ten:"Quản trị viên", pw:"thck2024", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"🏭", mau:"#1d4ed8"},
+  {id:"thck01", ten:"Nguyễn Văn An", pw:"thck01",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
+  {id:"thck02", ten:"Trần Thị Bích", pw:"thck02",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
   {id:"xh01",   ten:"Lê Văn Cường",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
   {id:"xh02",   ten:"Phạm Thị Dung", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
   {id:"xh03",   ten:"Hoàng Văn Em",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
@@ -124,7 +124,7 @@ const USERS_DEF = [
   {id:"kho02",  ten:"Nguyễn Thị Lan",pw:"kho02",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"kho03",  ten:"Lê Văn Minh",   pw:"kho03",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
   {id:"kho04",  ten:"Phạm Thị Nga",  pw:"kho04",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"khth",   ten:"Phòng KH-TH",  pw:"khth2024", role:"khth",     don_vi:"Phòng KH-TH",  avatar:"📋", mau:"#7c3aed"},
+  {id:"khth",   ten:"PHÒNG KH-TH",  pw:"khth2024", role:"khth",     don_vi:"PHÒNG KH-TH",  avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị "theo dõi tổng thể" — chỉ xem (Vật tư · Phiếu GN · Báo Cáo), không
   // soạn hàng/nhận hàng/quản lý BOM/người dùng. Vai trò suy ra từ donViBaseRole (mặc định "khth").
   {id:"phongkt01", ten:"NV Phòng KT",   pw:"phongkt01", role:"khth", don_vi:"Phòng KT",   avatar:"📋", mau:"#7c3aed"},
@@ -182,10 +182,10 @@ const APP_I18N = {
   tab_users:   {vi:"👥 Người dùng",    zh:"👥 用户"},
   // Header brand / role
   brandTitle:  {vi:"Quản Lý Vật Tư BOM", zh:"BOM 物料管理系统"},
-  roleTHCK:    {vi:"Nhà máy THCK",     zh:"THCK 工厂"},
+  roleTHCK:    {vi:"NHÀ MÁY THCK",     zh:"THCK 工厂"},
   roleKHO:     {vi:"KHO VẬT TƯ",       zh:"物料仓库"},
   roleXH:      {vi:"XƯỞNG HÀN",        zh:"焊接车间"},
-  roleKHTH:    {vi:"Phòng KH-TH",      zh:"计划综合科"},
+  roleKHTH:    {vi:"PHÒNG KH-TH",      zh:"计划综合科"},
   subTHCK_KHO: {vi:"Soạn hàng · Lập phiếu giao vật tư", zh:"备料 · 制作发货单"},
   subXH:       {vi:"Kiểm tra · Xác nhận · Quản lý BOM", zh:"检查 · 确认 · 管理BOM"},
   subKHTH:     {vi:"Chỉ xem · Không thao tác",          zh:"仅查看 · 无操作权限"},
@@ -992,7 +992,7 @@ const KL_LINES = [
 ];
 
 // ─── Phân quyền dòng xe theo Đơn vị (Bước 2 màn đăng nhập) ───
-// Mỗi đơn vị (Nhà máy THCK / XƯỞNG HÀN / KHO VẬT TƯ / Phòng KH-TH / các phòng ban tự thêm)
+// Mỗi đơn vị (NHÀ MÁY THCK / XƯỞNG HÀN / KHO VẬT TƯ / PHÒNG KH-TH / các phòng ban tự thêm)
 // được cấp quyền truy cập MỘT hoặc NHIỀU dòng xe. Quản trị viên (tài khoản có id "admin")
 // LUÔN có toàn quyền truy cập cả 3 dòng xe, không phụ thuộc bảng phân quyền này.
 // Mặc định (khi Supabase chưa có dữ liệu) giữ nguyên hành vi cũ: chỉ "Mini Bus" được cấp
@@ -1017,9 +1017,9 @@ const nhanDongXe = (id)=> DONG_XE_NHAN[id] || DONG_XE_NHAN.minibus;
 // ═══════════════════════════════════════════════════════════════
 //  ĐƠN VỊ "CHUYÊN TRÁCH" — LUÔN VÀO THẲNG ĐÚNG TAB, KHÔNG BAO GIỜ RA "TỔNG QUAN"
 // ═══════════════════════════════════════════════════════════════
-// ✅ Các đơn vị dưới đây (Nhà máy THCK, Kho Vật Tư, Kho CityBus, Kho 12M, XH_Minibus,
+// ✅ Các đơn vị dưới đây (NHÀ MÁY THCK, Kho Vật Tư, Kho CityBus, Kho 12M, XH_Minibus,
 // XH_CityBus, XH_12) PHẢI vào THẲNG đúng tab nghiệp vụ của mình ngay sau khi đăng nhập:
-//   - Nhóm "kho/soạn hàng" (Nhà máy THCK, KHO VẬT TƯ, KHO CITYBUS, KHO 12M) → tab "soan" (📋 Soạn Hàng)
+//   - Nhóm "kho/soạn hàng" (NHÀ MÁY THCK, KHO VẬT TƯ, KHO CITYBUS, KHO 12M) → tab "soan" (📋 Soạn Hàng)
 //   - Nhóm "xưởng/nhận hàng" (XH_MINIBUS, XH_CITYBUS, XH_12) → tab "duyet" (✅ Nhận Hàng)
 // TUYỆT ĐỐI KHÔNG được rơi vào màn "Tổng Quan / Danh mục dự án" (showTongQuan), "Khởi tạo
 // Dự án" (showKhoiTao) hay "Đã thực hiện" (showDaThucHien) — dù có truyền statusId gì đi nữa.
@@ -1035,7 +1035,7 @@ const normalizeDonViKey = (dv) => String(dv||"")
 // ✅ Mỗi đơn vị chuyên trách gắn CỨNG với ĐÚNG 1 tab + 1 dòng xe cố định — KHÔNG lấy dòng
 // xe theo allowed[0]/thứ tự bảng "quyen_dong_xe" nữa (thứ tự đó phụ thuộc dữ liệu đã lưu
 // trên Supabase, có thể lệch nếu trước đây từng cấp nhầm nhiều dòng cho 1 đơn vị chuyên
-// trách — VD "Nhà máy THCK" từng bị lưu luôn cả "12M"/"CityBus" khiến allerd[0] trả về
+// trách — VD "NHÀ MÁY THCK" từng bị lưu luôn cả "12M"/"CityBus" khiến allerd[0] trả về
 // "12m" thay vì "minibus"). Gán cứng ở đây đảm bảo LUÔN đúng bất kể dữ liệu server thế nào.
 const DIRECT_ENTRY_BY_DON_VI = {
   "NHAMAYTHCK": {tab:"soan",  line:"minibus"},
@@ -1051,9 +1051,9 @@ const getDirectEntry = (don_vi) => DIRECT_ENTRY_BY_DON_VI[normalizeDonViKey(don_
 
 // ✅ Nút "＋ Thêm xe mới" + biểu tượng "🗑️ Xoá dự án" trong khối "Tổng quan dự án" — theo
 // yêu cầu CHỈ hiển thị cho đúng 3 đơn vị được phân công nhiệm vụ khởi tạo/xoá dự án:
-// XƯỞNG HÀN, Phòng KT, Phòng KH-TH. Mọi đơn vị khác (kể cả Nhà máy THCK, các kho/xưởng
+// XƯỞNG HÀN, Phòng KT, PHÒNG KH-TH. Mọi đơn vị khác (kể cả NHÀ MÁY THCK, các kho/xưởng
 // chuyên trách từng dòng xe, Ban CN, Ban LĐNM...) đều không thấy 2 nút này.
-const SHOW_THEM_XE_DON_VI = ["XƯỞNG HÀN","Phòng KT","Phòng KH-TH"];
+const SHOW_THEM_XE_DON_VI = ["XƯỞNG HÀN","Phòng KT","PHÒNG KH-TH"];
 
 // ── Màu đặc trưng của từng dòng xe (dùng cho vòng tròn icon) ──
 const LINE_ICON_COLOR = {"12m":"#2f8fff", "citybus":"#0fe0a4", "minibus":"#ff9a1f"};
@@ -1101,10 +1101,10 @@ function ScreenTopBar({onBack, badgeBorderColor, activeLine, onLogout}){
   );
 }
 const LINE_QUYEN_DEFAULT = {
-  "Nhà máy THCK": ["minibus"],
+  "NHÀ MÁY THCK": ["minibus"],
   "XƯỞNG HÀN":    ["minibus","citybus","12m"],
   "KHO VẬT TƯ":   ["minibus"],
-  "Phòng KH-TH":  ["minibus","citybus","12m"],
+  "PHÒNG KH-TH":  ["minibus","citybus","12m"],
   // ✅ Các đơn vị chuyên trách riêng từng dòng xe (soạn hàng / nhận hàng tách biệt):
   "KHO CITYBUS":  ["citybus"],
   "KHO 12M":      ["12m"],
@@ -1145,7 +1145,7 @@ const LINE_QUYEN_DEFAULT = {
 //     ghi_chu text default '',
 //     nguoi_gui text,
 //     don_vi_gui text,
-//     don_vi_nhan jsonb not null default '[]'::jsonb, -- ["KHO VẬT TƯ","Nhà máy THCK",...]
+//     don_vi_nhan jsonb not null default '[]'::jsonb, -- ["KHO VẬT TƯ","NHÀ MÁY THCK",...]
 //     ts timestamptz default now(),
 //     doc_boi jsonb not null default '[]'::jsonb,      -- đơn vị nào đã xem: ["KHO VẬT TƯ",...]
 //     phan_hoi jsonb not null default '[]'::jsonb,     -- phản hồi: [{nguoi,don_vi,noi_dung,ts}]
@@ -1178,10 +1178,10 @@ const TAB_META = [
 // Xác định vai trò GỐC của 1 tên đơn vị theo quy ước đặt tên (dùng để suy ra bộ tab mặc
 // định cho đơn vị chưa có dòng riêng trong bảng phân quyền chức năng).
 const baseRoleOfDonViName = (dv) => {
-  if(dv==="Nhà máy THCK") return "thck";
+  if(dv==="NHÀ MÁY THCK") return "thck";
   if(dv==="XƯỞNG HÀN")    return "xuonghan";
   if(dv==="KHO VẬT TƯ")   return "kho";
-  if(dv==="Phòng KH-TH")  return "khth";
+  if(dv==="PHÒNG KH-TH")  return "khth";
   if(/^KHO/i.test(dv||"")) return "kho";
   if(/^XH[_\s-]/i.test(dv||"")) return "xuonghan";
   return "khth";
@@ -1191,18 +1191,18 @@ const baseRoleOfDonViName = (dv) => {
 // vai trò của mình — Admin có thể vào "👥 Người dùng" → "🎛️ Phân quyền chức năng theo đơn
 // vị" để bớt/thêm cho đúng nhiệm vụ thực tế đã phân công).
 const TAB_QUYEN_DEFAULT = {
-  "Nhà máy THCK": TABS_THCK_KEYS,
+  "NHÀ MÁY THCK": TABS_THCK_KEYS,
   // ✅ "XƯỞNG HÀN" (xh01/xh02/xh03, role "khth" — CHỈ XEM, không thao tác) được xem TẤT CẢ
   // các tab nghiệp vụ (📦 Vật tư/📋 Soạn Hàng/✅ Nhận Hàng/📄 Phiếu GN/📈 Báo Cáo/🗂️ BOM Mẫu),
   // CHỈ ẩn "👥 Người dùng" — riêng cho đơn vị này (khác với Phòng KT, Ban CN, Ban LĐNM,
-  // Phòng KH-TH vẫn giữ nguyên TABS_KHTH_KEYS — chỉ 3 tab xem). Vì role vẫn là "khth" nên
+  // PHÒNG KH-TH vẫn giữ nguyên TABS_KHTH_KEYS — chỉ 3 tab xem). Vì role vẫn là "khth" nên
   // các nút thao tác (thêm vật tư, import...) bên trong từng tab vẫn ẩn theo isKHTH — đây là
   // XEM ĐƯỢC MỌI TAB để theo dõi, không phải được thao tác.
   // (Các đơn vị chuyên trách thật sự duyệt/nhận hàng theo dòng xe là "XH_MINIBUS",
   // "XH_CITYBUS", "XH_12" bên dưới — vẫn giữ nguyên đầy đủ chức năng.)
   "XƯỞNG HÀN":    TABS_XUONGHAN_KEYS,
   "KHO VẬT TƯ":   TABS_KHO_KEYS,
-  "Phòng KH-TH":  TABS_KHTH_KEYS,
+  "PHÒNG KH-TH":  TABS_KHTH_KEYS,
   "KHO CITYBUS":  TABS_KHO_KEYS,
   "KHO 12M":      TABS_KHO_KEYS,
   "XH_MINIBUS":   TABS_XUONGHAN_KEYS,
@@ -1375,9 +1375,9 @@ function LoginScreen({onLogin, resume, onLogout}){
   // ── Bước 1: Đăng nhập tài khoản (cổng vào chung) ──
   // ✅ QUY ƯỚC ĐIỀU HƯỚNG THEO ĐƠN VỊ:
   //   - Đơn vị chỉ được cấp ĐÚNG 1 dòng xe (VD: XH_MINIBUS, KHO CITYBUS, KHO 12M, XH_CITYBUS,
-  //     XH_12, Nhà máy THCK, KHO VẬT TƯ...) → bỏ qua màn "Chọn dòng xe" (ảnh 2), vào THẲNG
+  //     XH_12, NHÀ MÁY THCK, KHO VẬT TƯ...) → bỏ qua màn "Chọn dòng xe" (ảnh 2), vào THẲNG
   //     "Hệ thống chính" (ảnh 1) với dòng xe duy nhất đó, y hệt bấm "Đang thực hiện".
-  //   - Đơn vị được cấp NHIỀU dòng xe (VD: Xưởng Hàn, Phòng KH-TH, Phòng KT, Ban CN, Ban LĐNM
+  //   - Đơn vị được cấp NHIỀU dòng xe (VD: Xưởng Hàn, PHÒNG KH-TH, Phòng KT, Ban CN, Ban LĐNM
   //     — nhóm "theo dõi tổng thể") hoặc tài khoản admin → dừng ở màn "Chọn dòng xe" (ảnh 2)
   //     để tự chọn dòng muốn theo dõi, rồi mới vào hệ thống chính.
   //   - Đơn vị chưa được cấp dòng xe nào (0 dòng) → vẫn dừng ở màn chọn để hiển thị thông
@@ -1392,7 +1392,7 @@ function LoginScreen({onLogin, resume, onLogout}){
     const allowed=getAllowedLines(u);
     const directEntry=getDirectEntry(u.don_vi);
     if(directEntry){
-      // ✅ Đơn vị chuyên trách (Nhà máy THCK/KHO VẬT TƯ/KHO CITYBUS/KHO 12M/XH_MINIBUS/
+      // ✅ Đơn vị chuyên trách (NHÀ MÁY THCK/KHO VẬT TƯ/KHO CITYBUS/KHO 12M/XH_MINIBUS/
       // XH_CITYBUS/XH_12) → BẮT BUỘC vào thẳng đúng tab VÀ đúng dòng xe cố định của mình,
       // không qua màn chọn dòng xe lẫn Tổng Quan/Danh mục dự án, không phụ thuộc thứ tự
       // bảng phân quyền đã lưu trên Supabase.
@@ -1656,7 +1656,7 @@ function LoginScreen({onLogin, resume, onLogout}){
       )}
 
       {/* ✅ Lối tắt "Truy cập hệ thống chính" cho nhóm "theo dõi tổng thể" (role "khth" — Xưởng
-          Hàn, Ban CN, Phòng KT, Ban LĐNM, Phòng KH-TH, và mọi đơn vị khth được cấp nhiều hơn 1
+          Hàn, Ban CN, Phòng KT, Ban LĐNM, PHÒNG KH-TH, và mọi đơn vị khth được cấp nhiều hơn 1
           dòng xe). Trước đây các đơn vị này CHỈ vào được màn "Tổng Quan" độc lập (chỉ xem số
           liệu, không có tab) sau khi chọn dòng xe + trạng thái dự án — không bao giờ chạm tới
           hệ thống chính có đủ tab (📦 Vật tư / 📄 Phiếu GN / 📈 Báo Cáo). Nay cho vào thẳng
@@ -1925,6 +1925,41 @@ const StatCard=({icon,label,value,color})=>(
   </div>
 );
 
+// ── Modal xác nhận xoá đơn vị còn tài khoản (bắt tick "Tôi hiểu" mới cho xoá — tránh bấm nhầm) ──
+function DeleteDeptModal({modal,onClose,onConfirm}){
+  const {name,affected}=modal;
+  const [agree,setAgree]=useState(false);
+  const [busy,setBusy]=useState(false);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}
+      onClick={e=>{if(e.target===e.currentTarget&&!busy)onClose();}}>
+      <div style={{background:"#fff",borderRadius:14,padding:28,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+        <div style={{fontWeight:800,fontSize:16,marginBottom:4,color:"#991b1b"}}>⚠️ Đơn vị "{name}" còn {affected.length} tài khoản</div>
+        <div style={{fontSize:12,color:"#6b7280",marginBottom:12}}>Bạn không thể xoá đơn vị mà giữ nguyên các tài khoản này. Chọn một trong hai cách bên dưới:</div>
+        <div style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,padding:"10px 12px",marginBottom:14,maxHeight:140,overflowY:"auto"}}>
+          {affected.map(u=>(
+            <div key={u.id} style={{fontSize:12,padding:"3px 0",display:"flex",gap:6,alignItems:"center"}}>
+              <span>{u.avatar}</span><span style={{fontWeight:700}}>{u.ten}</span><span style={{color:"#9ca3af",fontFamily:"monospace"}}>({u.id})</span>
+            </div>
+          ))}
+        </div>
+        <label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:12,color:"#374151",marginBottom:16,cursor:"pointer",background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"10px 12px"}}>
+          <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} style={{marginTop:2,width:16,height:16,cursor:"pointer"}}/>
+          <span>Tôi hiểu và muốn <b>xoá luôn cả {affected.length} tài khoản</b> ở trên cùng với đơn vị "{name}". Thao tác này KHÔNG thể hoàn tác.</span>
+        </label>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <button onClick={onClose} disabled={busy}
+            style={{border:"none",borderRadius:8,cursor:busy?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13,padding:"8px 16px",background:"#f3f4f6",color:"#374151",opacity:busy?0.6:1}}>Huỷ, giữ nguyên</button>
+          <button onClick={async()=>{setBusy(true);await onConfirm(name,affected);setBusy(false);}} disabled={!agree||busy}
+            style={{border:"none",borderRadius:8,cursor:!agree||busy?"not-allowed":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,padding:"8px 20px",background:!agree||busy?"#fca5a5":"#991b1b",color:"#fff",opacity:!agree||busy?0.7:1}}>
+            {busy?"⏳ Đang xoá...":`🗑️ Xoá đơn vị + ${affected.length} tài khoản`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe, tabQuyen, setTabQuyen, dbUpsertQuyenChucNang}){
   const {t} = useLang();
   const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
@@ -1937,9 +1972,11 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [search,setSearch]         = useState("");       // tìm theo ID / họ tên / đơn vị
   const [collapsedGroups,setCollapsedGroups]=useState(()=>new Set()); // các đơn vị (có tài khoản) đang bị gấp lại
   const [confirmDelDept,setConfirmDelDept]=useState(null); // tên đơn vị đang chờ bấm xác nhận xoá lần 2
+  const [renameDept,setRenameDept]=useState(null); // {oldName,value} — đơn vị đang đổi tên qua modal (thay cho window.prompt)
+  const [deleteDeptModal,setDeleteDeptModal]=useState(null); // {name,affected:[user...]} — modal hỏi xoá kèm tài khoản khi đơn vị còn người
   const toggleGroup=dv=>setCollapsedGroups(s=>{const n=new Set(s);n.has(dv)?n.delete(dv):n.add(dv);return n;});
   const normTxt=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
-  // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "Phòng KH-TH" — chỉ xem, không thao tác)
+  // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "PHÒNG KH-TH" — chỉ xem, không thao tác)
   // Dùng chung cho MỌI dòng xe/thiết bị — đồng bộ qua Supabase bảng "custom_depts" (không qua T(),
   // vì đơn vị/phòng ban là cơ cấu tổ chức chung, không tách theo dòng xe). localStorage chỉ còn
   // vai trò cache tạm để hiển thị ngay khi vừa mở app (trước khi Supabase load xong).
@@ -2008,7 +2045,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   // ✅ Suy luận VAI TRÒ THẬT (chức năng) của 1 đơn vị tùy chỉnh dựa theo QUY ƯỚC ĐẶT TÊN:
   //   "KHO ..."    → vai trò "kho" (có chức năng Soạn Hàng)  — VD: "KHO VT1", "KHO CITYBUS", "KHO 12M"
   //   "XH_..."     → vai trò "xuonghan" (có chức năng Duyệt/Nhận Hàng) — VD: "XH_MINIBUS", "XH_CITYBUS", "XH_12M"
-  //   còn lại      → "khth" (chỉ xem, như Phòng KH-TH) — VD: "Phòng KT", "Ban CN"
+  //   còn lại      → "khth" (chỉ xem, như PHÒNG KH-TH) — VD: "Phòng KT", "Ban CN"
   // Dòng xe cụ thể mà đơn vị đó được thao tác là do Ô TICK ở bảng "Phân quyền dòng xe theo
   // đơn vị" phía trên quyết định (ví dụ tick riêng "City Bus" cho "KHO CITYBUS") — không hardcode ở đây.
   // ✅ FIX: trước đây chỉ nhận diện đúng "KHO VT..." (bắt buộc có chữ "VT" ngay sau "KHO"),
@@ -2051,11 +2088,24 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 
   // ✅ Đổi tên 1 đơn vị tùy chỉnh — cập nhật đồng bộ: danh sách đơn vị, phân quyền dòng xe,
   // và toàn bộ tài khoản đang thuộc đơn vị đó (đổi sang tên mới), cả trên Supabase.
-  const renameCustomDept=async(oldName)=>{
-    const name=window.prompt(`Đổi tên đơn vị "${oldName}" thành:`,oldName);
-    if(!name||!name.trim()||name.trim()===oldName)return;
+  // ⚠️ FIX: nút "Sửa" trước đây dùng window.prompt() để hỏi tên mới. Giống lỗi đã gặp với
+  // window.confirm() ở nút "Xoá" (xem ghi chú bên dưới), window.prompt() cũng bị CHẶN hoặc
+  // không hiển thị được trên nhiều webview di động (trình duyệt trong Zalo, PWA đã "Thêm vào
+  // màn hình chính"...) — khiến người dùng bấm "Sửa" nhưng KHÔNG THẤY GÌ XẢY RA, tưởng nút bị
+  // lỗi ("không thực hiện triệt để"). Nay thay bằng modal nhập liệu NGAY TRONG GIAO DIỆN
+  // (giống các modal khác của app), không phụ thuộc hộp thoại của trình duyệt/webview nữa.
+  const renameCustomDept=(oldName)=>{
+    setRenameDept({oldName, value: oldName});
+  };
+  const doRenameCustomDept=async(oldName,newNameRaw)=>{
+    const name=String(newNameRaw||"");
+    if(!name.trim()||name.trim()===oldName){ setRenameDept(null); return; }
     const newName=name.trim();
-    if(customDepts.includes(newName)||BASE_DON_VI.includes(newName)){alert(`⚠️ Tên đơn vị "${newName}" đã tồn tại!`);return;}
+    if(customDepts.includes(newName)||BASE_DON_VI.includes(newName)){
+      fl(`⚠️ Tên đơn vị "${newName}" đã tồn tại!`);
+      return;
+    }
+    setRenameDept(null);
     setCustomDepts(l=>{
       const updated=l.map(d=>d===oldName?newName:d);
       try{localStorage.setItem("customDepts",JSON.stringify(updated));}catch{}
@@ -2116,12 +2166,25 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const deleteCustomDept=(name)=>{
     const affected=users.filter(u=>u.don_vi===name);
     if(affected.length>0){
-      fl(`⚠️ Không thể xoá "${name}" vì còn ${affected.length} tài khoản đang thuộc đơn vị này. Vui lòng đổi đơn vị cho các tài khoản đó trước.`);
+      // ✅ Thay vì chặn hẳn, mở modal riêng hỏi rõ: xoá kèm luôn các tài khoản này hay huỷ.
+      setDeleteDeptModal({name,affected});
       return;
     }
     if(confirmDelDept===name){ doDeleteCustomDept(name); return; }
     setConfirmDelDept(name);
     setTimeout(()=>setConfirmDelDept(cur=>cur===name?null:cur),4000);
+  };
+  // ── Xoá đơn vị KÈM xoá luôn các tài khoản còn thuộc đơn vị đó (bấm từ modal deleteDeptModal) ──
+  const doDeleteCustomDeptWithUsers=async(name,affected)=>{
+    setDeleteDeptModal(null);
+    const ids=affected.map(u=>u.id);
+    setUsers(l=>l.filter(u=>!ids.includes(u.id)));
+    for(const u of affected){
+      try{ dbDeleteUser&&await dbDeleteUser(u.id); }
+      catch(e){ console.error("Xoá tài khoản",u.id,"thất bại:",e.message); }
+    }
+    await doDeleteCustomDept(name);
+    fl(`✓ Đã xoá đơn vị "${name}" và ${ids.length} tài khoản đi kèm`);
   };
   const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",boxShadow:"0 1px 4px rgba(99,102,241,0.08)"};
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
@@ -2163,7 +2226,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 
   // ── Phân quyền dòng xe theo đơn vị (áp dụng cho cả đơn vị, không phải từng tài khoản) ──
   const ALL_LINES_META=[{id:"12m",label:"Xe 12M"},{id:"citybus",label:"City Bus"},{id:"minibus",label:"Mini Bus"}];
-  const BASE_DON_VI=["Nhà máy THCK","XƯỞNG HÀN","KHO VẬT TƯ","Phòng KH-TH"];
+  const BASE_DON_VI=["NHÀ MÁY THCK","XƯỞNG HÀN","KHO VẬT TƯ","PHÒNG KH-TH"];
   const allDonViGroups=[...BASE_DON_VI, ...customDepts.filter(d=>!BASE_DON_VI.includes(d))];
   const toggleLineQuyen=(donVi,lineId)=>{
     const cur=lineQuyen[donVi]||[];
@@ -2184,13 +2247,13 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 
   // ✅ TRƯỚC ĐÂY: chỉ gom tài khoản theo 4 VAI TRÒ (thck/xuonghan/kho/khth) — nghĩa là
   // MỌI đơn vị cùng vai trò "kho" (KHO VẬT TƯ, KHO CITYBUS, KHO 12M...) bị dồn chung
-  // vào MỘT bảng "📦 KHO VẬT TƯ" duy nhất, và mọi đơn vị "khth" (Phòng KH-TH, Phòng KT,
-  // Ban CN, BAN LĐNM...) bị dồn chung vào bảng "📋 Phòng KH-TH" — không tách riêng
+  // vào MỘT bảng "📦 KHO VẬT TƯ" duy nhất, và mọi đơn vị "khth" (PHÒNG KH-TH, Phòng KT,
+  // Ban CN, BAN LĐNM...) bị dồn chung vào bảng "📋 PHÒNG KH-TH" — không tách riêng
   // được từng đơn vị như mong muốn.
   // NAY: mỗi ĐƠN VỊ (don_vi) có bảng tài khoản RIÊNG của mình — áp dụng chung cho MỌI
   // đơn vị tùy chỉnh, kể cả các đơn vị thêm sau này, không cần sửa code thêm nữa.
   const roleMeta={thck:{icon:"🏭",mau:"#1d4ed8"},xuonghan:{icon:"🚗",mau:"#b45309"},kho:{icon:"📦",mau:"#0f766e"},khth:{icon:"📋",mau:"#7c3aed"}};
-  const baseRoleOf=dv=>dv==="Nhà máy THCK"?"thck":dv==="XƯỞNG HÀN"?"xuonghan":dv==="KHO VẬT TƯ"?"kho":dv==="Phòng KH-TH"?"khth":donViBaseRole(dv);
+  const baseRoleOf=dv=>dv==="NHÀ MÁY THCK"?"thck":dv==="XƯỞNG HÀN"?"xuonghan":dv==="KHO VẬT TƯ"?"kho":dv==="PHÒNG KH-TH"?"khth":donViBaseRole(dv);
   // Đề phòng tài khoản nào đó có don_vi không khớp bất kỳ đơn vị nào đang biết (đơn vị
   // đã bị xoá/đổi tên...) — vẫn gom vào 1 nhóm riêng theo đúng tên đó để KHÔNG có tài
   // khoản nào bị "mất tích" khỏi danh sách.
@@ -2331,12 +2394,12 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                 const v=e.target.value;
                 if(v==="__add_new__"){addCustomDept();return;}
                 if(v.includes("::")){const [r,label]=v.split("::");setForm(f=>({...f,role:r,don_vi:label,avatar:donViAvatar(label)}));return;}
-                const r=v;setForm(f=>({...f,role:r,don_vi:r==="thck"?"Nhà máy THCK":r==="kho"?"KHO VẬT TƯ":r==="khth"?"Phòng KH-TH":"XƯỞNG HÀN",avatar:r==="thck"?"🏭":r==="kho"?"📦":r==="khth"?"📋":"🚗"}));
+                const r=v;setForm(f=>({...f,role:r,don_vi:r==="thck"?"NHÀ MÁY THCK":r==="kho"?"KHO VẬT TƯ":r==="khth"?"PHÒNG KH-TH":"XƯỞNG HÀN",avatar:r==="thck"?"🏭":r==="kho"?"📦":r==="khth"?"📋":"🚗"}));
               }} style={inp}>
-              <option value="thck">🏭 Nhà máy THCK</option>
+              <option value="thck">🏭 NHÀ MÁY THCK</option>
               <option value="xuonghan">🚗 XƯỞNG HÀN</option>
               <option value="kho">📦 KHO VẬT TƯ</option>
-              <option value="khth">📋 Phòng KH-TH (chỉ xem)</option>
+              <option value="khth">📋 PHÒNG KH-TH (chỉ xem)</option>
               {customDepts.map(d=>{
                 const r=donViBaseRole(d);
                 const label=r==="kho"?`📦 ${d} (Soạn hàng)`:r==="xuonghan"?`🚗 ${d} (Duyệt hàng)`:`📋 ${d} (chỉ xem)`;
@@ -2415,6 +2478,34 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                 <span>{g.grpIcon}</span><span>{g.dv}</span><span style={{color:"#c7d2fe",fontWeight:800}}>+</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL XOÁ ĐƠN VỊ CÒN TÀI KHOẢN — cho chọn xoá kèm luôn các tài khoản hoặc huỷ ── */}
+      {deleteDeptModal&&(
+        <DeleteDeptModal modal={deleteDeptModal} onClose={()=>setDeleteDeptModal(null)} onConfirm={doDeleteCustomDeptWithUsers}/>
+      )}
+
+      {/* ── MODAL ĐỔI TÊN ĐƠN VỊ (thay cho window.prompt — không hoạt động trong 1 số webview) ── */}
+      {renameDept&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setRenameDept(null);}}>
+          <div style={{background:"#fff",borderRadius:14,padding:28,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>✏️ Đổi tên đơn vị</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Đơn vị hiện tại: <b>{renameDept.oldName}</b></div>
+            <input autoFocus value={renameDept.value}
+              onChange={e=>setRenameDept(r=>({...r,value:e.target.value}))}
+              onKeyDown={e=>{if(e.key==="Enter")doRenameCustomDept(renameDept.oldName,renameDept.value);if(e.key==="Escape")setRenameDept(null);}}
+              style={{width:"100%",padding:"9px 12px",border:"1.5px solid #c7d2fe",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f0f4ff",marginBottom:16}}/>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setRenameDept(null)}
+                style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13,padding:"8px 16px",background:"#f3f4f6",color:"#374151"}}>Hủy</button>
+              <button onClick={()=>doRenameCustomDept(renameDept.oldName,renameDept.value)}
+                style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,padding:"8px 20px",background:"#1d4ed8",color:"#fff"}}>
+                ✓ Xác nhận đổi
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -6558,7 +6649,7 @@ Bạn có chắc chắn không?`;
             </div>
 
             {/* Thêm xe / Xoá dự án — CHỈ hiển thị cho 3 đơn vị được phân công nhiệm vụ này:
-                XƯỞNG HÀN, Phòng KT, Phòng KH-TH. Mọi đơn vị khác (Nhà máy THCK, KHO VẬT TƯ,
+                XƯỞNG HÀN, Phòng KT, PHÒNG KH-TH. Mọi đơn vị khác (NHÀ MÁY THCK, KHO VẬT TƯ,
                 KHO CITYBUS, KHO 12M, XH_MINIBUS, XH_CITYBUS, XH_12, Ban CN, Ban LĐNM...) đều
                 KHÔNG thấy nút này, dù trước đây chỉ ẩn theo vai trò "khth". */}
             {SHOW_THEM_XE_DON_VI.includes(user.don_vi)&&(
@@ -6573,7 +6664,7 @@ Bạn có chắc chắn không?`;
         );
       })()}
 
-      {/* BOTTOM NAV — thanh điều hướng dưới cùng, hiển thị đúng bộ tab đã phân quyền cho từng phòng ban (Nhà máy THCK / Kho vật tư / Xưởng hàn / KHTH...) */}
+      {/* BOTTOM NAV — thanh điều hướng dưới cùng, hiển thị đúng bộ tab đã phân quyền cho từng phòng ban (NHÀ MÁY THCK / Kho vật tư / Xưởng hàn / KHTH...) */}
       {(()=>{
         const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥"};
         const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
@@ -6721,7 +6812,7 @@ Bạn có chắc chắn không?`;
         {/* ── SOẠN HÀNG ── */}
         {tab==="soan"&&(()=>{
           // ✅ Giới hạn theo tài khoản: "Kho vật tư" chỉ thấy vật tư Nguồn gốc = CKD,
-          // "Nhà máy THCK" chỉ thấy vật tư Nguồn gốc = THCK. Vai trò khác (VD Xưởng Hàn) xem đầy đủ.
+          // "NHÀ MÁY THCK" chỉ thấy vật tư Nguồn gốc = THCK. Vai trò khác (VD Xưởng Hàn) xem đầy đủ.
           // Chỉ áp dụng RIÊNG trong tab Soạn Hàng — không ảnh hưởng các tab/màn hình khác.
           const bom = isKHO ? bomFull.filter(v=>(v.ng||"").trim().toUpperCase()==="CKD")
                     : isTHCK ? bomFull.filter(v=>(v.ng||"").trim().toUpperCase()==="THCK")
@@ -7019,7 +7110,7 @@ Bạn có chắc chắn không?`;
             <div>
               <div style={{background:"linear-gradient(135deg,#431407,#b45309)",borderRadius:12,padding:"16px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}>
                 <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{t("titleDuyet")}</div>
-                <div style={{fontSize:12,opacity:.8}}>{proj.icon} {proj.ten} · Đơn từ Nhà máy THCK gửi · {choXN.length} chờ duyệt · {daXNAll.length} đã duyệt</div>
+                <div style={{fontSize:12,opacity:.8}}>{proj.icon} {proj.ten} · Đơn từ NHÀ MÁY THCK gửi · {choXN.length} chờ duyệt · {daXNAll.length} đã duyệt</div>
                 <div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
                   {[["Chờ duyệt",choXN.length,"#fca5a5"],["Đã duyệt",daXNAll.length,"#6ee7b7"],["Tổng đơn",allPh.length,"#fff"]].map(([l,v,c])=>(
                     <div key={l} style={{textAlign:"center",background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px"}}>
@@ -7062,7 +7153,7 @@ Bạn có chắc chắn không?`;
                 <div style={{background:"#fff",borderRadius:10,padding:60,textAlign:"center",color:"#9ca3af",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
                   <div style={{fontSize:48,marginBottom:12}}>📭</div>
                   <div style={{fontSize:14,fontWeight:600}}>Chưa có đơn hàng nào</div>
-                  <div style={{fontSize:12,marginTop:4}}>Đơn hàng sẽ hiện ở đây khi Nhà máy THCK gửi</div>
+                  <div style={{fontSize:12,marginTop:4}}>Đơn hàng sẽ hiện ở đây khi NHÀ MÁY THCK gửi</div>
                 </div>
               )}
 
@@ -7189,7 +7280,7 @@ Bạn có chắc chắn không?`;
         {/* ── PHIẾU GN ── */}
         {tab==="pgn"&&(()=>{
           // ✅ Đồng bộ với Soạn Hàng: "Kho vật tư" chỉ quản mã Nguồn gốc = CKD,
-          // "Nhà máy THCK" chỉ quản mã Nguồn gốc = THCK. Xưởng Hàn xem đầy đủ (để xác nhận).
+          // "NHÀ MÁY THCK" chỉ quản mã Nguồn gốc = THCK. Xưởng Hàn xem đầy đủ (để xác nhận).
           // Trước đây tab này dùng bom/th KHÔNG lọc theo vai trò — số "Còn thiếu" tổng/scoped
           // bị lệch với danh sách phiếu GN (đã lọc theo nguoi_soan ở dưới), gây hiểu nhầm.
           const bom = isKHO ? bomFull.filter(v=>(v.ng||"").trim().toUpperCase()==="CKD")
