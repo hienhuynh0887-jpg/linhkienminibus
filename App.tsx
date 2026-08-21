@@ -2505,7 +2505,18 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     const meta=DONVI_ICON_META[dv]||roleMeta[role]||roleMeta.khth;
     return {dv,grpList,grpOnline:grpList.filter(isOnline).length,grpMau:meta.mau,grpIcon:meta.icon};
   });
-  const groupsWithAccounts=allGroups.filter(g=>g.grpList.length>0);
+  const unsortedGroupsWithAccounts=allGroups.filter(g=>g.grpList.length>0);
+  // ── Thứ tự hiển thị cố định cho lưới icon (Hàng 1: BAN LĐNM, PHÒNG KH-TH, PHÒNG KT, BAN CN
+  // — Hàng 2: NHÀ MÁY THCK, KHO VẬT TƯ, KHO CITYBUS, KHO 12M — Hàng 3: XƯỞNG HÀN, XH_MINIBUS,
+  // XH_CITYBUS, XH_12M). Đơn vị nào không có trong danh sách này sẽ xếp cuối, giữ nguyên thứ tự cũ.
+  const DEPT_GRID_ORDER=["BAN LĐNM","PHÒNG KH-TH","PHÒNG KT","BAN CN","NHÀ MÁY THCK","KHO VẬT TƯ","KHO CITYBUS","KHO 12M","XƯỞNG HÀN","XH_MINIBUS","XH_CITYBUS","XH_12M"];
+  const groupsWithAccounts=[...unsortedGroupsWithAccounts].sort((a,b)=>{
+    const ia=DEPT_GRID_ORDER.indexOf(a.dv), ib=DEPT_GRID_ORDER.indexOf(b.dv);
+    if(ia===-1&&ib===-1)return 0;
+    if(ia===-1)return 1;
+    if(ib===-1)return -1;
+    return ia-ib;
+  });
   const totalOnline=users.filter(isOnline).length;
 
   return(
