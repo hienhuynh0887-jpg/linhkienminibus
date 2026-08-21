@@ -3598,6 +3598,11 @@ export default function App(){
   const [viewPh,   setViewPh]   = useState(null);
   const phieuRef = useRef(null); // vùng nội dung phiếu GN để chụp thành ảnh khi bấm "Chia sẻ"
   const bcCardRef = useRef(null); // vùng toàn bộ thẻ Báo Cáo (banner+thống kê+donut+biểu đồ+bảng) để chụp thành ảnh khi bấm "Xuất báo cáo"
+  // ✅ Ghi nhớ pid mà người dùng VỪA TỰ TAY bấm "xem chi tiết" từ danh sách "Đã hoàn thành"
+  // (trang con của tab Báo cáo) — để effect tự đồng bộ bcSubTab bên dưới KHÔNG đè ngược
+  // sub-tab về "done" ngay sau đó (vì dự án đó vẫn đang "hoan_thanh"), giữ đúng ý người dùng
+  // là muốn xem báo cáo chi tiết của dự án đã hoàn thành đó.
+  const bcManualDetailPidRef = useRef(null);
   const [dangChiaSe, setDangChiaSe] = useState(false);
   const [slThucEdit, setSlThucEdit] = useState<Record<string,number>>({}); // ctid -> sl thực nhận đang sửa
   const [editPh,   setEditPh]   = useState(null);  // phiếu đang chỉnh sửa {id, sp, ngay, gc, ct:[]}
@@ -4423,6 +4428,20 @@ export default function App(){
   const proj  = projs.find(p=>p.id===pid) || projs[0] || {mau:"#1d4ed8",icon:"🚐",ten:"",so_xe:1};
   const soXe  = proj.so_xe||1;
   const DMS   = [...new Set(bom.map(v=>v.ng).filter(Boolean))].sort(sapXepDM);
+
+  // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: chọn 1
+  // dự án đã hoàn thành → tự chuyển hẳn sang "✅ Đã hoàn thành"; chọn dự án đang làm → tự
+  // chuyển về "🚧 Đang thực hiện". Chỉ chạy khi PID thực sự đổi (không đè lên lựa chọn tay
+  // của người dùng khi họ tự bấm qua lại 2 nút trong lúc pid không đổi).
+  useEffect(()=>{
+    if(!pid) return;
+    if(bcManualDetailPidRef.current===pid) return; // vừa tự bấm xem chi tiết dự án này — giữ nguyên "dang", không tự đè lại
+    const p=projs.find(x=>x.id===pid);
+    if(!p) return;
+    setBcSubTab(p.trang_thai==="hoan_thanh" ? "done" : "dang");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pid]);
+
 
   // ── Helpers ──
   const flash=m=>{setMsg(m);setTimeout(()=>setMsg(""),2500);};
@@ -6756,13 +6775,20 @@ Bạn có chắc chắn không?`;
         </div>{/* /zIndex:1 wrapper */}
       </div>
 
-      {/* Modal chọn Dự án (được mở từ ô "DỰ ÁN" trong dashboard bên dưới) */}
-      {projPickerOpen&&(
+      {/* Modal chọn Dự án (được mở từ ô "DỰ ÁN" trong dashboard bên dưới) — ✅ Khi đang ở tab
+          "Báo cáo" và đang xem trang con "Đã hoàn thành", danh sách CHỈ hiện các dự án đã
+          hoàn thành (khớp đúng ngữ cảnh đang xem, tránh nhảy nhầm sang dự án đang làm). */}
+      {projPickerOpen&&(()=>{
+        const dangLocDaXong = tab==="bc" && bcSubTab==="done";
+        const projPickerList = dangLocDaXong ? projs.filter(p=>p.trang_thai==="hoan_thanh") : projs;
+        return(
         <>
           <div onClick={()=>setProjPickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
           <div style={{position:"fixed",left:16,right:16,top:"18%",background:"#fff",borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,0.25)",maxWidth:340,margin:"0 auto",zIndex:41,overflow:"hidden",maxHeight:"60vh",overflowY:"auto"}}>
-            <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DỰ ÁN</div>
-            {[...projs].reverse().map(p=>(
+            <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DỰ ÁN{dangLocDaXong?" · ✅ Đã hoàn thành":""}</div>
+            {projPickerList.length===0?(
+              <div style={{padding:"20px 14px",fontSize:12,color:"#9ca3af",textAlign:"center"}}>— Chưa có dự án nào đã hoàn thành —</div>
+            ):[...projPickerList].reverse().map(p=>(
               <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:p.id===pid?`${p.mau||"#2563eb"}14`:"#fff",borderBottom:"1px solid #f1f5f9"}}>
                 <span onClick={()=>{sw(p.id);setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
                   <span style={{fontSize:16}}>{p.icon}</span>
@@ -6775,7 +6801,8 @@ Bạn có chắc chắn không?`;
             ))}
           </div>
         </>
-      )}
+        );
+      })()}
 
       {/* Modal chọn Dòng xe (được mở từ ô "DÒNG XE" trong dashboard bên dưới) — CHỈ liệt kê
           đúng (các) dòng xe tài khoản đang đăng nhập được cấp quyền (linesPickable), không
@@ -7847,7 +7874,7 @@ Bạn có chắc chắn không?`;
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {bcDoneList.map(p=>(
-                    <div key={p.id} onClick={()=>{sw(p.id);setBcSubTab("dang");}}
+                    <div key={p.id} onClick={()=>{bcManualDetailPidRef.current=p.id;sw(p.id);setBcSubTab("dang");}}
                       style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:p.id===pid?"1.5px solid #16a34a":"1px solid #f1f5f9"}}>
                       <div style={{width:38,height:38,borderRadius:"50%",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.icon||"✅"}</div>
                       <div style={{flex:1,minWidth:0}}>
