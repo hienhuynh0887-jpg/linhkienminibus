@@ -7840,9 +7840,32 @@ Bạn có chắc chắn không?`;
         {/* ── BÁO CÁO ── */}
         {tab==="bc"&&(()=>{
           const togDm=dm=>setBcDmO(s=>({...s,[dm]:!s[dm]}));
+          // ✅ Một dự án được coi là "đã nhận đủ vật tư toàn bộ" khi MỌI mã trong BOM của
+          // dự án đó đã được xác nhận nhận đủ số lượng cần (giống hệt cách tính "duAll"/
+          // "vatTuDu" ở các nơi khác), tính riêng cho TỪNG dự án p bằng bomDB[p.id]+phDB[p.id].
+          const isVatTuDu=(p)=>{
+            const soXeP=p.so_xe||1;
+            const bomP=bomDB[p.id]||[];
+            const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
+            const dnXNMapP={};
+            for(const ph of phP){
+              for(const c of(ph.ct||[])){
+                if(c.ok) dnXNMapP[c.ma]=(dnXNMapP[c.ma]||0)+(c.sl_thuc_nhan??c.sl??0);
+              }
+            }
+            const EPS=1e-6;
+            return bomP.length>0&&bomP.every(v=>{
+              const cn=(Number(v.dm)||0)*soXeP;
+              const dn=Number(dnXNMapP[v.ma])||0;
+              return dn+EPS>=cn;
+            });
+          };
           // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho trang con "done")
+          // — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
+          // đã nhận đủ 100% vật tư (isVatTuDu) dù chưa bấm nút — để tab "Báo cáo" luôn phản
+          // ánh đúng thực tế, không bắt người dùng phải tự tay chuyển trạng thái.
           // — sắp theo hoan_thanh_ts/ngay_hoan_thanh giảm dần, giống màn "Đã Thực Hiện" cũ.
-          const bcDoneList=[...projs].filter(p=>p.trang_thai==="hoan_thanh").sort((a,b)=>{
+          const bcDoneList=[...projs].filter(p=>p.trang_thai==="hoan_thanh"||isVatTuDu(p)).sort((a,b)=>{
             const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
             const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
             if(ka!==kb) return String(kb).localeCompare(String(ka));
