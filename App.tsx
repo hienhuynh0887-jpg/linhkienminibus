@@ -2055,12 +2055,12 @@ function AccordionCard({icon,title,subtitle,badge,badgeColor="#1d4ed8",open,onTo
     </div>
   );
 }
-const StatCard=({icon,label,value,color})=>(
-  <div style={{background:"#fff",borderRadius:10,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",gap:10}}>
-    <div style={{width:34,height:34,borderRadius:9,background:color+"1a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{icon}</div>
+const StatCard=({icon,label,value,color,compact})=>(
+  <div style={{background:"#fff",borderRadius:10,padding:compact?"10px 8px":"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",flexDirection:compact?"column":"row",alignItems:compact?"flex-start":"center",gap:compact?6:10}}>
+    <div style={{width:compact?28:34,height:compact?28:34,borderRadius:9,background:color+"1a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:compact?14:17,flexShrink:0}}>{icon}</div>
     <div style={{minWidth:0}}>
-      <div style={{fontSize:16,fontWeight:800,color:"#1f2937",lineHeight:1.1}}>{value}</div>
-      <div style={{fontSize:10.5,color:"#6b7280",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{fontSize:compact?14:16,fontWeight:800,color:"#1f2937",lineHeight:1.1}}>{value}</div>
+      <div style={{fontSize:compact?9.5:10.5,color:"#6b7280",whiteSpace:compact?"normal":"nowrap",lineHeight:1.2}}>{label}</div>
     </div>
   </div>
 );
@@ -2109,11 +2109,10 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [permOpen,setPermOpen]     = useState(false);   // khối "Phân quyền dòng xe" — mặc định gấp lại
   const [permOpen2,setPermOpen2]   = useState(false);   // khối "Phân quyền chức năng" — mặc định gấp lại
   const [addOpen,setAddOpen]       = useState(false);   // khối "Thêm tài khoản mới" — mặc định gấp lại
-  const [collapsedGroups,setCollapsedGroups]=useState(()=>new Set()); // các đơn vị (có tài khoản) đang bị gấp lại — dùng cho lưới icon
+  const [selectedDept,setSelectedDept]=useState(null); // đơn vị đang được chọn nổi bật trong lưới icon (chỉ 1 đơn vị/lần)
   const [confirmDelDept,setConfirmDelDept]=useState(null); // tên đơn vị đang chờ bấm xác nhận xoá lần 2
   const [renameDept,setRenameDept]=useState(null); // {oldName,value} — đơn vị đang đổi tên qua modal (thay cho window.prompt)
   const [deleteDeptModal,setDeleteDeptModal]=useState(null); // {name,affected:[user...]} — modal hỏi xoá kèm tài khoản khi đơn vị còn người
-  const toggleGroup=dv=>setCollapsedGroups(s=>{const n=new Set(s);n.has(dv)?n.delete(dv):n.add(dv);return n;});
   // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "PHÒNG KH-TH" — chỉ xem, không thao tác)
   // Dùng chung cho MỌI dòng xe/thiết bị — đồng bộ qua Supabase bảng "custom_depts" (không qua T(),
   // vì đơn vị/phòng ban là cơ cấu tổ chức chung, không tách theo dòng xe). localStorage chỉ còn
@@ -2512,10 +2511,10 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   return(
     <div>
       {/* ── TỔNG QUAN ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:14}}>
-        <StatCard icon="👥" label="Tổng tài khoản" value={users.length} color="#1d4ed8"/>
-        <StatCard icon="🏢" label="Đơn vị đang dùng" value={`${groupsWithAccounts.length}/${allGroups.length}`} color="#7c3aed"/>
-        <StatCard icon="🟢" label="Đang online" value={totalOnline} color="#16a34a"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+        <StatCard compact icon="🏢" label="Đơn vị đang dùng" value={`${groupsWithAccounts.length}/${allGroups.length}`} color="#7c3aed"/>
+        <StatCard compact icon="👥" label="Tổng tài khoản" value={users.length} color="#1d4ed8"/>
+        <StatCard compact icon="🟢" label="Đang online" value={totalOnline} color="#16a34a"/>
       </div>
 
       {/* ── PHÂN QUYỀN DÒNG XE (gấp gọn mặc định) ── */}
@@ -2660,26 +2659,72 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
         </span>
       </div>
 
-      {/* ── LƯỚI ICON THEO ĐƠN VỊ (12 khối) ── */}
+      {/* ── LƯỚI ICON THEO ĐƠN VỊ — thu nhỏ, 4 ô/hàng. Bấm 1 ô để chọn (viền nổi bật) và
+          xem danh sách tài khoản của đơn vị đó ở bảng cuối cùng, bên dưới toàn bộ lưới ── */}
       {groupsWithAccounts.length>0&&(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))",gap:12,marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4, 1fr)",gap:8,marginBottom:16}}>
           {groupsWithAccounts.map(g=>{
             const {dv,grpList,grpOnline,grpMau,grpIcon}=g;
-            const open=!collapsedGroups.has(dv);
+            const selected=selectedDept===dv;
             return (
-              <button key={dv} onClick={()=>toggleGroup(dv)}
-                style={{cursor:"pointer",border:open?`2px solid ${grpMau}`:"1.5px solid #e5e7eb",borderRadius:16,background:open?`${grpMau}14`:"#fff",padding:"16px 8px 12px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,boxShadow:open?`0 4px 14px ${grpMau}33`:"0 1px 4px rgba(0,0,0,0.06)",transition:"all .15s",position:"relative",fontFamily:"inherit"}}>
-                {grpOnline>0&&<span style={{position:"absolute",top:9,right:9,width:9,height:9,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
-                <div style={{width:54,height:54,borderRadius:14,background:`${grpMau}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,overflow:"hidden"}}>
-                  {DONVI_ICON_IMG[dv]?<img src={DONVI_ICON_IMG[dv]} alt={dv} style={{width:"100%",height:"100%",objectFit:"contain",padding:4,boxSizing:"border-box"}}/>:grpIcon}
+              <button key={dv} onClick={()=>setSelectedDept(d=>d===dv?null:dv)}
+                style={{cursor:"pointer",border:selected?`2.5px solid ${grpMau}`:"1.5px solid #e5e7eb",borderRadius:14,background:selected?`${grpMau}1c`:"#fff",padding:"10px 4px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,boxShadow:selected?`0 4px 14px ${grpMau}4d`:"0 1px 4px rgba(0,0,0,0.06)",transform:selected?"scale(1.04)":"none",transition:"all .15s",position:"relative",fontFamily:"inherit"}}>
+                {grpOnline>0&&<span style={{position:"absolute",top:6,right:6,width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
+                <div style={{width:36,height:36,borderRadius:10,background:`${grpMau}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,overflow:"hidden"}}>
+                  {DONVI_ICON_IMG[dv]?<img src={DONVI_ICON_IMG[dv]} alt={dv} style={{width:"100%",height:"100%",objectFit:"contain",padding:3,boxSizing:"border-box"}}/>:grpIcon}
                 </div>
-                <div style={{fontWeight:800,fontSize:11,textTransform:"uppercase",color:"#1f2937",textAlign:"center",lineHeight:1.25}}>{dv}</div>
-                <span style={{background:grpMau,color:"#fff",borderRadius:20,padding:"1px 10px",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>{grpList.length} TÀI KHOẢN</span>
+                <div style={{fontWeight:800,fontSize:9,textTransform:"uppercase",color:"#1f2937",textAlign:"center",lineHeight:1.2}}>{dv}</div>
+                <span style={{background:grpMau,color:"#fff",borderRadius:20,padding:"1px 7px",fontSize:8.5,fontWeight:700,whiteSpace:"nowrap"}}>{grpList.length} TK</span>
               </button>
             );
           })}
         </div>
       )}
+
+      {/* ── BẢNG TÀI KHOẢN CỦA ĐƠN VỊ ĐANG ĐƯỢC CHỌN — hiển thị ngay dưới cùng của lưới icon ── */}
+      {selectedDept&&(()=>{
+        const g=groupsWithAccounts.find(x=>x.dv===selectedDept);
+        if(!g)return null;
+        const {dv,grpList,grpMau,grpIcon}=g;
+        return(
+          <div style={{background:"#fff",borderRadius:12,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+            <div style={{height:4,background:grpMau}}/>
+            <div style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:8,background:`${grpMau}14`,borderBottom:`1px solid ${grpMau}33`}}>
+              <span style={{fontSize:18,display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22}}>
+                {DONVI_ICON_IMG[dv]?<img src={DONVI_ICON_IMG[dv]} alt={dv} style={{width:"100%",height:"100%",objectFit:"contain"}}/>:grpIcon}
+              </span>
+              <span style={{fontWeight:800,fontSize:13,textTransform:"uppercase",color:grpMau}}>{dv}</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:"#6b7280",fontWeight:600}}>{grpList.length} tài khoản</span>
+              <button onClick={()=>setSelectedDept(null)} style={{border:"none",background:"transparent",cursor:"pointer",color:"#9ca3af",fontSize:13,padding:4,lineHeight:1}}>✕</button>
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
+                  {["","ID",t("thHoTen"),t("lbDV"),t("thTrangThai"),t("thMatKhau"),"",""].map((h,i)=><th key={i} style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {grpList.map((u,i)=>(
+                    <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
+                      <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
+                      <td style={{padding:"8px 12px",fontWeight:700,color:grpMau,fontFamily:"monospace"}}>{u.id}</td>
+                      <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}</td>
+                      <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
+                      <td style={{padding:"8px 12px"}}>
+                        {isOnline(u)
+                          ?<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>Online</span>
+                          :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
+                      </td>
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
+                      <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
+                      <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── MODAL XOÁ ĐƠN VỊ CÒN TÀI KHOẢN — cho chọn xoá kèm luôn các tài khoản hoặc huỷ ── */}
       {deleteDeptModal&&(
