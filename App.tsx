@@ -3607,6 +3607,11 @@ export default function App(){
   const [bcDmO,    setBcDmO]    = useState({});
   const [bcViTriChiTiet, setBcViTriChiTiet] = useState(false); // ẩn/hiện 2 bảng THCK · CKD trong "Tiến độ theo Vị trí"
   const [bcBlockOpen, setBcBlockOpen] = useState({THCK:"", CKD:""}); // lọc theo nguồn: ""(đóng) · "done"(Đã nhận) · "thieu"(Còn thiếu)
+  // ✅ Tab Báo Cáo tách 2 trang con: "dang" (Đang thực hiện — báo cáo chi tiết dự án đang
+  // chọn, y hệt hành vi cũ) và "done" (Đã hoàn thành — danh sách dự án đã hoàn thành của
+  // dòng xe hiện tại, bấm vào 1 dự án sẽ chuyển pid sang dự án đó rồi quay lại trang "dang"
+  // để hiện đúng báo cáo chi tiết, tái dùng 100% UI báo cáo hiện có, không cần tính lại).
+  const [bcSubTab, setBcSubTab] = useState("dang"); // "dang" | "done"
   const [pgnSr,    setPgnSr]    = useState("");
   const [pgnDm,    setPgnDm]    = useState("Tất cả");
   const [pgnSO,    setPgnSO]    = useState("all");
@@ -7808,7 +7813,53 @@ Bạn có chắc chắn không?`;
         {/* ── BÁO CÁO ── */}
         {tab==="bc"&&(()=>{
           const togDm=dm=>setBcDmO(s=>({...s,[dm]:!s[dm]}));
+          // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho trang con "done")
+          // — sắp theo hoan_thanh_ts/ngay_hoan_thanh giảm dần, giống màn "Đã Thực Hiện" cũ.
+          const bcDoneList=[...projs].filter(p=>p.trang_thai==="hoan_thanh").sort((a,b)=>{
+            const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
+            const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
+            if(ka!==kb) return String(kb).localeCompare(String(ka));
+            return String(b.id||"").localeCompare(String(a.id||""));
+          });
           return(
+            <>
+            {/* ── Bộ chuyển 2 trang con: Đang thực hiện / Đã hoàn thành ── */}
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <button onClick={()=>setBcSubTab("dang")}
+                style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
+                  background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
+                  boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
+                🚧 Đang thực hiện
+              </button>
+              <button onClick={()=>setBcSubTab("done")}
+                style={{flex:1,border:bcSubTab==="done"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
+                  background:bcSubTab==="done"?"linear-gradient(135deg,#16a34a,#15803d)":"#fff",color:bcSubTab==="done"?"#fff":"#374151",
+                  boxShadow:bcSubTab==="done"?"0 3px 10px rgba(22,163,74,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
+                ✅ Đã hoàn thành{bcDoneList.length>0?` (${bcDoneList.length})`:""}
+              </button>
+            </div>
+
+            {bcSubTab==="done"?(
+              bcDoneList.length===0?(
+                <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+                  — Chưa có dự án nào hoàn thành cho dòng xe này —
+                </div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {bcDoneList.map(p=>(
+                    <div key={p.id} onClick={()=>{sw(p.id);setBcSubTab("dang");}}
+                      style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:p.id===pid?"1.5px solid #16a34a":"1px solid #f1f5f9"}}>
+                      <div style={{width:38,height:38,borderRadius:"50%",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.icon||"✅"}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13.5,fontWeight:800,color:"#1f2937",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.ten}</div>
+                        <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>📅 Hoàn thành: {p.ngay_hoan_thanh||"—"}</div>
+                      </div>
+                      <span style={{fontSize:16,color:"#9ca3af",flexShrink:0}}>›</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            ):(
             <div>
               {/* ── Toàn bộ thẻ Báo Cáo (banner + thống kê + donut + biểu đồ + bảng) — bọc trong bcCardRef để chụp thành ảnh khi bấm "Xuất báo cáo" ── */}
               <div ref={bcCardRef}>
@@ -8119,6 +8170,8 @@ Bạn có chắc chắn không?`;
                 })}
               </div>
             </div>
+            )}
+            </>
           );
         })()}
 
