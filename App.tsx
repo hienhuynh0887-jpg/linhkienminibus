@@ -2109,9 +2109,11 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const [permOpen,setPermOpen]     = useState(false);   // khối "Phân quyền dòng xe" — mặc định gấp lại
   const [permOpen2,setPermOpen2]   = useState(false);   // khối "Phân quyền chức năng" — mặc định gấp lại
   const [addOpen,setAddOpen]       = useState(false);   // khối "Thêm tài khoản mới" — mặc định gấp lại
+  const [collapsedGroups,setCollapsedGroups]=useState(()=>new Set()); // các đơn vị (có tài khoản) đang bị gấp lại — dùng cho lưới icon
   const [confirmDelDept,setConfirmDelDept]=useState(null); // tên đơn vị đang chờ bấm xác nhận xoá lần 2
   const [renameDept,setRenameDept]=useState(null); // {oldName,value} — đơn vị đang đổi tên qua modal (thay cho window.prompt)
   const [deleteDeptModal,setDeleteDeptModal]=useState(null); // {name,affected:[user...]} — modal hỏi xoá kèm tài khoản khi đơn vị còn người
+  const toggleGroup=dv=>setCollapsedGroups(s=>{const n=new Set(s);n.has(dv)?n.delete(dv):n.add(dv);return n;});
   // ✅ Danh sách phòng/ban tùy chỉnh do người dùng tự thêm (hoạt động như "PHÒNG KH-TH" — chỉ xem, không thao tác)
   // Dùng chung cho MỌI dòng xe/thiết bị — đồng bộ qua Supabase bảng "custom_depts" (không qua T(),
   // vì đơn vị/phòng ban là cơ cấu tổ chức chung, không tách theo dòng xe). localStorage chỉ còn
@@ -2651,8 +2653,33 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
         </div>
       </AccordionCard>
 
-      {/* ── Khối "Quản Lý Tài Khoản" (lưới icon theo đơn vị + bảng tài khoản từng đơn vị)
-          đã được ẩn hoàn toàn theo yêu cầu — không hiển thị ở tab Người dùng nữa. ── */}
+      {/* ── TIÊU ĐỀ "QUẢN LÝ TÀI KHOẢN" — chữ hoa, in đậm, chữ trắng, nền đen bo tròn ── */}
+      <div style={{textAlign:"center",margin:"6px 0 18px"}}>
+        <span style={{display:"inline-block",background:"#0a0a0a",color:"#fff",fontWeight:800,fontSize:14,letterSpacing:0.6,textTransform:"uppercase",padding:"10px 30px",borderRadius:999,boxShadow:"0 6px 16px rgba(0,0,0,0.28)"}}>
+          Quản Lý Tài Khoản
+        </span>
+      </div>
+
+      {/* ── LƯỚI ICON THEO ĐƠN VỊ (12 khối) ── */}
+      {groupsWithAccounts.length>0&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))",gap:12,marginBottom:16}}>
+          {groupsWithAccounts.map(g=>{
+            const {dv,grpList,grpOnline,grpMau,grpIcon}=g;
+            const open=!collapsedGroups.has(dv);
+            return (
+              <button key={dv} onClick={()=>toggleGroup(dv)}
+                style={{cursor:"pointer",border:open?`2px solid ${grpMau}`:"1.5px solid #e5e7eb",borderRadius:16,background:open?`${grpMau}14`:"#fff",padding:"16px 8px 12px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,boxShadow:open?`0 4px 14px ${grpMau}33`:"0 1px 4px rgba(0,0,0,0.06)",transition:"all .15s",position:"relative",fontFamily:"inherit"}}>
+                {grpOnline>0&&<span style={{position:"absolute",top:9,right:9,width:9,height:9,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
+                <div style={{width:54,height:54,borderRadius:14,background:`${grpMau}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,overflow:"hidden"}}>
+                  {DONVI_ICON_IMG[dv]?<img src={DONVI_ICON_IMG[dv]} alt={dv} style={{width:"100%",height:"100%",objectFit:"contain",padding:4,boxSizing:"border-box"}}/>:grpIcon}
+                </div>
+                <div style={{fontWeight:800,fontSize:11,textTransform:"uppercase",color:"#1f2937",textAlign:"center",lineHeight:1.25}}>{dv}</div>
+                <span style={{background:grpMau,color:"#fff",borderRadius:20,padding:"1px 10px",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>{grpList.length} TÀI KHOẢN</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── MODAL XOÁ ĐƠN VỊ CÒN TÀI KHOẢN — cho chọn xoá kèm luôn các tài khoản hoặc huỷ ── */}
       {deleteDeptModal&&(
