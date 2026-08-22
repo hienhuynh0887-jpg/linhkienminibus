@@ -3654,6 +3654,13 @@ export default function App(){
   // dòng xe hiện tại, bấm vào 1 dự án sẽ chuyển pid sang dự án đó rồi quay lại trang "dang"
   // để hiện đúng báo cáo chi tiết, tái dùng 100% UI báo cáo hiện có, không cần tính lại).
   const [bcSubTab, setBcSubTab] = useState("dang"); // "dang" | "done"
+  // ✅ Khi bcSubTab==="done", mặc định hiện DANH SÁCH các dự án đã hoàn thành. Bấm vào 1 dự án
+  // trong danh sách đó thì set "bcDoneViewPid" = id dự án đó để chuyển sang xem CHI TIẾT báo
+  // cáo (banner + thống kê) của đúng dự án đó — mà KHÔNG cần đổi bcSubTab (nút "✅ Đã hoàn
+  // thành" vẫn giữ nguyên trạng thái được chọn, không tự nhảy về "🚧 Đang thực hiện" nữa).
+  // Điều kiện hiện danh sách hay chi tiết: so khớp "bcDoneViewPid===pid" (không chỉ khác null)
+  // để tự động rơi về danh sách nếu dự án đang chọn đổi sang project khác không qua click này.
+  const [bcDoneViewPid, setBcDoneViewPid] = useState(null);
   const [pgnSr,    setPgnSr]    = useState("");
   const [pgnDm,    setPgnDm]    = useState("Tất cả");
   const [pgnSO,    setPgnSO]    = useState("all");
@@ -6907,7 +6914,7 @@ Bạn có chắc chắn không?`;
               <div style={{padding:"20px 14px",fontSize:12,color:"#9ca3af",textAlign:"center"}}>{dangLocDaXong?"— Chưa có dự án nào đã hoàn thành —":dangLocDangLam?"— Không còn dự án nào đang thực hiện —":"— Chưa có dự án nào —"}</div>
             ):[...projPickerList].reverse().map(p=>(
               <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:p.id===pid?`${p.mau||"#2563eb"}14`:"#fff",borderBottom:"1px solid #f1f5f9"}}>
-                <span onClick={()=>{sw(p.id);setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+                <span onClick={()=>{sw(p.id);if(dangLocDaXong){bcNav.markManual(p.id);setBcDoneViewPid(p.id);}setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
                   <span style={{fontSize:16}}>{p.icon}</span>
                   <span style={{fontSize:13,fontWeight:700,color:p.id===pid?(p.mau||"#2563eb"):"#1f2937",lineHeight:1.3}}>{p.ten}</span>
                 </span>
@@ -6986,13 +6993,15 @@ Bạn có chắc chắn không?`;
           Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
       {tab==="bc"&&(
         <div style={{background:"#fff",padding:"12px 10px 0",display:"flex",gap:8}}>
-          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("dang");}}
+          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("dang");setBcDoneViewPid(null);}}
             style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
               background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
               boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
             🚧 Đang thực hiện
           </button>
-          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("done");}}
+          {/* ✅ Bấm trực tiếp nút "✅ Đã hoàn thành" luôn quay về DANH SÁCH (reset bcDoneViewPid
+              về null) — chỉ khi bấm vào 1 dự án CỤ THỂ trong danh sách mới vào xem chi tiết. */}
+          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("done");setBcDoneViewPid(null);}}
             style={{flex:1,border:bcSubTab==="done"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
               background:bcSubTab==="done"?"linear-gradient(135deg,#16a34a,#15803d)":"#fff",color:bcSubTab==="done"?"#fff":"#374151",
               boxShadow:bcSubTab==="done"?"0 3px 10px rgba(22,163,74,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
@@ -7979,9 +7988,17 @@ Bạn có chắc chắn không?`;
           // ✅ bcDoneList giờ được tính ở phạm vi component (xem gần projFullyReceived) và bộ
           // nút chuyển trang con "Đang thực hiện / Đã hoàn thành" đã dời lên phía TRÊN khối
           // "Dòng xe / Dự án" (ngay dưới thanh TABS) theo yêu cầu — không còn render lại ở đây.
+          // ⚠️ FIX "bấm vào dự án Đã hoàn thành không hiện gì": trước đây bcSubTab==="done" CHỈ
+          // render DANH SÁCH — không có nhánh nào hiển thị chi tiết báo cáo (banner+thống kê)
+          // cho 1 dự án đã hoàn thành cụ thể. Nay tách riêng: "showingDoneList" quyết định hiện
+          // danh sách hay chi tiết, dựa trên "bcDoneViewPid" (id dự án vừa được bấm chọn từ danh
+          // sách) — so khớp với "pid" hiện tại để tự rơi về danh sách nếu dự án đổi bằng cách
+          // khác. Nút "✅ Đã hoàn thành" bấm trực tiếp luôn quay về danh sách (xem chỗ khai báo
+          // nút, đã reset bcDoneViewPid=null ở đó).
+          const showingDoneList = bcSubTab==="done" && bcDoneViewPid!==pid;
           return(
             <>
-            {bcSubTab==="done"?(
+            {showingDoneList?(
               bcDoneList.length===0?(
                 <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
                   — Chưa có dự án nào hoàn thành cho dòng xe này —
@@ -7989,12 +8006,11 @@ Bạn có chắc chắn không?`;
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {bcDoneList.map(p=>(
-                    // ⚠️ FIX: bấm vào 1 dự án TỪ danh sách "Đã hoàn thành" trước đây bị gõ CỨNG
-                    // "setBcSubTab('dang')" — ép nhảy ngược về trang con "Đang thực hiện" ngay
-                    // lập tức, dù đang xem đúng danh sách "Đã hoàn thành". Sửa thành "done" để
-                    // giữ đúng ngữ cảnh người dùng đang xem (khớp với bcNav.markManual(p.id) —
-                    // đánh dấu lựa chọn tay CHO ĐÚNG dự án này là "done", không phải "dang").
-                    <div key={p.id} onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcSubTab("done");}}
+                    // ✅ Bấm vào 1 dự án trong danh sách "Đã hoàn thành" → chọn dự án đó (sw) +
+                    // đặt "bcDoneViewPid" = id dự án này để chuyển sang xem CHI TIẾT báo cáo của
+                    // đúng dự án đó, KHÔNG đổi bcSubTab (nút "✅ Đã hoàn thành" vẫn giữ nguyên
+                    // trạng thái được chọn — không còn tự nhảy về "🚧 Đang thực hiện" nữa).
+                    <div key={p.id} onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcDoneViewPid(p.id);}}
                       style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:p.id===pid?"1.5px solid #16a34a":"1px solid #f1f5f9"}}>
                       <div style={{width:38,height:38,borderRadius:"50%",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.icon||"✅"}</div>
                       <div style={{flex:1,minWidth:0}}>
@@ -8008,6 +8024,15 @@ Bạn có chắc chắn không?`;
               )
             ):(
             <div>
+              {/* ✅ Chỉ hiện khi đang xem CHI TIẾT 1 dự án đã hoàn thành (từ danh sách bấm vào) —
+                  cho phép quay lại danh sách mà không cần đổi tab hay nút toggle. */}
+              {bcSubTab==="done"&&(
+                <button onClick={()=>setBcDoneViewPid(null)}
+                  style={{border:"none",cursor:"pointer",fontFamily:"inherit",background:"#f0fdf4",color:"#15803d",fontWeight:800,fontSize:12.5,
+                    borderRadius:10,padding:"9px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:6,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                  ← Quay lại danh sách Đã hoàn thành
+                </button>
+              )}
               {/* ── Toàn bộ thẻ Báo Cáo (banner + thống kê + donut + biểu đồ + bảng) — bọc trong bcCardRef để chụp thành ảnh khi bấm "Xuất báo cáo" ── */}
               <div ref={bcCardRef}>
               {/* ── Header banner (giống ảnh 2) ── */}
