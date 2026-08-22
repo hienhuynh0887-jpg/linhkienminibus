@@ -5991,17 +5991,26 @@ Bạn có chắc chắn không?`;
   // THỰC SỰ chuyển sang xem 1 dự án khác (pid đổi).
   // ⚠️ ĐÃ DI CHUYỂN xuống đây (từ phía trên component) để tránh lỗi "Cannot access 'duAll'
   // before initialization" — effect này PHẢI nằm SAU dòng khai báo "const duAll=..." ở trên.
+  // ⚠️ FIX MỚI: dự án ĐÃ HOÀN THÀNH (trang_thai==="hoan_thanh" HOẶC duAll) giờ LUÔN LUÔN bị ép
+  // về "done", BỎ QUA cả cờ "manual" — vì y/c nghiệp vụ là dự án đã hoàn thành phải chuyển HẲN
+  // sang "Đã hoàn thành", không được phép hiển thị lại ở "Đang thực hiện" trong BẤT KỲ trường
+  // hợp nào (kể cả khi trước đó người dùng từng bấm nút "🚧 Đang thực hiện" thủ công cho ĐÚNG
+  // dự án này lúc nó CHƯA hoàn thành). Cờ "manual" giờ CHỈ còn tác dụng với dự án CHƯA hoàn
+  // thành (cho phép người dùng xem trước danh sách "Đã hoàn thành" trong lúc dự án vẫn đang
+  // làm dở, không ảnh hưởng gì tới nghiệp vụ).
   useEffect(()=>{
     if(!pid) return;
-    if(bcNav.isManual(pid)) return; // người dùng đã tự tay chọn trang con cho ĐÚNG dự án này — giữ nguyên, không tự đè lại
     const p=projs.find(x=>x.id===pid);
     if(!p) return;
     // ✅ Dùng "duAll" (đã kiểm chứng đúng, chính là biến quyết định banner "Đã nhận đủ vật tư
     // toàn bộ!" của dự án đang chọn) thay vì tính lại — đảm bảo tab tự nhảy khớp 100% với
     // banner đang hiển thị.
-    setBcSubTab((p.trang_thai==="hoan_thanh"||duAll) ? "done" : "dang");
+    const daHoanThanh = p.trang_thai==="hoan_thanh"||duAll;
+    if(daHoanThanh){ setBcSubTab("done"); return; } // ép về "done", không xét cờ manual
+    if(bcNav.isManual(pid)) return; // dự án CHƯA hoàn thành: vẫn tôn trọng lựa chọn tay của người dùng
+    setBcSubTab("dang");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[pid,duAll]);
+  },[pid,duAll,projs]);
 
   // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
   // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
@@ -6991,11 +7000,22 @@ Bạn có chắc chắn không?`;
 
       {/* ── Bộ chuyển 2 trang con của tab "Báo cáo": Đang thực hiện / Đã hoàn thành ──
           Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
-      {tab==="bc"&&(
+      {tab==="bc"&&(()=>{
+        // ✅ Dự án đang chọn (pid) đã hoàn thành hay chưa — dùng CHUNG điều kiện với banner
+        // "Đã nhận đủ vật tư toàn bộ!" (trang_thai==="hoan_thanh" HOẶC duAll). Khi dự án đang
+        // chọn đã hoàn thành, nút "🚧 Đang thực hiện" PHẢI bị vô hiệu hoá — không cho phép ép
+        // xem 1 dự án đã xong dưới dạng "Đang thực hiện" nữa (dù bấm nút này chỉ đổi bcSubTab,
+        // không đổi pid/duAll nên effect tự-đồng-bộ phía trên sẽ KHÔNG tự chạy lại để chặn —
+        // phải chặn ngay tại đây, từ gốc, bằng cách vô hiệu hoá nút).
+        const projDangChonDaXong = !!proj && (proj.trang_thai==="hoan_thanh"||duAll);
+        return(
         <div style={{background:"#fff",padding:"12px 10px 0",display:"flex",gap:8}}>
-          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("dang");setBcDoneViewPid(null);}}
-            style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
+          <button disabled={projDangChonDaXong}
+            onClick={()=>{if(projDangChonDaXong)return;bcNav.markManual(pid);setBcSubTab("dang");setBcDoneViewPid(null);}}
+            title={projDangChonDaXong?"Dự án đang chọn đã hoàn thành — không thể xem ở mục Đang thực hiện":""}
+            style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:projDangChonDaXong?"not-allowed":"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
               background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
+              opacity:projDangChonDaXong?0.45:1,
               boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
             🚧 Đang thực hiện
           </button>
@@ -7008,7 +7028,8 @@ Bạn có chắc chắn không?`;
             ✅ Đã hoàn thành{bcDoneList.length>0?` (${bcDoneList.length})`:""}
           </button>
         </div>
-      )}
+        );
+      })()}
 
       {/* DASHBOARD TỔNG QUAN — hiển thị THƯỜNG TRỰC trên mọi tab NGOẠI TRỪ tab "👥 Người dùng"
           (trang quản lý tài khoản/phân quyền không liên quan tới 1 dự án/dòng xe cụ thể nào,
