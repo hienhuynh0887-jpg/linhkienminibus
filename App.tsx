@@ -7094,7 +7094,7 @@ Bạn có chắc chắn không?`;
               {/* Nhãn + tên dự án */}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:10.5,fontWeight:900,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.6,marginBottom:4,display:"flex",alignItems:"center",gap:4}}>
-                  <span style={{fontSize:11}}>📶</span>Tiến Độ Dự Án
+                  <span style={{fontSize:11}}>📶</span>Tiến Độ Giao Xe
                 </div>
                 <div style={{fontSize:14.5,fontWeight:800,color:"#0f172a",lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                   {proj.ten}
@@ -7119,16 +7119,7 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
 
-            {/* Thêm xe / Xoá dự án — CHỈ hiển thị cho 3 đơn vị được phân công nhiệm vụ này:
-                XƯỞNG HÀN, Phòng KT, PHÒNG KH-TH. Mọi đơn vị khác (NHÀ MÁY THCK, KHO VẬT TƯ,
-                KHO CITYBUS, KHO 12M, XH_MINIBUS, XH_CITYBUS, XH_12, Ban CN, Ban LĐNM...) đều
-                KHÔNG thấy nút này, dù trước đây chỉ ẩn theo vai trò "khth". */}
-            {SHOW_THEM_XE_DON_VI.includes(user.don_vi)&&(
-              <div style={{display:"flex",gap:10,marginBottom:20}}>
-                <button onClick={()=>setNewP(true)} style={{flex:1,border:"none",cursor:"pointer",fontFamily:"inherit",background:mauRole,color:"#fff",borderRadius:12,padding:"13px 0",fontSize:15,fontWeight:800}}>＋ Thêm xe mới</button>
-                {projs.length>1&&<button onClick={()=>delProj(pid)} title="Xoá dự án" style={{border:"1px solid #e4e9f2",cursor:"pointer",fontFamily:"inherit",background:"#fff",color:"#64748b",borderRadius:12,padding:"0 18px",fontSize:18}}>🗑️</button>}
-              </div>
-            )}
+            {/* ✅ Đã bỏ hoàn toàn nút "＋ Thêm xe mới" và nút "🗑️ Xoá dự án" theo yêu cầu. */}
 
             {/* Tổng quan dự án — đã bỏ theo yêu cầu (4 ô Xe/Mã vật tư/Phiếu/Giao dịch) */}
           </div>
@@ -8081,7 +8072,6 @@ Bạn có chắc chắn không?`;
               {/* ── Header banner (giống ảnh 2) ── */}
               <div style={{background:duAll?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#312e81,#4338ca)",borderRadius:16,padding:"18px 18px 20px",marginBottom:14,color:"#fff",boxShadow:"0 4px 20px rgba(0,0,0,0.18)"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                  <div style={{width:40,height:40,borderRadius:10,background:"rgba(255,255,255,0.16)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>📊</div>
                   <div style={{fontSize:16,fontWeight:800,lineHeight:1.25}}>{duAll?t("titleBcDone"):t("titleBc")}</div>
                 </div>
                 <div style={{fontSize:12,opacity:.85,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:10}}>
@@ -8151,7 +8141,22 @@ Bạn có chắc chắn không?`;
                   const w=200,h=170,padL=22,padB=16,padT=10,padR=6;
                   const xScale=i=>padL+(n<=1?0:(i/(n-1))*(w-padL-padR));
                   const yScale=v=>padT+(1-v/100)*(h-padT-padB);
-                  const pts=sorted.map((p,i)=>({x:i,y:Math.round((i+1)/n*100)}));
+                  // ✅ FIX: trước đây trục % chỉ đếm THỨ TỰ phiếu (phiếu cuối luôn = 100%,
+                  // không phản ánh vật tư thực nhận — gây hiểu lầm so với ô "Tiến Độ Nhận Vật
+                  // Tư"). Giờ tính % TÍCH LŨY THỰC TẾ: tại mỗi phiếu, cộng dồn SL đã được xác
+                  // nhận (c.ok) cho từng mã, rồi đếm bao nhiêu mã đã ĐỦ (dn≥cn) tính đến thời
+                  // điểm đó / tổng số mã (bom.length) — cùng công thức với pctT ở trên, chỉ
+                  // khác là tính theo từng mốc thời gian thay vì chỉ ở hiện tại.
+                  const cnMap={};bom.forEach(v=>{cnMap[v.ma]=numOr0(v.dm)*numOr0(soXe);});
+                  const dnCum={};
+                  const pts=sorted.map((p,i)=>{
+                    for(const c of(p.ct||[])){
+                      if(c.ok)dnCum[c.ma]=(dnCum[c.ma]||0)+numOr0(c.sl_thuc_nhan??c.sl);
+                    }
+                    const doneCount=bom.filter(v=>(dnCum[v.ma]||0)+EPS>=cnMap[v.ma]).length;
+                    const pct=bom.length>0?Math.round(doneCount/bom.length*100):0;
+                    return{x:i,y:pct};
+                  });
                   const path=pts.map((p,i)=>`${i===0?"M":"L"} ${xScale(p.x).toFixed(1)} ${yScale(p.y).toFixed(1)}`).join(" ");
                   const last=pts[pts.length-1];
                   return(
