@@ -7989,7 +7989,12 @@ Bạn có chắc chắn không?`;
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {bcDoneList.map(p=>(
-                    <div key={p.id} onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcSubTab("dang");}}
+                    // ⚠️ FIX: bấm vào 1 dự án TỪ danh sách "Đã hoàn thành" trước đây bị gõ CỨNG
+                    // "setBcSubTab('dang')" — ép nhảy ngược về trang con "Đang thực hiện" ngay
+                    // lập tức, dù đang xem đúng danh sách "Đã hoàn thành". Sửa thành "done" để
+                    // giữ đúng ngữ cảnh người dùng đang xem (khớp với bcNav.markManual(p.id) —
+                    // đánh dấu lựa chọn tay CHO ĐÚNG dự án này là "done", không phải "dang").
+                    <div key={p.id} onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcSubTab("done");}}
                       style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:p.id===pid?"1.5px solid #16a34a":"1px solid #f1f5f9"}}>
                       <div style={{width:38,height:38,borderRadius:"50%",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.icon||"✅"}</div>
                       <div style={{flex:1,minWidth:0}}>
