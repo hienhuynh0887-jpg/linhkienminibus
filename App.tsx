@@ -6010,6 +6010,17 @@ Bạn có chắc chắn không?`;
     return String(b.id||"").localeCompare(String(a.id||""));
   }),[projs,projFullyReceived,pid,duAll]);
 
+  // ✅ FIX: Danh sách dự án "Đang thực hiện" (dùng cho dropdown "CHỌN DỰ ÁN" khi ở trang con
+  // "dang") — PHẢI loại trừ đúng những dự án đã tính là "Đã hoàn thành" ở bcDoneList (đã bấm
+  // nút HOẶC đã nhận đủ 100% vật tư). Trước đây dropdown này hiện thẳng "projs" (không lọc),
+  // nên 1 dự án dù đã nhận đủ vật tư & hiện banner xanh "Đã nhận đủ vật tư toàn bộ!" vẫn còn bị
+  // liệt kê nhầm trong danh sách "Đang thực hiện". Dùng CHUNG 1 nguồn (bcDoneList) để đảm bảo
+  // 1 dự án CHỈ thuộc đúng 1 trong 2 danh sách, không bao giờ vừa "đang" vừa "đã xong".
+  const bcDangList=useMemo(()=>{
+    const doneIds=new Set(bcDoneList.map(p=>p.id));
+    return projs.filter(p=>!doneIds.has(p.id));
+  },[projs,bcDoneList]);
+
   const nhomDM=useMemo(()=>{const m={};th.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!m[k])m[k]=[];m[k].push(v);});return m;},[th]);
   const freshVP=viewPh?(phList.find(p=>p.id===viewPh.id)||viewPh):null;
   const mauP=proj.mau||"#1d4ed8";
@@ -6881,14 +6892,19 @@ Bạn có chắc chắn không?`;
           hoàn thành (khớp đúng ngữ cảnh đang xem, tránh nhảy nhầm sang dự án đang làm). */}
       {projPickerOpen&&(()=>{
         const dangLocDaXong = tab==="bc" && bcSubTab==="done";
-        const projPickerList = dangLocDaXong ? projs.filter(p=>p.trang_thai==="hoan_thanh") : projs;
+        // ⚠️ FIX: khi đang ở trang con "🚧 Đang thực hiện" của tab "Báo cáo", dropdown PHẢI
+        // dùng "bcDangList" (đã loại trừ các dự án đã tính là "Đã hoàn thành" — bấm nút HOẶC
+        // đã nhận đủ 100% vật tư) thay vì "projs" thô, để 1 dự án đã xong không còn bị liệt kê
+        // nhầm ở đây nữa — nó CHỈ còn xuất hiện đúng 1 nơi duy nhất: danh sách "Đã hoàn thành".
+        const dangLocDangLam = tab==="bc" && bcSubTab==="dang";
+        const projPickerList = dangLocDaXong ? bcDoneList : (dangLocDangLam ? bcDangList : projs);
         return(
         <>
           <div onClick={()=>setProjPickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
           <div style={{position:"fixed",left:16,right:16,top:"18%",background:"#fff",borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,0.25)",maxWidth:340,margin:"0 auto",zIndex:41,overflow:"hidden",maxHeight:"60vh",overflowY:"auto"}}>
-            <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DỰ ÁN{dangLocDaXong?" · ✅ Đã hoàn thành":""}</div>
+            <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:"#6b7897",borderBottom:"1px solid #f1f5f9"}}>CHỌN DỰ ÁN{dangLocDaXong?" · ✅ Đã hoàn thành":dangLocDangLam?" · 🚧 Đang thực hiện":""}</div>
             {projPickerList.length===0?(
-              <div style={{padding:"20px 14px",fontSize:12,color:"#9ca3af",textAlign:"center"}}>— Chưa có dự án nào đã hoàn thành —</div>
+              <div style={{padding:"20px 14px",fontSize:12,color:"#9ca3af",textAlign:"center"}}>{dangLocDaXong?"— Chưa có dự án nào đã hoàn thành —":dangLocDangLam?"— Không còn dự án nào đang thực hiện —":"— Chưa có dự án nào —"}</div>
             ):[...projPickerList].reverse().map(p=>(
               <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",cursor:"pointer",background:p.id===pid?`${p.mau||"#2563eb"}14`:"#fff",borderBottom:"1px solid #f1f5f9"}}>
                 <span onClick={()=>{sw(p.id);setProjPickerOpen(false);}} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
