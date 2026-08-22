@@ -4495,32 +4495,13 @@ export default function App(){
   // "duAll" (biến đã kiểm chứng đúng, dùng để tô màu banner "Đã nhận đủ vật tư toàn bộ!")
   // được khai báo — để dự án ĐANG XEM luôn dùng CHUNG 1 kết quả duy nhất với banner, tránh
   // lệch số liệu giữa banner và badge đếm.
-
-  // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: chọn 1
-  // dự án đã hoàn thành (đã bấm nút HOẶC đã nhận đủ 100% vật tư) → tự chuyển hẳn sang
-  // "✅ Đã hoàn thành"; chọn dự án đang làm → tự chuyển về "🚧 Đang thực hiện".
-  // ⚠️ FIX LỖI "tự nhảy về Đang thực hiện sau vài giây": trước đây effect này phụ thuộc
-  // [pid, duAll] — cứ mỗi lần app tự làm mới dữ liệu theo định kỳ (poll ngầm mỗi 10-20s),
-  // "duAll" được tính lại (dù giá trị không đổi vẫn có thể coi là "chạy lại" do tham chiếu
-  // hàm/mảng nguồn thay đổi), khiến effect NGỠ RẰNG pid vừa đổi và ghi đè bcSubTab về đúng
-  // theo trạng_thái, XOÁ MẤT lựa chọn tay "Đã hoàn thành" của người dùng dù họ không hề đổi
-  // dự án. Nay CHỈ bỏ qua việc tự đồng bộ khi người dùng đã tự tay bấm 1 trong 2 nút trang
-  // con (hoặc tự bấm xem chi tiết từ danh sách "Đã hoàn thành") CHO ĐÚNG dự án đang xem —
-  // đánh dấu qua bcNav.markManual(pid) ngay tại nơi bấm nút (xem 2 nút "🚧/✅" và danh sách
-  // "Đã hoàn thành" bên dưới) — nhờ vậy lựa chọn tay được giữ nguyên cho tới khi người dùng
-  // THỰC SỰ chuyển sang xem 1 dự án khác (pid đổi).
-  useEffect(()=>{
-    if(!pid) return;
-    if(bcNav.isManual(pid)) return; // người dùng đã tự tay chọn trang con cho ĐÚNG dự án này — giữ nguyên, không tự đè lại
-    const p=projs.find(x=>x.id===pid);
-    if(!p) return;
-    // ✅ Dùng "duAll" (đã kiểm chứng đúng, chính là biến quyết định banner "Đã nhận đủ vật tư
-    // toàn bộ!" của dự án đang chọn) thay vì tính lại — đảm bảo tab tự nhảy khớp 100% với
-    // banner đang hiển thị.
-    setBcSubTab((p.trang_thai==="hoan_thanh"||duAll) ? "done" : "dang");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[pid,duAll]);
-
+  //
+  // ⚠️ FIX "màn hình trắng" (Cannot access 'duAll' before initialization): effect tự đồng bộ
+  // trang con của tab "Báo cáo" (trước đây đặt ngay tại đây) dùng biến "duAll" trong dependency
+  // array, nhưng "duAll" là `const` được khai báo PHÍA DƯỚI (gần dòng tính maDone/bom) — cùng
+  // 1 component nên bị Temporal Dead Zone, ReactDOM ném lỗi ngay khi mount → crash toàn bộ app.
+  // Đã DI CHUYỂN nguyên khối effect đó xuống ngay sau chỗ khai báo "const duAll=..." để đảm bảo
+  // biến được khởi tạo trước khi effect đọc nó. Xem effect đó ở gần "const duAll=...".
 
   // ── Helpers ──
   const flash=m=>{setMsg(m);setTimeout(()=>setMsg(""),2500);};
@@ -5987,6 +5968,33 @@ Bạn có chắc chắn không?`;
   const totCT=th.reduce((s,v)=>s+v.ct,0);
   const pctT=bom.length>0?Math.round(maDone/bom.length*100):0;
   const duAll=maDone===bom.length&&bom.length>0;
+
+  // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: chọn 1
+  // dự án đã hoàn thành (đã bấm nút HOẶC đã nhận đủ 100% vật tư) → tự chuyển hẳn sang
+  // "✅ Đã hoàn thành"; chọn dự án đang làm → tự chuyển về "🚧 Đang thực hiện".
+  // ⚠️ FIX LỖI "tự nhảy về Đang thực hiện sau vài giây": trước đây effect này phụ thuộc
+  // [pid, duAll] — cứ mỗi lần app tự làm mới dữ liệu theo định kỳ (poll ngầm mỗi 10-20s),
+  // "duAll" được tính lại (dù giá trị không đổi vẫn có thể coi là "chạy lại" do tham chiếu
+  // hàm/mảng nguồn thay đổi), khiến effect NGỠ RẰNG pid vừa đổi và ghi đè bcSubTab về đúng
+  // theo trạng_thái, XOÁ MẤT lựa chọn tay "Đã hoàn thành" của người dùng dù họ không hề đổi
+  // dự án. Nay CHỈ bỏ qua việc tự đồng bộ khi người dùng đã tự tay bấm 1 trong 2 nút trang
+  // con (hoặc tự bấm xem chi tiết từ danh sách "Đã hoàn thành") CHO ĐÚNG dự án đang xem —
+  // đánh dấu qua bcNav.markManual(pid) ngay tại nơi bấm nút (xem 2 nút "🚧/✅" và danh sách
+  // "Đã hoàn thành" bên dưới) — nhờ vậy lựa chọn tay được giữ nguyên cho tới khi người dùng
+  // THỰC SỰ chuyển sang xem 1 dự án khác (pid đổi).
+  // ⚠️ ĐÃ DI CHUYỂN xuống đây (từ phía trên component) để tránh lỗi "Cannot access 'duAll'
+  // before initialization" — effect này PHẢI nằm SAU dòng khai báo "const duAll=..." ở trên.
+  useEffect(()=>{
+    if(!pid) return;
+    if(bcNav.isManual(pid)) return; // người dùng đã tự tay chọn trang con cho ĐÚNG dự án này — giữ nguyên, không tự đè lại
+    const p=projs.find(x=>x.id===pid);
+    if(!p) return;
+    // ✅ Dùng "duAll" (đã kiểm chứng đúng, chính là biến quyết định banner "Đã nhận đủ vật tư
+    // toàn bộ!" của dự án đang chọn) thay vì tính lại — đảm bảo tab tự nhảy khớp 100% với
+    // banner đang hiển thị.
+    setBcSubTab((p.trang_thai==="hoan_thanh"||duAll) ? "done" : "dang");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pid,duAll]);
 
   // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
   // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
