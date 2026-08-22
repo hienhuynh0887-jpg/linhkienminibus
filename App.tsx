@@ -4290,11 +4290,25 @@ export default function App(){
     try{await supabase.from(T("projects")).delete().eq("id",id);}catch(e){console.error("dbDeleteProj:",e);}
   };
   const dbSavePhieu=async(ph)=>{
-    try{
-      const {ct,...phData}=ph;
-      await supabase.from(T("phieu")).upsert(phData);
-      if(ct?.length) await supabase.from(T("phieu_ct")).upsert(ct);
-    }catch(e){console.error("dbSavePhieu:",e);}
+    // ⚠️ FIX BUG: "Kho Vật Tư soạn 15 mã nhưng XƯỞNG HÀN mở lên thấy 0 mã, dù Tổng cộng
+    // vẫn ghi 15 chủng loại". Nguyên nhân: hàm này TRƯỚC ĐÂY chỉ try/catch lỗi network,
+    // không kiểm tra field `error` Supabase trả về, và không dùng .select() để xác nhận
+    // đã ghi đủ dòng. Nếu RLS chặn quyền ghi bảng "phieu_ct" (rất phổ biến), Postgrest
+    // KHÔNG báo lỗi — nó chỉ âm thầm ghi 0 dòng. Bảng "phieu" (chứa cột tong=15) vẫn lưu
+    // được bình thường vì không bị chặn, nên người soạn thấy phiếu "lưu thành công" và
+    // local state của họ vẫn có đủ ct — nhưng khi người khác (XƯỞNG HÀN) tải phiếu từ
+    // Supabase, phieu_ct trống trơn → 0 mã, 0/0 đã duyệt, dù tong vẫn hiện 15.
+    // Giờ kiểm tra chặt: nếu ghi thiếu dòng, NÉM LỖI ngay để người soạn biết và thử lại,
+    // thay vì âm thầm để lại một phiếu "ma" (có tong nhưng rỗng ct) trên hệ thống.
+    const {ct,...phData}=ph;
+    const {data:phRes,error:phErr}=await supabase.from(T("phieu")).upsert(phData).select("id");
+    if(phErr) throw new Error("Lỗi lưu phiếu: "+phErr.message);
+    if(!phRes?.length) throw new Error("Supabase không xác nhận lưu được phiếu (khả năng cao do Row Level Security chặn quyền ghi bảng phieu) — kiểm tra lại RLS policy trên Supabase");
+    if(ct?.length){
+      const {data:ctRes,error:ctErr}=await supabase.from(T("phieu_ct")).upsert(ct).select("id");
+      if(ctErr) throw new Error("Lỗi lưu chi tiết phiếu: "+ctErr.message);
+      if((ctRes?.length||0)<ct.length) throw new Error(`Supabase chỉ lưu được ${ctRes?.length||0}/${ct.length} dòng chi tiết vật tư (khả năng cao do Row Level Security chặn quyền ghi bảng phieu_ct) — kiểm tra lại RLS policy trên bảng phieu_ct. Nếu không sửa, bên nhận sẽ thấy phiếu "${ph.sp}" bị THIẾU MÃ hoặc trống trơn!`);
+    }
   };
   // ✅ FIX: Bảng "chi tiết giao xe" trước đây KHÔNG lưu lên Supabase — dbAddLS chỉ là hàm
   // rỗng (no-op) do quyết định cũ "không phát sinh thêm dữ liệu" cho MỌI loại lịch sử (tạo
@@ -5416,7 +5430,14 @@ export default function App(){
 
     const ph={id:phid,pid,sp,ngay:d.toISOString().slice(0,10),gc:`Đơn hàng ${proj.icon} ${proj.ten} — ${soXe} xe (${ct.length} mã)`,bg:"LINH KIỆN BUS",bn:"XƯỞNG HÀN",tt:"Chờ xác nhận",tong:ct.length,ts:d.toISOString(),ct,nguoi_soan:user.ten,don_vi_soan:user.don_vi};
     setPhDB(s=>({...s,[pid]:[ph,...(s[pid]||[])]}));
-    dbSavePhieu(ph);
+    dbSavePhieu(ph).catch(e=>{
+      console.error("dbSavePhieu:",e);
+      flash("❌ LƯU PHIẾU THẤT BẠI: "+e.message);
+      // Rollback: gỡ phiếu khỏi local state để không hiển thị "phiếu ma" (có vẻ đã gửi
+      // nhưng thực chất chưa lưu được lên Supabase) — tránh trường hợp XƯỞNG HÀN mở lên
+      // thấy phiếu trống hoặc thiếu mã mà không ai biết.
+      setPhDB(s=>({...s,[pid]:(s[pid]||[]).filter(p=>p.id!==ph.id)}));
+    });
     const lsRows=ct.map(c=>({id:uid(),pid,ma:c.ma,ten:c.ten,loai:"Xuất kho",sl:-c.sl,gc:`Đơn ${sp}`,ts:new Date().toISOString(),nguoi_duyet:user.ten,don_vi_duyet:user.don_vi}));
     lsRows.forEach(r=>addLS(pid,r));
     // ✅ FIX: Không xoá trắng toàn bộ Soạn Hàng nữa. Mã nào gửi đi mà SL giao < SL cần nhận
@@ -5521,7 +5542,14 @@ Bạn có chắc chắn không?`;
     
     // Lưu vào state local
     setPhDB(s=>({...s,[pid]:[ph,...(s[pid]||[])]}));
-    dbSavePhieu(ph);
+    dbSavePhieu(ph).catch(e=>{
+      console.error("dbSavePhieu:",e);
+      flash("❌ LƯU PHIẾU THẤT BẠI: "+e.message);
+      // Rollback: gỡ phiếu khỏi local state để không hiển thị "phiếu ma" (có vẻ đã gửi
+      // nhưng thực chất chưa lưu được lên Supabase) — tránh trường hợp XƯỞNG HÀN mở lên
+      // thấy phiếu trống hoặc thiếu mã mà không ai biết.
+      setPhDB(s=>({...s,[pid]:(s[pid]||[]).filter(p=>p.id!==ph.id)}));
+    });
     
     // ✅ Ghi lịch sử: log phiếu được soạn bởi ai
     const lsPhieuSoan={
@@ -8129,7 +8157,7 @@ Bạn có chắc chắn không?`;
                     ))}
                   </div>
                   <div style={{marginTop:10,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"6px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                    <span style={{fontSize:8.5,fontWeight:900,color:"#fff",background:"#dc2626",borderRadius:999,padding:"3px 10px",textAlign:"center",lineHeight:1.2,display:"inline-block"}}>✅ ĐỒNG BỘ</span>
+                    <span style={{fontSize:8.5,fontWeight:900,color:"#fff",background:"#dc2626",borderRadius:999,padding:"3px 10px",textAlign:"center",lineHeight:1.2,display:"inline-block"}}>ĐỒNG BỘ</span>
                     {(()=>{
                       // ✅ Số xe ĐỒNG BỘ = số xe đã được trang bị ĐỦ TRỌN BỘ vật tư.
                       // Với mỗi mã: số xe mà mã đó đủ để trang bị = floor(đã nhận / định mức).
