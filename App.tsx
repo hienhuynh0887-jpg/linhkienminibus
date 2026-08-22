@@ -4429,18 +4429,53 @@ export default function App(){
   const soXe  = proj.so_xe||1;
   const DMS   = [...new Set(bom.map(v=>v.ng).filter(Boolean))].sort(sapXepDM);
 
+  // ✅ Một dự án được coi là "đã nhận đủ vật tư toàn bộ" khi MỌI mã trong BOM của dự án đó
+  // đã được xác nhận nhận đủ số lượng cần — tính riêng cho TỪNG dự án p bằng bomDB[p.id] +
+  // phDB[p.id] (không phụ thuộc dự án đang chọn/pid). Dùng chung cho cả useEffect đồng bộ
+  // trang con "Báo cáo" bên dưới và danh sách "Đã hoàn thành" trong tab Báo cáo.
+  const projFullyReceived=useCallback((p)=>{
+    const soXeP=p.so_xe||1;
+    const bomP=bomDB[p.id]||[];
+    const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
+    const dnXNMapP={};
+    for(const ph of phP){
+      for(const c of(ph.ct||[])){
+        if(c.ok) dnXNMapP[c.ma]=(dnXNMapP[c.ma]||0)+(c.sl_thuc_nhan??c.sl??0);
+      }
+    }
+    const EPS=1e-6;
+    return bomP.length>0&&bomP.every(v=>{
+      const cn=(Number(v.dm)||0)*soXeP;
+      const dn=Number(dnXNMapP[v.ma])||0;
+      return dn+EPS>=cn;
+    });
+  },[bomDB,phDB]);
+
+  // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
+  // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
+  // đã nhận đủ 100% vật tư (projFullyReceived) dù chưa bấm nút. Đặt ở phạm vi component để
+  // vừa dùng cho bộ nút chuyển trang con (đặt phía trên khối Dòng xe/Dự án) vừa dùng cho nội
+  // dung bên trong tab "Báo cáo". Sắp theo hoan_thanh_ts/ngay_hoan_thanh giảm dần.
+  const bcDoneList=useMemo(()=>[...projs].filter(p=>p.trang_thai==="hoan_thanh"||projFullyReceived(p)).sort((a,b)=>{
+    const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
+    const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
+    if(ka!==kb) return String(kb).localeCompare(String(ka));
+    return String(b.id||"").localeCompare(String(a.id||""));
+  }),[projs,projFullyReceived]);
+
   // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: chọn 1
-  // dự án đã hoàn thành → tự chuyển hẳn sang "✅ Đã hoàn thành"; chọn dự án đang làm → tự
-  // chuyển về "🚧 Đang thực hiện". Chỉ chạy khi PID thực sự đổi (không đè lên lựa chọn tay
-  // của người dùng khi họ tự bấm qua lại 2 nút trong lúc pid không đổi).
+  // dự án đã hoàn thành (đã bấm nút HOẶC đã nhận đủ 100% vật tư) → tự chuyển hẳn sang
+  // "✅ Đã hoàn thành"; chọn dự án đang làm → tự chuyển về "🚧 Đang thực hiện". Chỉ chạy khi
+  // PID thực sự đổi (không đè lên lựa chọn tay của người dùng khi họ tự bấm qua lại 2 nút
+  // trong lúc pid không đổi).
   useEffect(()=>{
     if(!pid) return;
     if(bcManualDetailPidRef.current===pid) return; // vừa tự bấm xem chi tiết dự án này — giữ nguyên "dang", không tự đè lại
     const p=projs.find(x=>x.id===pid);
     if(!p) return;
-    setBcSubTab(p.trang_thai==="hoan_thanh" ? "done" : "dang");
+    setBcSubTab((p.trang_thai==="hoan_thanh"||projFullyReceived(p)) ? "done" : "dang");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[pid]);
+  },[pid,projFullyReceived]);
 
 
   // ── Helpers ──
@@ -6865,6 +6900,25 @@ Bạn có chắc chắn không?`;
         );
       })()}
 
+      {/* ── Bộ chuyển 2 trang con của tab "Báo cáo": Đang thực hiện / Đã hoàn thành ──
+          Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
+      {tab==="bc"&&(
+        <div style={{background:"#fff",padding:"12px 10px 0",display:"flex",gap:8}}>
+          <button onClick={()=>setBcSubTab("dang")}
+            style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
+              background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
+              boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
+            🚧 Đang thực hiện
+          </button>
+          <button onClick={()=>setBcSubTab("done")}
+            style={{flex:1,border:bcSubTab==="done"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
+              background:bcSubTab==="done"?"linear-gradient(135deg,#16a34a,#15803d)":"#fff",color:bcSubTab==="done"?"#fff":"#374151",
+              boxShadow:bcSubTab==="done"?"0 3px 10px rgba(22,163,74,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
+            ✅ Đã hoàn thành{bcDoneList.length>0?` (${bcDoneList.length})`:""}
+          </button>
+        </div>
+      )}
+
       {/* DASHBOARD TỔNG QUAN — hiển thị THƯỜNG TRỰC trên mọi tab NGOẠI TRỪ tab "👥 Người dùng"
           (trang quản lý tài khoản/phân quyền không liên quan tới 1 dự án/dòng xe cụ thể nào,
           nên khối "Dòng xe / Dự án / Tổng quan dự án" không có ý nghĩa và gây rối mắt ở đây). */}
@@ -7840,55 +7894,11 @@ Bạn có chắc chắn không?`;
         {/* ── BÁO CÁO ── */}
         {tab==="bc"&&(()=>{
           const togDm=dm=>setBcDmO(s=>({...s,[dm]:!s[dm]}));
-          // ✅ Một dự án được coi là "đã nhận đủ vật tư toàn bộ" khi MỌI mã trong BOM của
-          // dự án đó đã được xác nhận nhận đủ số lượng cần (giống hệt cách tính "duAll"/
-          // "vatTuDu" ở các nơi khác), tính riêng cho TỪNG dự án p bằng bomDB[p.id]+phDB[p.id].
-          const isVatTuDu=(p)=>{
-            const soXeP=p.so_xe||1;
-            const bomP=bomDB[p.id]||[];
-            const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
-            const dnXNMapP={};
-            for(const ph of phP){
-              for(const c of(ph.ct||[])){
-                if(c.ok) dnXNMapP[c.ma]=(dnXNMapP[c.ma]||0)+(c.sl_thuc_nhan??c.sl??0);
-              }
-            }
-            const EPS=1e-6;
-            return bomP.length>0&&bomP.every(v=>{
-              const cn=(Number(v.dm)||0)*soXeP;
-              const dn=Number(dnXNMapP[v.ma])||0;
-              return dn+EPS>=cn;
-            });
-          };
-          // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho trang con "done")
-          // — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
-          // đã nhận đủ 100% vật tư (isVatTuDu) dù chưa bấm nút — để tab "Báo cáo" luôn phản
-          // ánh đúng thực tế, không bắt người dùng phải tự tay chuyển trạng thái.
-          // — sắp theo hoan_thanh_ts/ngay_hoan_thanh giảm dần, giống màn "Đã Thực Hiện" cũ.
-          const bcDoneList=[...projs].filter(p=>p.trang_thai==="hoan_thanh"||isVatTuDu(p)).sort((a,b)=>{
-            const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
-            const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
-            if(ka!==kb) return String(kb).localeCompare(String(ka));
-            return String(b.id||"").localeCompare(String(a.id||""));
-          });
+          // ✅ bcDoneList giờ được tính ở phạm vi component (xem gần projFullyReceived) và bộ
+          // nút chuyển trang con "Đang thực hiện / Đã hoàn thành" đã dời lên phía TRÊN khối
+          // "Dòng xe / Dự án" (ngay dưới thanh TABS) theo yêu cầu — không còn render lại ở đây.
           return(
             <>
-            {/* ── Bộ chuyển 2 trang con: Đang thực hiện / Đã hoàn thành ── */}
-            <div style={{display:"flex",gap:8,marginBottom:14}}>
-              <button onClick={()=>setBcSubTab("dang")}
-                style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
-                  background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
-                  boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
-                🚧 Đang thực hiện
-              </button>
-              <button onClick={()=>setBcSubTab("done")}
-                style={{flex:1,border:bcSubTab==="done"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
-                  background:bcSubTab==="done"?"linear-gradient(135deg,#16a34a,#15803d)":"#fff",color:bcSubTab==="done"?"#fff":"#374151",
-                  boxShadow:bcSubTab==="done"?"0 3px 10px rgba(22,163,74,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
-                ✅ Đã hoàn thành{bcDoneList.length>0?` (${bcDoneList.length})`:""}
-              </button>
-            </div>
-
             {bcSubTab==="done"?(
               bcDoneList.length===0?(
                 <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
