@@ -3391,6 +3391,43 @@ function SlStepper({value,onChange,warn}){
   );
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ✅ HOOK DÙNG CHUNG: "useManualOverride" — giữ nguyên MỌI vị trí/lựa chọn người
+// dùng đã TỰ TAY chọn (1 mục, 1 tab con, 1 bộ lọc...) ngay cả khi app tự làm mới
+// dữ liệu ngầm định kỳ (poll mỗi 10-20s) ở BẤT KỲ đâu trong ứng dụng.
+//
+// VẤN ĐỀ GỐC: nhiều nơi trong app có logic "tự đồng bộ theo dữ liệu mới nhất"
+// (VD: tab con "Báo cáo" tự nhảy theo trạng thái dự án). Nếu logic đó chạy lại
+// mỗi khi dữ liệu NỀN được tải mới (dù nội dung không đổi, chỉ đổi tham chiếu),
+// nó sẽ ÂM THẦM GHI ĐÈ lựa chọn tay của người dùng — gây cảm giác "tự nhảy về
+// chỗ cũ sau vài giây" dù người dùng không hề bấm gì.
+//
+// CÁCH DÙNG: gọi 1 lần cho mỗi "nhóm vị trí" cần bảo vệ (VD: trang con Báo cáo,
+// tab lọc, mục đang xem...). Ghép với 1 "khoá" đại diện cho NGỮ CẢNH đang xem
+// (thường là id của dự án/đối tượng đang chọn — vì đổi ngữ cảnh thì các lựa chọn
+// tay cũ không còn ý nghĩa, cần tự tính lại từ đầu):
+//
+//   const bcNav = useManualOverride();
+//   ...
+//   useEffect(()=>{
+//     if(bcNav.isManual(pid)) return;              // người dùng đã tự chọn cho ĐÚNG ngữ cảnh này — giữ nguyên
+//     setBcSubTab(tinhTuDong());                    // chỉ tự đồng bộ khi CHƯA có lựa chọn tay
+//   },[pid, ...]);
+//   ...
+//   <button onClick={()=>{bcNav.markManual(pid); setBcSubTab("done");}}>...</button>
+//
+// Lựa chọn tay chỉ hết hiệu lực khi NGỮ CẢNH (khoá) thực sự đổi (VD: người dùng
+// chuyển sang xem 1 dự án khác) — lúc đó cơ chế tự đồng bộ sẽ hoạt động lại bình
+// thường cho ngữ cảnh mới, không bị "kẹt" mãi theo lựa chọn của ngữ cảnh cũ.
+function useManualOverride(){
+  const ref=useRef(null);
+  const isManual=(key)=>ref.current===key;
+  const markManual=(key)=>{ ref.current=key; };
+  const clear=()=>{ ref.current=null; };
+  return {isManual,markManual,clear};
+}
+// ════════════════════════════════════════════════════════════════════════════
+
 export default function App(){
   const I=S=>S.inp; // shorthand for style
   const B=S=>S.btn;
@@ -3598,11 +3635,11 @@ export default function App(){
   const [viewPh,   setViewPh]   = useState(null);
   const phieuRef = useRef(null); // vùng nội dung phiếu GN để chụp thành ảnh khi bấm "Chia sẻ"
   const bcCardRef = useRef(null); // vùng toàn bộ thẻ Báo Cáo (banner+thống kê+donut+biểu đồ+bảng) để chụp thành ảnh khi bấm "Xuất báo cáo"
-  // ✅ Ghi nhớ pid mà người dùng VỪA TỰ TAY bấm "xem chi tiết" từ danh sách "Đã hoàn thành"
-  // (trang con của tab Báo cáo) — để effect tự đồng bộ bcSubTab bên dưới KHÔNG đè ngược
-  // sub-tab về "done" ngay sau đó (vì dự án đó vẫn đang "hoan_thanh"), giữ đúng ý người dùng
-  // là muốn xem báo cáo chi tiết của dự án đã hoàn thành đó.
-  const bcManualDetailPidRef = useRef(null);
+  // ✅ Ghi nhớ vị trí (trang con "dang"/"done") mà người dùng VỪA TỰ TAY chọn cho tab "Báo cáo"
+  // — dùng chung "useManualOverride" (định nghĩa ở trên component) để KHÔNG bị effect tự đồng
+  // bộ bcSubTab ghi đè ngược mỗi khi app tự làm mới dữ liệu ngầm định kỳ. Khoá bảo vệ là "pid"
+  // (dự án đang xem) — đổi sang xem dự án khác thì tự đồng bộ lại bình thường cho dự án mới.
+  const bcNav = useManualOverride();
   const [dangChiaSe, setDangChiaSe] = useState(false);
   const [slThucEdit, setSlThucEdit] = useState<Record<string,number>>({}); // ctid -> sl thực nhận đang sửa
   const [editPh,   setEditPh]   = useState(null);  // phiếu đang chỉnh sửa {id, sp, ngay, gc, ct:[]}
@@ -4436,7 +4473,10 @@ export default function App(){
   const projFullyReceived=useCallback((p)=>{
     const soXeP=p.so_xe||1;
     const bomP=bomDB[p.id]||[];
-    const phP=(phDB[p.id]||[]).filter(x=>x.pid===p.id);
+    // ✅ So sánh pid bằng String(...) ở cả 2 vế để tránh lệch do khác kiểu dữ liệu
+    // (string vs number) giữa p.id và trường "pid" lưu trong từng phiếu — lệch kiểu khiến
+    // phP luôn rỗng và dự án bị coi nhầm là "chưa đủ vật tư" dù thực tế đã đủ.
+    const phP=(phDB[p.id]||[]).filter(x=>String(x.pid)===String(p.id));
     const dnXNMapP={};
     for(const ph of phP){
       for(const c of(ph.ct||[])){
@@ -4451,31 +4491,35 @@ export default function App(){
     });
   },[bomDB,phDB]);
 
-  // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
-  // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
-  // đã nhận đủ 100% vật tư (projFullyReceived) dù chưa bấm nút. Đặt ở phạm vi component để
-  // vừa dùng cho bộ nút chuyển trang con (đặt phía trên khối Dòng xe/Dự án) vừa dùng cho nội
-  // dung bên trong tab "Báo cáo". Sắp theo hoan_thanh_ts/ngay_hoan_thanh giảm dần.
-  const bcDoneList=useMemo(()=>[...projs].filter(p=>p.trang_thai==="hoan_thanh"||projFullyReceived(p)).sort((a,b)=>{
-    const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
-    const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
-    if(ka!==kb) return String(kb).localeCompare(String(ka));
-    return String(b.id||"").localeCompare(String(a.id||""));
-  }),[projs,projFullyReceived]);
+  // ✅ bcDoneList (danh sách "Đã hoàn thành" của tab Báo cáo) được tính bên dưới, SAU khi
+  // "duAll" (biến đã kiểm chứng đúng, dùng để tô màu banner "Đã nhận đủ vật tư toàn bộ!")
+  // được khai báo — để dự án ĐANG XEM luôn dùng CHUNG 1 kết quả duy nhất với banner, tránh
+  // lệch số liệu giữa banner và badge đếm.
 
   // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: chọn 1
   // dự án đã hoàn thành (đã bấm nút HOẶC đã nhận đủ 100% vật tư) → tự chuyển hẳn sang
-  // "✅ Đã hoàn thành"; chọn dự án đang làm → tự chuyển về "🚧 Đang thực hiện". Chỉ chạy khi
-  // PID thực sự đổi (không đè lên lựa chọn tay của người dùng khi họ tự bấm qua lại 2 nút
-  // trong lúc pid không đổi).
+  // "✅ Đã hoàn thành"; chọn dự án đang làm → tự chuyển về "🚧 Đang thực hiện".
+  // ⚠️ FIX LỖI "tự nhảy về Đang thực hiện sau vài giây": trước đây effect này phụ thuộc
+  // [pid, duAll] — cứ mỗi lần app tự làm mới dữ liệu theo định kỳ (poll ngầm mỗi 10-20s),
+  // "duAll" được tính lại (dù giá trị không đổi vẫn có thể coi là "chạy lại" do tham chiếu
+  // hàm/mảng nguồn thay đổi), khiến effect NGỠ RẰNG pid vừa đổi và ghi đè bcSubTab về đúng
+  // theo trạng_thái, XOÁ MẤT lựa chọn tay "Đã hoàn thành" của người dùng dù họ không hề đổi
+  // dự án. Nay CHỈ bỏ qua việc tự đồng bộ khi người dùng đã tự tay bấm 1 trong 2 nút trang
+  // con (hoặc tự bấm xem chi tiết từ danh sách "Đã hoàn thành") CHO ĐÚNG dự án đang xem —
+  // đánh dấu qua bcNav.markManual(pid) ngay tại nơi bấm nút (xem 2 nút "🚧/✅" và danh sách
+  // "Đã hoàn thành" bên dưới) — nhờ vậy lựa chọn tay được giữ nguyên cho tới khi người dùng
+  // THỰC SỰ chuyển sang xem 1 dự án khác (pid đổi).
   useEffect(()=>{
     if(!pid) return;
-    if(bcManualDetailPidRef.current===pid) return; // vừa tự bấm xem chi tiết dự án này — giữ nguyên "dang", không tự đè lại
+    if(bcNav.isManual(pid)) return; // người dùng đã tự tay chọn trang con cho ĐÚNG dự án này — giữ nguyên, không tự đè lại
     const p=projs.find(x=>x.id===pid);
     if(!p) return;
-    setBcSubTab((p.trang_thai==="hoan_thanh"||projFullyReceived(p)) ? "done" : "dang");
+    // ✅ Dùng "duAll" (đã kiểm chứng đúng, chính là biến quyết định banner "Đã nhận đủ vật tư
+    // toàn bộ!" của dự án đang chọn) thay vì tính lại — đảm bảo tab tự nhảy khớp 100% với
+    // banner đang hiển thị.
+    setBcSubTab((p.trang_thai==="hoan_thanh"||duAll) ? "done" : "dang");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[pid,projFullyReceived]);
+  },[pid,duAll]);
 
 
   // ── Helpers ──
@@ -5944,6 +5988,20 @@ Bạn có chắc chắn không?`;
   const pctT=bom.length>0?Math.round(maDone/bom.length*100):0;
   const duAll=maDone===bom.length&&bom.length>0;
 
+  // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
+  // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
+  // đã nhận đủ 100% vật tư. Với dự án ĐANG ĐƯỢC CHỌN (p.id===pid), dùng THẲNG biến "duAll" ở
+  // trên (đã kiểm chứng đúng — chính là biến quyết định banner "Đã nhận đủ vật tư toàn bộ!")
+  // thay vì tính lại từ đầu, để badge đếm & vị trí danh mục LUÔN khớp 100% với banner đang
+  // hiển thị, không thể lệch nhau. Các dự án KHÁC (không phải đang chọn) vẫn dùng
+  // projFullyReceived(p) để tự tính riêng.
+  const bcDoneList=useMemo(()=>[...projs].filter(p=>p.trang_thai==="hoan_thanh"||(p.id===pid?duAll:projFullyReceived(p))).sort((a,b)=>{
+    const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
+    const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
+    if(ka!==kb) return String(kb).localeCompare(String(ka));
+    return String(b.id||"").localeCompare(String(a.id||""));
+  }),[projs,projFullyReceived,pid,duAll]);
+
   const nhomDM=useMemo(()=>{const m={};th.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!m[k])m[k]=[];m[k].push(v);});return m;},[th]);
   const freshVP=viewPh?(phList.find(p=>p.id===viewPh.id)||viewPh):null;
   const mauP=proj.mau||"#1d4ed8";
@@ -6904,13 +6962,13 @@ Bạn có chắc chắn không?`;
           Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
       {tab==="bc"&&(
         <div style={{background:"#fff",padding:"12px 10px 0",display:"flex",gap:8}}>
-          <button onClick={()=>setBcSubTab("dang")}
+          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("dang");}}
             style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
               background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
               boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
             🚧 Đang thực hiện
           </button>
-          <button onClick={()=>setBcSubTab("done")}
+          <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("done");}}
             style={{flex:1,border:bcSubTab==="done"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
               background:bcSubTab==="done"?"linear-gradient(135deg,#16a34a,#15803d)":"#fff",color:bcSubTab==="done"?"#fff":"#374151",
               boxShadow:bcSubTab==="done"?"0 3px 10px rgba(22,163,74,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
@@ -7907,7 +7965,7 @@ Bạn có chắc chắn không?`;
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {bcDoneList.map(p=>(
-                    <div key={p.id} onClick={()=>{bcManualDetailPidRef.current=p.id;sw(p.id);setBcSubTab("dang");}}
+                    <div key={p.id} onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcSubTab("dang");}}
                       style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:p.id===pid?"1.5px solid #16a34a":"1px solid #f1f5f9"}}>
                       <div style={{width:38,height:38,borderRadius:"50%",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.icon||"✅"}</div>
                       <div style={{flex:1,minWidth:0}}>
