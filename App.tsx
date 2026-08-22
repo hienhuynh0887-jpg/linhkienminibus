@@ -7002,20 +7002,32 @@ Bạn có chắc chắn không?`;
           Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
       {tab==="bc"&&(()=>{
         // ✅ Dự án đang chọn (pid) đã hoàn thành hay chưa — dùng CHUNG điều kiện với banner
-        // "Đã nhận đủ vật tư toàn bộ!" (trang_thai==="hoan_thanh" HOẶC duAll). Khi dự án đang
-        // chọn đã hoàn thành, nút "🚧 Đang thực hiện" PHẢI bị vô hiệu hoá — không cho phép ép
-        // xem 1 dự án đã xong dưới dạng "Đang thực hiện" nữa (dù bấm nút này chỉ đổi bcSubTab,
-        // không đổi pid/duAll nên effect tự-đồng-bộ phía trên sẽ KHÔNG tự chạy lại để chặn —
-        // phải chặn ngay tại đây, từ gốc, bằng cách vô hiệu hoá nút).
+        // "Đã nhận đủ vật tư toàn bộ!" (trang_thai==="hoan_thanh" HOẶC duAll).
         const projDangChonDaXong = !!proj && (proj.trang_thai==="hoan_thanh"||duAll);
+        // ⚠️ FIX: trước đây khi dự án đang chọn đã hoàn thành, nút "🚧 Đang thực hiện" bị VÔ
+        // HIỆU HOÁ HẲN — khiến người dùng không còn cách nào bấm sang xem các dự án KHÁC vẫn
+        // đang thực hiện (nếu có). Đúng ra nút này vẫn phải bấm được — chỉ là khi dự án ĐANG
+        // CHỌN đã xong, bấm vào sẽ TỰ ĐỘNG chuyển sang dự án đang thực hiện ĐẦU TIÊN (nếu còn),
+        // để người dùng vẫn xem được các dự án chưa hoàn thành như bình thường. Chỉ khi KHÔNG
+        // CÒN dự án nào đang thực hiện (bcDangList rỗng) mới hiện trạng thái trống ở khu vực nội
+        // dung bên dưới (xem đoạn render "dang" chính) — nút vẫn luôn bấm được.
+        const chuyenSangDangThucHien=()=>{
+          let targetPid=pid;
+          if(projDangChonDaXong){
+            const first=bcDangList[0];
+            if(first) targetPid=first.id;
+          }
+          if(targetPid!==pid) sw(targetPid);
+          bcNav.markManual(targetPid);
+          setBcSubTab("dang");
+          setBcDoneViewPid(null);
+        };
         return(
         <div style={{background:"#fff",padding:"12px 10px 0",display:"flex",gap:8}}>
-          <button disabled={projDangChonDaXong}
-            onClick={()=>{if(projDangChonDaXong)return;bcNav.markManual(pid);setBcSubTab("dang");setBcDoneViewPid(null);}}
-            title={projDangChonDaXong?"Dự án đang chọn đã hoàn thành — không thể xem ở mục Đang thực hiện":""}
-            style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:projDangChonDaXong?"not-allowed":"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
+          <button onClick={chuyenSangDangThucHien}
+            title={projDangChonDaXong?(bcDangList.length>0?"Sẽ tự chuyển sang dự án đang thực hiện đầu tiên":"Không còn dự án nào đang thực hiện"):""}
+            style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
               background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
-              opacity:projDangChonDaXong?0.45:1,
               boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
             🚧 Đang thực hiện
           </button>
@@ -8017,6 +8029,12 @@ Bạn có chắc chắn không?`;
           // khác. Nút "✅ Đã hoàn thành" bấm trực tiếp luôn quay về danh sách (xem chỗ khai báo
           // nút, đã reset bcDoneViewPid=null ở đó).
           const showingDoneList = bcSubTab==="done" && bcDoneViewPid!==pid;
+          // ⚠️ CHỐT AN TOÀN: trường hợp bấm nút "🚧 Đang thực hiện" nhưng KHÔNG CÒN dự án nào
+          // khác đang thực hiện (bcDangList rỗng) — dự án đang chọn (pid) vẫn là dự án ĐÃ hoàn
+          // thành. Lúc này bcSubTab="dang" nhưng KHÔNG được phép hiện chi tiết dự án đã xong ở
+          // đây (dù effect tự-đồng-bộ sẽ sớm ép lại "done" ở lần re-render kế, để chắc chắn
+          // không "loé" nhầm nội dung 1 khắc, chặn luôn tại đây bằng thông báo trống).
+          const khongConDuAnDangLam = bcSubTab==="dang" && !!proj && (proj.trang_thai==="hoan_thanh"||duAll);
           return(
             <>
             {showingDoneList?(
@@ -8043,6 +8061,10 @@ Bạn có chắc chắn không?`;
                   ))}
                 </div>
               )
+            ):khongConDuAnDangLam?(
+              <div style={{textAlign:"center",padding:"40px 16px",color:"#9ca3af",background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+                — Không còn dự án nào đang thực hiện. Mọi dự án của dòng xe này đã hoàn thành, xem ở mục "✅ Đã hoàn thành" —
+              </div>
             ):(
             <div>
               {/* ✅ Chỉ hiện khi đang xem CHI TIẾT 1 dự án đã hoàn thành (từ danh sách bấm vào) —
