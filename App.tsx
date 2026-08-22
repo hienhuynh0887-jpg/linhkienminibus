@@ -8129,8 +8129,25 @@ Bạn có chắc chắn không?`;
                     ))}
                   </div>
                   <div style={{marginTop:10,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"6px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                    <span style={{fontSize:8.5,color:"#15803d",fontWeight:700,textAlign:"center",lineHeight:1.2}}>✅ Tích lũy</span>
-                    <span style={{fontSize:13,fontWeight:900,color:"#15803d"}}>{pctT}%</span>
+                    <span style={{fontSize:8.5,fontWeight:900,color:"#fff",background:"#dc2626",borderRadius:999,padding:"3px 10px",textAlign:"center",lineHeight:1.2,display:"inline-block"}}>✅ ĐỒNG BỘ</span>
+                    {(()=>{
+                      // ✅ Số xe ĐỒNG BỘ = số xe đã được trang bị ĐỦ TRỌN BỘ vật tư.
+                      // Với mỗi mã: số xe mà mã đó đủ để trang bị = floor(đã nhận / định mức).
+                      // Số xe đồng bộ = giá trị NHỎ NHẤT (bottleneck) trong tất cả các mã —
+                      // vì 1 xe chỉ đồng bộ khi TẤT CẢ các mã đều đủ cho nó.
+                      let xeDongBo=soXe;
+                      if(!soXe||bom.length===0){xeDongBo=0;}
+                      else{
+                        for(const v of th){
+                          const dmV=numOr0(v.dm);
+                          if(dmV<=0)continue; // bỏ qua mã không có định mức hợp lệ
+                          const xeDu=Math.floor((numOr0(v.dn)+EPS)/dmV);
+                          if(xeDu<xeDongBo)xeDongBo=xeDu;
+                        }
+                        xeDongBo=Math.max(0,Math.min(soXe,xeDongBo));
+                      }
+                      return <span style={{fontSize:13,fontWeight:900,color:"#15803d"}}>{xeDongBo} XE</span>;
+                    })()}
                   </div>
                 </div>
 
