@@ -7005,15 +7005,15 @@ Bạn có chắc chắn không?`;
       {(()=>{
         const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
         return(
-          <div style={{background:"#2e1065",borderBottom:"1px solid #1e0a47",padding:"10px 16px 14px"}}>
-            <div style={{display:"flex",gap:4,background:"#3b0764",borderRadius:12,padding:4,overflowX:"auto"}}>
+          <div style={{background:"#c2410c",borderBottom:"1px solid #9a3412",padding:"10px 16px 14px"}}>
+            <div style={{display:"flex",gap:4,background:"#ea580c",borderRadius:12,padding:4,overflowX:"auto"}}>
               {TABS_NOW.map(([k])=>{
                 const active=tab===k;
                 const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`);
                 return(
                   <button key={k} onClick={()=>setTab(k)} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
                     flex:"1 0 auto",minWidth:76,borderRadius:9,fontWeight:800,textAlign:"center",
-                    color:"#ffffff",background:active?"#8b5cf6":"transparent",
+                    color:"#ffffff",background:active?"#fb923c":"transparent",
                     opacity:active?1:0.68,
                     boxShadow:active?"0 1px 6px rgba(0,0,0,0.35)":"none",
                     padding:"9px 8px",fontSize:12.5,whiteSpace:"nowrap"}}>
@@ -7159,7 +7159,7 @@ Bạn có chắc chắn không?`;
         const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥"};
         const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
         return(
-          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#2e1065",borderTop:"1px solid #1e0a47",boxShadow:"0 -2px 12px rgba(0,0,0,0.35)",display:"flex",overflowX:"auto"}}>
+          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#c2410c",borderTop:"1px solid #9a3412",boxShadow:"0 -2px 12px rgba(0,0,0,0.35)",display:"flex",overflowX:"auto"}}>
             {TABS_NOW.map(([k])=>{
               const active=tab===k;
               const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
