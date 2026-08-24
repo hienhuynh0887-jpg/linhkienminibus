@@ -2769,7 +2769,11 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 }
 
 const fmt=n=>(n||0).toLocaleString("vi-VN");
-const E0={stt:0,ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:"",anh:""};
+const E0={stt:0,ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:"",anh:"",
+  // ✅ 7 trường MỚI — chỉ áp dụng/hiển thị khi activeLine==="12m" (xem Modal thêm/sửa
+  // và bảng danh sách vật tư bên dưới). Với các dòng xe khác các trường này luôn rỗng
+  // và không được gửi lên Supabase (xem dbUpsertBomRows).
+  ckgh:"dung_chung", px:"", dai:"", rong:"", day_kt:"", tram:"", tnxh:""};
 
 // ── Thứ tự chuẩn Nguồn gốc: SUB MINI 1 → SUB MINI 2 → UB → MB → FT ──
 const DM_ORDER=["SUB MINI 1","SUB MINI 2","UB","MB","FT"];
@@ -4081,6 +4085,18 @@ export default function App(){
       vt:r.vt?String(r.vt).trim().slice(0,200):null,
       gc:r.gc?String(r.gc).trim().slice(0,1000):null,
       anh:r.anh||null,
+      // ✅ CHỈ gửi 7 cột mới khi đang ở dòng xe 12m (activeLine==="12m") — bảng
+      // bom_items của minibus/citybus KHÔNG có các cột này nên phải loại trừ, nếu
+      // không Supabase/PostgREST sẽ báo lỗi "column ... does not exist".
+      ...(activeLine==="12m" ? {
+        ckgh:   r.ckgh ? String(r.ckgh).trim().slice(0,20) : "dung_chung",
+        px:     r.px ? String(r.px).trim().slice(0,100) : null,
+        dai:    (r.dai!=null && r.dai!=="") ? Number(r.dai) : null,
+        rong:   (r.rong!=null && r.rong!=="") ? Number(r.rong) : null,
+        day_kt: (r.day_kt!=null && r.day_kt!=="") ? Number(r.day_kt) : null,
+        tram:   r.tram ? String(r.tram).trim().slice(0,50) : null,
+        tnxh:   r.tnxh ? String(r.tnxh).trim().slice(0,100) : null,
+      } : {}),
     })).filter(r=>r.ma&&r.ten);
     const nSkipped=(rows?.length||0)-cleanRows.length;
     if(nSkipped>0){
@@ -7196,22 +7212,30 @@ Bạn có chắc chắn không?`;
                     filtered.map(v=>({
                       "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
                       "ĐM/1XE":v.dm,[`Cần(×${soXe}xe)`]:v.dm*soXe,
-                      "Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig,"Ghi chú":v.gc
+                      "Nguồn gốc":v.ng,"Vị trí":v.vt,"JIG":v.jig,"Ghi chú":v.gc,
+                      // ✅ Cột riêng XE 12M — chỉ thêm khi activeLine==="12m"
+                      ...(activeLine==="12m" ? {
+                        "Check GH29Y":v.ckgh==="rieng"?"RIÊNG GH29Y":"DÙNG CHUNG",
+                        "Phân xưởng":v.px||"","Dài(mm)":v.dai||"","Rộng(mm)":v.rong||"","Dày(mm)":v.day_kt||"",
+                        "Trạm/Xí":v.tram||"","Trách nhiệm XH":v.tnxh||"",
+                      } : {}),
                     })),
                     `VatTu_${proj.ten.replace(/\s/g,"_")}`,
                     `Danh sách vật tư — ${proj.ten}`
                   )}
                   onPDF={()=>{
+                    const is12m=activeLine==="12m";
                     const rows=filtered.map((v,i)=>`<tr>
                       <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                       <td style="text-align:center">${v.dv}</td>
                       <td style="text-align:center">${fmt(v.dm)}</td>
                       <td style="text-align:center;font-weight:700;color:#065f46">${fmt(v.dm*soXe)}</td>
                       <td>${v.ng}</td><td class="l">${v.vt||""}</td><td>${v.jig||""}</td><td>${v.gc||""}</td>
+                      ${is12m?`<td>${v.ckgh==="rieng"?"RIÊNG GH29Y":"DÙNG CHUNG"}</td><td>${v.px||""}</td><td>${v.dai||""}×${v.rong||""}×${v.day_kt||""}</td><td>${v.tram||""}</td><td>${v.tnxh||""}</td>`:""}
                     </tr>`).join("");
                     xuatPDF(`<h2>${t("rpDs")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${filtered.length}/${bom.length} mã · ${soXe} xe</p>
-                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thDM")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thNguonGoc")}</th><th>${t("lbVT")}</th><th>JIG</th><th>${t("thGhiChu")}</th></tr></thead><tbody>${rows}</tbody></table>`,
+                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thDM")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thNguonGoc")}</th><th>${t("lbVT")}</th><th>JIG</th><th>${t("thGhiChu")}</th>${is12m?`<th>Check GH29Y</th><th>Phân xưởng</th><th>DxRxD(mm)</th><th>Trạm/Xí</th><th>Trách nhiệm XH</th>`:""}</tr></thead><tbody>${rows}</tbody></table>`,
                       `VatTu_${proj.ten}`);
                   }}
                 />
@@ -7272,6 +7296,23 @@ Bạn có chắc chắn không?`;
                       <span style={{color:"#000",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thDVT")}: {v.dv} {t("lbDM1XE")}: {fmt(v.dm)}</span>
                       <span style={{color:"#000",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t("thCanNhan")}: {fmt(v.dm*soXe)}</span>
                       {v.gc&&<span style={{background:"#fef9c3",color:"#713f12",borderRadius:4,padding:"1px 6px",fontSize:10}}>{v.gc}</span>}
+
+                      {/* ═══════════════════════════════════════════════
+                          ✅ SỬA 5 — Badge riêng cho XE 12M (chỉ hiện khi activeLine==="12m")
+                          ═══════════════════════════════════════════════ */}
+                      {activeLine==="12m"&&(
+                        <>
+                          {v.ckgh&&<span style={{background:v.ckgh==="rieng"?"#fee2e2":"#dcfce7",color:v.ckgh==="rieng"?"#991b1b":"#166534",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>
+                            {v.ckgh==="rieng"?"RIÊNG GH29Y":"DÙNG CHUNG"}
+                          </span>}
+                          {v.px&&<span style={{background:"#ccfbf1",color:"#0f766e",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>🏭 {v.px}</span>}
+                          {v.tram&&<span style={{background:"#fef3c7",color:"#92400e",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>📍 {v.tram}</span>}
+                          {v.tnxh&&<span style={{background:"#fce7f3",color:"#9d174d",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>👤 {v.tnxh}</span>}
+                          {(v.dai||v.rong||v.day_kt)&&<span style={{background:"#e5e7eb",color:"#374151",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>
+                            📐 {v.dai||"-"}×{v.rong||"-"}×{v.day_kt||"-"}mm
+                          </span>}
+                        </>
+                      )}
                     </div>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,flexShrink:0}}>
@@ -8819,6 +8860,62 @@ Bạn có chắc chắn không?`;
                     <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Ghi chú</label>
                     <input value={cur.gc||""} onChange={e=>setCur(c=>({...c,gc:e.target.value}))} style={inp}/>
                   </div>
+
+                  {/* ═══════════════════════════════════════════════════════════
+                      ✅ SỬA 4 — 7 TRƯỜNG MỚI — CHỈ HIỆN KHI DÒNG XE = 12M
+                      (theo yêu cầu "CHỈ ÁP DỤNG CHO DÒNG XE 12M")
+                      ═══════════════════════════════════════════════════════════ */}
+                  {activeLine==="12m"&&(
+                    <>
+                      <div style={{gridColumn:"1/3",borderTop:"1px dashed #d1d5db",paddingTop:10,marginTop:2,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:14}}>🚌</span>
+                        <span style={{fontSize:11,fontWeight:800,color:"#0f766e",letterSpacing:.3}}>THÔNG TIN RIÊNG XE 12M</span>
+                      </div>
+
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Check GH29Y</label>
+                        <select value={cur.ckgh||"dung_chung"} onChange={e=>setCur(c=>({...c,ckgh:e.target.value}))} style={inp}>
+                          <option value="dung_chung">DÙNG CHUNG</option>
+                          <option value="rieng">RIÊNG GH29Y</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Phân xưởng</label>
+                        <input value={cur.px||""} onChange={e=>setCur(c=>({...c,px:e.target.value}))} list="pxl12m" style={inp} placeholder="X. Hàn..."/>
+                        <datalist id="pxl12m">
+                          <option value="X. Hàn"/><option value="X. Gia Công"/><option value="X. Lắp Ráp"/><option value="X. Sơn"/><option value="X. Điện"/>
+                        </datalist>
+                      </div>
+
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Dài (mm)</label>
+                        <input type="number" value={cur.dai||""} onChange={e=>setCur(c=>({...c,dai:e.target.value}))} style={inp} placeholder="0.0"/>
+                      </div>
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Rộng (mm)</label>
+                        <input type="number" value={cur.rong||""} onChange={e=>setCur(c=>({...c,rong:e.target.value}))} style={inp} placeholder="0.0"/>
+                      </div>
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Dày (mm)</label>
+                        <input type="number" value={cur.day_kt||""} onChange={e=>setCur(c=>({...c,day_kt:e.target.value}))} style={inp} placeholder="0.0"/>
+                      </div>
+
+                      <div>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Trạm/Xí</label>
+                        <input value={cur.tram||""} onChange={e=>setCur(c=>({...c,tram:e.target.value}))} list="traml12m" style={inp} placeholder="SUB 4, H3..."/>
+                        <datalist id="traml12m">
+                          <option value="SUB 1"/><option value="SUB 2"/><option value="SUB 3"/><option value="SUB 4"/><option value="H3"/><option value="H7"/>
+                        </datalist>
+                      </div>
+
+                      <div style={{gridColumn:"1/3"}}>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Trách nhiệm XH</label>
+                        <input value={cur.tnxh||""} onChange={e=>setCur(c=>({...c,tnxh:e.target.value}))} style={inp} placeholder="HẢI, ĐOÀN, PHIÊN..."/>
+                      </div>
+                    </>
+                  )}
+
                   <div style={{gridColumn:"1/3"}}>
                     <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>Ảnh vật tư</label>
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
