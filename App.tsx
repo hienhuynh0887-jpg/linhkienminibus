@@ -5027,6 +5027,16 @@ export default function App(){
               vt:String(r["Vị trí"]||r["vt"]||r["Trạm"]||"").trim(),
               jig:String(r["JIG"]||r["Jig"]||r["jig"]||"").trim(),
               gc:String(r["Ghi chú"]||r["gc"]||"").trim(),
+              // ✅ 7 cột MỚI — chỉ có ý nghĩa khi import vào dòng xe 12m (nếu file không
+              // có các cột này thì để rỗng, không ảnh hưởng các dòng xe khác)
+              ckgh:(()=>{const s=String(r["Check GH29Y"]||r["CHECK GH29Y"]||r["ckgh"]||"").trim().toLowerCase();
+                return (s.includes("riêng")||s.includes("rieng"))?"rieng":"dung_chung";})(),
+              px:String(r["Phân xưởng"]||r["PHÂN XƯỞNG"]||r["Phan xuong"]||r["px"]||"").trim(),
+              dai:String(r["Dài"]||r["DÀI"]||r["Dai"]||r["dai"]||"").trim(),
+              rong:String(r["Rộng"]||r["RỘNG"]||r["Rong"]||r["rong"]||"").trim(),
+              day_kt:String(r["Dày"]||r["DÀY"]||r["Day"]||r["day_kt"]||"").trim(),
+              tram:String(r["Trạm/Xí"]||r["Trạm Xí"]||r["[STT Trạm XH]"]||r["STT Trạm XH"]||r["Trạm XH"]||r["tram"]||"").trim(),
+              tnxh:String(r["Trách nhiệm XH"]||r["TRÁCH NHIỆM XH"]||r["Trach nhiem XH"]||r["tnxh"]||"").trim(),
             };
           }).filter(r=>r.ma&&r.ten);
           if(!mapped.length){onResult([],"Không tìm thấy cột Mã số / Tên vật tư!");return;}
@@ -5092,6 +5102,16 @@ export default function App(){
               vt:g("Vị Trí","Vị trí","TRẠM","Trạm","vt"),
               jig:g("JIG","Jig","jig"),
               gc:g("Ghi chú","Ghi Chú","GHI CHÚ","gc"),
+              // ✅ 7 cột MỚI — chỉ có ý nghĩa khi import vào dòng xe 12m (nếu file không
+              // có các cột này thì để rỗng, không ảnh hưởng các dòng xe khác)
+              ckgh:(()=>{const s=g("Check GH29Y","CHECK GH29Y","ckgh").toLowerCase();
+                return (s.includes("riêng")||s.includes("rieng"))?"rieng":"dung_chung";})(),
+              px:g("Phân xưởng","PHÂN XƯỞNG","Phan xuong","px"),
+              dai:g("Dài","DÀI","Dai","dai"),
+              rong:g("Rộng","RỘNG","Rong","rong"),
+              day_kt:g("Dày","DÀY","Day","day_kt"),
+              tram:g("Trạm/Xí","Trạm Xí","[STT Trạm XH]","STT Trạm XH","Trạm XH","tram"),
+              tnxh:g("Trách nhiệm XH","TRÁCH NHIỆM XH","Trach nhiem XH","tnxh"),
             };
           }).filter(r=>r.ma&&r.ten);
           if(!mapped.length){onResult([],`Không tìm thấy dữ liệu! Sheet đọc: "${bestSheetName}". Kiểm tra cột Mã số / Tên vật tư.`);return;}
