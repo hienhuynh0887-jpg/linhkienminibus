@@ -14,6 +14,126 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_KEY || "", {
   auth: { persistSession: false }
 });
 
+// ═══════════════════════════════════════════════════════════════
+//  🎨 ICON 3D / NEON — dùng cho thanh 4 mục (Ngôn ngữ / Đổi MK / Sửa ký / Tài khoản)
+//  Thay cho emoji phẳng (🌐 🔑 ✏️ 🏢) bằng SVG gradient phong cách 3D/neon.
+// ═══════════════════════════════════════════════════════════════
+function IconGlobeCN({size=30}){
+  const id="gg"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <linearGradient id={id+"a"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#7dd3fc"/><stop offset="50%" stopColor="#2563eb"/><stop offset="100%" stopColor="#0f2a6b"/>
+        </linearGradient>
+        <linearGradient id={id+"b"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#38bdf8"/><stop offset="100%" stopColor="#1d4ed8"/>
+        </linearGradient>
+      </defs>
+      <circle cx="27" cy="27" r="21" fill={`url(#${id}a)`}/>
+      <g stroke="#bfe6ff" strokeWidth="1.1" opacity=".85" fill="none">
+        <ellipse cx="27" cy="27" rx="21" ry="8"/>
+        <ellipse cx="27" cy="27" rx="21" ry="15"/>
+        <ellipse cx="27" cy="27" rx="8"  ry="21"/>
+        <ellipse cx="27" cy="27" rx="15" ry="21"/>
+        <line x1="6" y1="27" x2="48" y2="27"/>
+      </g>
+      <circle cx="10" cy="18" r="1.6" fill="#e0f2fe"/>
+      <circle cx="41" cy="14" r="1.3" fill="#e0f2fe"/>
+      <circle cx="8"  cy="34" r="1.3" fill="#e0f2fe"/>
+      <g>
+        <rect x="34" y="30" width="26" height="21" rx="7" fill={`url(#${id}b)`} stroke="#0c2a63" strokeWidth="1"/>
+        <path d="M40 51 l0 7 l8 -7 Z" fill={`url(#${id}b)`}/>
+        <text x="47" y="45" textAnchor="middle" fontSize="14" fontWeight="800" fill="#fff" fontFamily="sans-serif">中</text>
+      </g>
+    </svg>
+  );
+}
+
+function IconKey3D({size=30}){
+  const id="kk"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#3b2f63"/><stop offset="100%" stopColor="#0b0a1e"/>
+        </radialGradient>
+        <linearGradient id={id+"k"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="45%" stopColor="#fb923c"/><stop offset="100%" stopColor="#ea580c"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <g transform="rotate(-38 32 32)">
+        <circle cx="24" cy="24" r="10" fill="none" stroke={`url(#${id}k)`} strokeWidth="6"/>
+        <rect x="24" y="30" width="6" height="20" rx="1.5" fill={`url(#${id}k)`}/>
+        <rect x="24" y="38" width="11" height="5" rx="1.2" fill={`url(#${id}k)`}/>
+        <rect x="24" y="45" width="8" height="5" rx="1.2" fill={`url(#${id}k)`}/>
+      </g>
+      <g stroke="#93c5fd" strokeWidth="2" opacity=".6" strokeLinecap="round">
+        <line x1="6"  y1="20" x2="16" y2="20"/>
+        <line x1="4"  y1="26" x2="15" y2="26"/>
+        <line x1="7"  y1="32" x2="17" y2="32"/>
+      </g>
+    </svg>
+  );
+}
+
+function IconPenSign3D({size=30}){
+  const id="pp"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <linearGradient id={id+"pad"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#1e1b4b"/><stop offset="100%" stopColor="#312e81"/>
+        </linearGradient>
+        <linearGradient id={id+"pen"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#67e8f9"/><stop offset="60%" stopColor="#8b5cf6"/><stop offset="100%" stopColor="#4c1d95"/>
+        </linearGradient>
+      </defs>
+      <rect x="6" y="24" width="46" height="32" rx="6" fill={`url(#${id}pad)`} stroke="#4c1d95" strokeWidth="1.4" transform="rotate(-4 29 40)"/>
+      <path d="M12 46 C 18 40, 22 50, 28 44 S 38 38, 44 42" stroke="#67e8f9" strokeWidth="2.2" fill="none" strokeLinecap="round" opacity=".9" transform="rotate(-4 29 40)"/>
+      <g transform="rotate(38 40 20)">
+        <rect x="37" y="4"  width="7" height="30" rx="3.2" fill={`url(#${id}pen)`}/>
+        <path d="M37 34 L44 34 L40.5 44 Z" fill="#c4b5fd"/>
+        <rect x="37" y="4" width="7" height="7" rx="2" fill="#0f172a"/>
+      </g>
+      <circle cx="10" cy="14" r="1.4" fill="#a5f3fc"/>
+      <circle cx="16" cy="9"  r="1.1" fill="#a5f3fc"/>
+    </svg>
+  );
+}
+
+function IconUserGear3D({size=30}){
+  const id="uu"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <linearGradient id={id+"ring"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f472b6"/><stop offset="55%" stopColor="#a855f7"/><stop offset="100%" stopColor="#4338ca"/>
+        </linearGradient>
+        <linearGradient id={id+"face"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#fb923c"/>
+        </linearGradient>
+        <radialGradient id={id+"bg"} cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stopColor="#1e1b4b"/><stop offset="100%" stopColor="#0b0a1e"/>
+        </radialGradient>
+      </defs>
+      <circle cx="30" cy="30" r="27" fill={`url(#${id}bg)`}/>
+      <circle cx="30" cy="30" r="26" fill="none" stroke={`url(#${id}ring)`} strokeWidth="2.4"/>
+      <circle cx="30" cy="23" r="8" fill={`url(#${id}face)`}/>
+      <path d="M14 45 C14 34, 46 34, 46 45 L46 49 C46 49 14 49 14 45 Z" fill={`url(#${id}face)`}/>
+      <g transform="translate(44,42)">
+        <circle r="10" fill="#1e1b4b" stroke={`url(#${id}ring)`} strokeWidth="1.6"/>
+        <circle r="3.6" fill="none" stroke="#e9d5ff" strokeWidth="1.6"/>
+        {[0,60,120,180,240,300].map(a=>(
+          <rect key={a} x="-1" y="-8.6" width="2" height="3.2" rx=".8" fill="#e9d5ff" transform={`rotate(${a})`}/>
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+
 
 // ⚠️ Đã bỏ hẳn dữ liệu mẫu (seed) hard-code trong code (trước đây là 2 mảng BOM_XH/BOM_MB2
 // với hàng trăm dòng vật tư mẫu). Toàn bộ BOM mẫu giờ chỉ đọc từ Supabase (bảng "bom_mau" /
@@ -6937,11 +7057,12 @@ Bạn có chắc chắn không?`;
 
         <div style={{borderTop:"1px solid #eef1f7"}}/>
 
-        {/* Icon row — 4 mục: Ngôn ngữ / Đổi MK / Chữ ký / Tài khoản (icon phẳng, ngăn cách bằng vạch mảnh) */}
+        {/* Icon row — 4 mục: Ngôn ngữ / Đổi MK / Chữ ký / Tài khoản
+            ✅ Đã thay icon emoji phẳng bằng SVG 3D/neon (Globe+中 / Key / Pen ký / User+Gear) */}
         <div style={{display:"flex"}}>
           <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
             style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
-            <span style={{fontSize:19}}>🌐</span>
+            <IconGlobeCN size={30}/>
             <span style={{fontSize:10.5,fontWeight:700,whiteSpace:"nowrap"}}>
               <span style={{color:lang==="vi"?"#2563eb":"#9aa5bd"}}>VI</span>
               <span style={{color:"#9aa5bd"}}> / </span>
@@ -6950,17 +7071,19 @@ Bạn có chắc chắn không?`;
           </div>
           <div onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
             style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
-            <span style={{fontSize:19}}>🔑</span>
+            <IconKey3D size={30}/>
             <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>Đổi MK</span>
           </div>
           <div onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
             style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
-            <span style={{fontSize:19}}>✏️</span>
+            <IconPenSign3D size={30}/>
             <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</span>
           </div>
           <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
             title="Đăng xuất" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer"}}>
-            <span style={{fontSize:19}}>{user.avatar||"🏢"}</span>
+            {user.avatar
+              ? <span style={{fontSize:19}}>{user.avatar}</span>
+              : <IconUserGear3D size={30}/>}
             <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap",maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis"}}>{user.ten}</span>
           </div>
         </div>
