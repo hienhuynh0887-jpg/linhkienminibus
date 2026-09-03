@@ -2900,7 +2900,199 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   );
 }
 
-const fmt=n=>(n||0).toLocaleString("vi-VN");
+// ═══════════════════════════════════════════════════════════════
+//  🖼️ CMS — Quản lý Nội dung / Banner / Ảnh đại diện (CHỈ admin)
+// ═══════════════════════════════════════════════════════════════
+const CMS_LOAI = [
+  {v:"noi_dung", l:"📝 Nội dung",     mo:"Khối văn bản (tiêu đề + mô tả) hiển thị trong app."},
+  {v:"banner",   l:"🖼️ Banner",       mo:"Ảnh banner kèm tiêu đề, có thể gắn liên kết."},
+  {v:"avatar",   l:"👤 Ảnh đại diện", mo:"Ảnh đại diện dùng cho tài khoản/đơn vị."},
+];
+const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
+
+// Đọc 1 file ảnh do người dùng chọn → chuỗi base64 (data URL), kèm giới hạn dung lượng
+// nhẹ (~800KB sau mã hoá) để tránh làm phình bảng cms_content trên Supabase.
+const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
+  if(!file) return resolve("");
+  if(file.size > 1_200_000){
+    alert("⚠️ Ảnh khá nặng (>1.2MB) — nên chọn ảnh nhẹ hơn (nén/giảm kích thước trước) để tránh app tải chậm.");
+  }
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
+function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms}){
+  const [subTab, setSubTab] = useState("noi_dung");
+  const [form, setForm] = useState(CMS_E0);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [delConfirm, setDelConfirm] = useState(null);
+
+  const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f8fafc"};
+  const lbl={display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:4};
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"8px 16px"};
+
+  const listOfType = items.filter(it=>it.loai===subTab).sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0));
+
+  const resetForm = () => { setForm({...CMS_E0, loai:subTab}); setEditing(false); };
+
+  const onPickImage = async(e)=>{
+    const file = e.target.files?.[0];
+    if(!file) return;
+    try{
+      const b64 = await readImageAsBase64(file);
+      setForm(f=>({...f, anh:b64}));
+    }catch(err){
+      alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+    }
+  };
+
+  const onSave = async()=>{
+    if(!form.tieu_de.trim() && subTab!=="avatar"){
+      alert("⚠️ Vui lòng nhập tiêu đề."); return;
+    }
+    setSaving(true);
+    const id = form.id || (subTab+"_"+Date.now());
+    const row = {...form, id, loai:subTab, updated_at:new Date().toISOString()};
+    const ok = await dbUpsertCms(row);
+    setSaving(false);
+    if(!ok) return;
+    setItems(list=>{
+      const exist = list.some(x=>x.id===id);
+      return exist ? list.map(x=>x.id===id?row:x) : [...list, row];
+    });
+    resetForm();
+  };
+
+  const onEdit = (it)=>{ setForm(it); setEditing(true); };
+
+  const onDelete = async(id)=>{
+    const ok = await dbDeleteCms(id);
+    if(!ok) return;
+    setItems(list=>list.filter(x=>x.id!==id));
+    setDelConfirm(null);
+    if(form.id===id) resetForm();
+  };
+
+  return (
+    <div style={{padding:"16px 4px"}}>
+      <div style={{fontSize:18,fontWeight:800,color:"#0b2545",marginBottom:4}}>🖼️ CMS — Quản lý Nội dung</div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Chỉ tài khoản <b>admin</b> nhìn thấy và chỉnh sửa được khu vực này.</div>
+
+      {/* Chọn loại nội dung */}
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        {CMS_LOAI.map(o=>(
+          <div key={o.v} onClick={()=>{setSubTab(o.v); setForm({...CMS_E0, loai:o.v}); setEditing(false);}}
+            style={{padding:"9px 16px",borderRadius:9,cursor:"pointer",fontWeight:700,fontSize:13,
+              background:subTab===o.v?"#0b2545":"#f1f5f9", color:subTab===o.v?"#fff":"#374151",
+              border:subTab===o.v?"2px solid #0b2545":"2px solid transparent"}}>
+            {o.l}
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:12,color:"#9ca3af",marginBottom:16,marginTop:-8}}>
+        {CMS_LOAI.find(o=>o.v===subTab)?.mo}
+      </div>
+
+      {/* Form thêm/sửa */}
+      <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
+        <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:12}}>
+          {editing ? "✏️ Sửa mục" : "➕ Thêm mục mới"}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+          <div>
+            <label style={lbl}>{subTab==="avatar" ? "Tên hiển thị" : "Tiêu đề"}</label>
+            <input style={inp} value={form.tieu_de} onChange={e=>setForm(f=>({...f,tieu_de:e.target.value}))}
+              placeholder={subTab==="avatar" ? "VD: Nguyễn Văn A / Xưởng Hàn" : "Nhập tiêu đề..."}/>
+          </div>
+          <div>
+            <label style={lbl}>Thứ tự hiển thị</label>
+            <input style={inp} type="number" value={form.thu_tu} onChange={e=>setForm(f=>({...f,thu_tu:Number(e.target.value)||0}))}/>
+          </div>
+        </div>
+        {subTab!=="avatar" && (
+          <div style={{marginBottom:12}}>
+            <label style={lbl}>Mô tả / Nội dung</label>
+            <textarea style={{...inp,minHeight:70,resize:"vertical"}} value={form.mo_ta}
+              onChange={e=>setForm(f=>({...f,mo_ta:e.target.value}))} placeholder="Nội dung chi tiết..."/>
+          </div>
+        )}
+        {subTab==="banner" && (
+          <div style={{marginBottom:12}}>
+            <label style={lbl}>Liên kết (khi bấm vào banner) — không bắt buộc</label>
+            <input style={inp} value={form.lien_ket} onChange={e=>setForm(f=>({...f,lien_ket:e.target.value}))}
+              placeholder="https://..."/>
+          </div>
+        )}
+        <div style={{display:"flex",gap:16,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
+          <div>
+            <label style={lbl}>{subTab==="avatar" ? "Ảnh đại diện" : subTab==="banner" ? "Ảnh banner" : "Ảnh minh hoạ (không bắt buộc)"}</label>
+            <input type="file" accept="image/*" onChange={onPickImage}/>
+          </div>
+          {form.anh && (
+            <div style={{position:"relative"}}>
+              <img src={form.anh} alt="" style={{width:subTab==="avatar"?64:120, height:subTab==="avatar"?64:70,
+                objectFit:"cover", borderRadius:subTab==="avatar"?"50%":8, border:"1.5px solid #e5e7eb"}}/>
+              <button onClick={()=>setForm(f=>({...f,anh:""}))}
+                style={{position:"absolute",top:-8,right:-8,width:20,height:20,borderRadius:"50%",border:"none",
+                  background:"#dc2626",color:"#fff",fontSize:11,cursor:"pointer",lineHeight:"20px",padding:0}}>✕</button>
+            </div>
+          )}
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#374151",marginBottom:14,cursor:"pointer"}}>
+          <input type="checkbox" checked={form.an_hien} onChange={e=>setForm(f=>({...f,an_hien:e.target.checked}))}/>
+          Đang áp dụng (hiển thị)
+        </label>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={onSave} disabled={saving}
+            style={{...btn,background:"#0b2545",color:"#fff",opacity:saving?0.6:1}}>
+            {saving ? "Đang lưu..." : (editing ? "💾 Lưu thay đổi" : "➕ Thêm mới")}
+          </button>
+          {editing && (
+            <button onClick={resetForm} style={{...btn,background:"#f1f5f9",color:"#374151"}}>Huỷ</button>
+          )}
+        </div>
+      </div>
+
+      {/* Danh sách */}
+      <div style={{display:"grid",gap:10}}>
+        {listOfType.length===0 && (
+          <div style={{textAlign:"center",color:"#9ca3af",fontSize:13,padding:24}}>Chưa có mục nào.</div>
+        )}
+        {listOfType.map(it=>(
+          <div key={it.id} style={{display:"flex",alignItems:"center",gap:12,background:"#fff",
+            border:"1.5px solid #e5e7eb",borderRadius:10,padding:12}}>
+            {it.anh && (
+              <img src={it.anh} alt="" style={{width:subTab==="avatar"?44:64, height:subTab==="avatar"?44:40,
+                objectFit:"cover", borderRadius:subTab==="avatar"?"50%":6, flexShrink:0}}/>
+            )}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0b2545"}}>
+                {it.tieu_de||"(không có tiêu đề)"}
+                {!it.an_hien && <span style={{marginLeft:8,fontSize:10,color:"#dc2626",fontWeight:700}}>ẨN</span>}
+              </div>
+              {it.mo_ta && <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{it.mo_ta}</div>}
+              {it.lien_ket && <div style={{fontSize:11,color:"#0ea5a0",marginTop:2}}>{it.lien_ket}</div>}
+            </div>
+            <div style={{display:"flex",gap:6,flexShrink:0}}>
+              <button onClick={()=>onEdit(it)} style={{...btn,background:"#eef2ff",color:"#1d4ed8",padding:"6px 12px"}}>Sửa</button>
+              {delConfirm===it.id ? (
+                <>
+                  <button onClick={()=>onDelete(it.id)} style={{...btn,background:"#dc2626",color:"#fff",padding:"6px 12px"}}>Xác nhận xoá</button>
+                  <button onClick={()=>setDelConfirm(null)} style={{...btn,background:"#f1f5f9",color:"#374151",padding:"6px 12px"}}>Huỷ</button>
+                </>
+              ) : (
+                <button onClick={()=>setDelConfirm(it.id)} style={{...btn,background:"#fef2f2",color:"#dc2626",padding:"6px 12px"}}>Xoá</button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 const E0={stt:0,ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:"",anh:"",
   // ✅ 7 trường MỚI — chỉ áp dụng/hiển thị khi activeLine==="12m" (xem Modal thêm/sửa
   // và bảng danh sách vật tư bên dưới). Với các dòng xe khác các trường này luôn rỗng
@@ -3681,6 +3873,14 @@ export default function App(){
   const [users,    setUsers]    = useState(USERS_DEF);
   const [lineQuyen,setLineQuyen]= useState(LINE_QUYEN_DEFAULT); // phân quyền dòng xe theo đơn vị
   const [tabQuyen, setTabQuyen] = useState({}); // phân quyền chức năng (tab) theo đơn vị — rỗng = dùng TAB_QUYEN_DEFAULT
+  // 🖼️ CMS — nội dung / banner / ảnh đại diện, CHỈ tài khoản "admin" được xem & chỉnh sửa
+  // (xem tab "cms" được tự thêm riêng cho admin ở TABS_NOW, và bảng Supabase "cms_content"):
+  //   CREATE TABLE cms_content (
+  //     id text primary key, loai text not null,      -- 'noi_dung' | 'banner' | 'avatar'
+  //     tieu_de text, mo_ta text, anh text, lien_ket text,
+  //     thu_tu integer default 0, an_hien boolean default true, updated_at timestamptz default now()
+  //   );
+  const [cmsItems, setCmsItems] = useState([]);
   const [dbErr,    setDbErr]    = useState("");
   // 🚨 Cảnh báo khẩn cấp — danh sách các lượt "báo khẩn cấp" đã gửi (mã vật tư còn thiếu cần gấp)
   const [canhBaoKhan, setCanhBaoKhan] = useState([]);
@@ -3914,7 +4114,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -3932,6 +4132,7 @@ export default function App(){
           supabase.from("quyen_dong_xe").select("*").range(0, 9999),
           supabase.from("quyen_chuc_nang").select("*").range(0, 9999),
           supabase.from(T("canh_bao_khan")).select("*").order("ts",{ascending:false}).range(0, 999),
+          supabase.from("cms_content").select("*").order("thu_tu").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -4023,6 +4224,13 @@ export default function App(){
           console.warn("Chưa đọc được bảng canh_bao_khan (có thể chưa tạo bảng):",r12.error.message);
         } else {
           setCanhBaoKhan(r12.data||[]);
+        }
+        // 🖼️ CMS Nội dung/Banner/Ảnh đại diện — nếu bảng chưa tạo, im lặng bỏ qua (chỉ admin
+        // dùng tính năng này, không ảnh hưởng các tài khoản khác).
+        if(r13.error){
+          console.warn("Chưa đọc được bảng cms_content (có thể chưa tạo bảng):",r13.error.message);
+        } else {
+          setCmsItems(r13.data||[]);
         }
       }catch(e){
         console.error("Supabase load error:",e);
@@ -4564,7 +4772,36 @@ export default function App(){
       return false;
     }
   };
-  // 🚨 Gửi báo khẩn cấp (mã vật tư còn thiếu cần gấp) — lưu vào Supabase để các đơn vị
+  // 🖼️ Lưu/xóa 1 mục CMS (nội dung / banner / ảnh đại diện) — bảng "cms_content".
+  const dbUpsertCms=async(item)=>{
+    try{
+      const {error}=await supabase.from("cms_content").upsert(item,{onConflict:"id"});
+      if(error){
+        console.error("dbUpsertCms:",error);
+        alert("⚠️ Lưu thất bại: "+error.message+"\n(Có thể bảng cms_content chưa được tạo trên Supabase — xem hướng dẫn SQL ở comment gần khai báo state cmsItems trong code.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbUpsertCms:",e);
+      alert("⚠️ Lưu thất bại: "+(e.message||"lỗi không xác định"));
+      return false;
+    }
+  };
+  const dbDeleteCms=async(id)=>{
+    try{
+      const {error}=await supabase.from("cms_content").delete().eq("id",id);
+      if(error){
+        console.error("dbDeleteCms:",error);
+        alert("⚠️ Xóa thất bại: "+error.message);
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbDeleteCms:",e);
+      return false;
+    }
+  };
   // được chọn nhận nhìn thấy trong app (🔔), song song vẫn trả về true/false để caller
   // tiếp tục gọi Web Share API (Zalo/SMS/Email) ngay sau khi lưu thành công.
   const dbGuiCanhBao=async(row)=>{
@@ -7008,6 +7245,12 @@ Bạn có chắc chắn không?`;
       // năng của đơn vị "XƯỞNG HÀN" có bị giới hạn đến đâu.
       tabs = [...tabs, ["users", "👥 Người dùng"]];
     }
+    if(user.id === "admin" && !tabs.some(([k])=>k==="cms")) {
+      // Tab "CMS Nội dung" — CHỈ tài khoản admin thấy & chỉnh sửa (quản lý nội dung,
+      // banner, ảnh đại diện hiển thị trong app). Không nằm trong bảng phân quyền chức
+      // năng theo đơn vị vì không đơn vị nào khác được cấp quyền này.
+      tabs = [...tabs, ["cms", "🖼️ CMS Nội dung"]];
+    }
     // An toàn: nếu 1 đơn vị lỡ bị cấu hình 0 chức năng, vẫn giữ lại tối thiểu "📦 Vật tư"
     // để tài khoản không rơi vào màn trắng không điều hướng được.
     if(!tabs.length) tabs = TABS_ALL.filter(([k])=>k==="ds");
@@ -8985,6 +9228,10 @@ Bạn có chắc chắn không?`;
 
         {tab==="users"&&user.id==="xh04"&&(
           <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH} lineQuyen={lineQuyen} setLineQuyen={setLineQuyen} dbUpsertQuyenDongXe={dbUpsertQuyenDongXe} tabQuyen={tabQuyen} setTabQuyen={setTabQuyen} dbUpsertQuyenChucNang={dbUpsertQuyenChucNang}/>
+        )}
+
+        {tab==="cms"&&user.id==="admin"&&(
+          <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms}/>
         )}
 
       </div>
