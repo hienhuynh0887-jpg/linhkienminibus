@@ -1526,7 +1526,7 @@ const KL_PROJECT_STATUSES = [
 // ─── Login Screen — Cổng vào (tài khoản) → chọn dòng xe → trạng thái dự án ────
 // resume: khi quay lại từ màn "Tổng quan" (nút "← Trở về"), truyền {authedUser,userList,activeLine}
 // để mở thẳng BƯỚC 3 (chọn trạng thái dự án) — không bắt đăng nhập lại từ đầu.
-function LoginScreen({onLogin, resume, onLogout}){
+function LoginScreen({onLogin, resume, onLogout, allUsers}){
   // "gate" (đăng nhập tài khoản) → "select" (chọn dòng xe) → "project" (chọn trạng thái dự án)
   const [step, setStep]   = useState(resume ? "project" : "gate");
   const [activeLine, setActiveLine] = useState(resume?.activeLine || null);
@@ -1578,6 +1578,18 @@ function LoginScreen({onLogin, resume, onLogout}){
     window.addEventListener("popstate", onPop);
     return ()=>window.removeEventListener("popstate", onPop);
   },[]);
+
+  // ✅ FIX: màn đăng nhập (khi KHÔNG resume, tức đang ở gate mới/F5) khởi tạo userList từ
+  // USERS_DEF cứng — nên các tài khoản tạo THÊM sau này qua bảng "👥 Người dùng" (vd. "xh04")
+  // dù đã lưu trong DB (Supabase) vẫn KHÔNG đăng nhập được, vì App chỉ fetch danh sách "users"
+  // mới nhất SAU khi mount, còn LoginScreen không hề nhận lại danh sách đó. Effect này đồng bộ
+  // userList của LoginScreen theo "allUsers" (danh sách thật từ DB) ngay khi nó tải xong.
+  useEffect(()=>{
+    if(!resume && allUsers && allUsers.length){
+      setUserList(allUsers);
+    }
+  },[allUsers]);
+
   // Tiến 1 bước: lưu bước mới vào lịch sử trình duyệt rồi mới đổi state.
   const goStep=(next)=>{
     try{ window.history.pushState({klStep:next}, ""); }catch{}
@@ -6332,6 +6344,7 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
       <LoginScreen
         resume={backToGate && user ? {authedUser:user, userList:users, activeLine} : null}
+        allUsers={users}
         onLogout={handleLogoutScreenDocLap}
         onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
         try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
