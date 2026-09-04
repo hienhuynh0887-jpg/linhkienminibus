@@ -260,6 +260,12 @@ const USERS_DEF = [
   {id:"xh_12_01",      ten:"NV XƯỞNG 12M",    pw:"xh12m01",   role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
 ];
 
+// ✅ Tài khoản có quyền QUẢN TRỊ TOÀN HỆ THỐNG (toàn quyền cả 3 dòng xe, thấy tab CMS,
+// bỏ qua bảng phân quyền dòng xe...). Gồm "admin" (mặc định) và "xh04" (được nâng cấp
+// ngang quyền admin theo yêu cầu — vẫn giữ nguyên đơn vị/role gốc là Xưởng Hàn để không
+// ảnh hưởng các luồng nghiệp vụ khác, chỉ được CỘNG THÊM quyền quản trị).
+const isAdminAccount = (u) => !!u && (u.id === "admin" || u.id === "xh04");
+
 // ═══════════════════════════════════════════════════════════════
 //  ✅ ICON THẬT CHO TỪNG ĐƠN VỊ — cắt trực tiếp từ bộ icon minh hoạ do người dùng cung
 //  cấp (thay cho emoji). Mỗi icon là ảnh WebP nhúng base64 (nhẹ, không cần thư mục asset
@@ -1640,7 +1646,7 @@ function LoginScreen({onLogin, resume, onLogout, allUsers}){
   // Tài khoản "admin" luôn có toàn quyền, không phụ thuộc bảng phân quyền.
   const getAllowedLines=(u)=>{
     if(!u) return [];
-    if(u.id==="admin") return LINE_IDS;
+    if(isAdminAccount(u)) return LINE_IDS;
     return lineQuyen[u.don_vi] || [];
   };
 
@@ -4264,7 +4270,7 @@ export default function App(){
   // dữ liệu City Bus). Khi phát hiện activeLine hiện tại không nằm trong danh sách dòng xe
   // được cấp (và danh sách đó không rỗng), tự động đưa về đúng dòng xe được phép đầu tiên.
   useEffect(()=>{
-    if(!user || user.id==="admin") return; // admin luôn có toàn quyền cả 3 dòng
+    if(!user || isAdminAccount(user)) return; // admin/xh04 luôn có toàn quyền cả 3 dòng
     const allowed = lineQuyen[user.don_vi];
     if(!allowed || !allowed.length) return; // chưa tải xong bảng phân quyền / đơn vị chưa cấu hình — không đoán bừa
     if(!allowed.includes(activeLine)){
@@ -7245,10 +7251,10 @@ Bạn có chắc chắn không?`;
       // năng của đơn vị "XƯỞNG HÀN" có bị giới hạn đến đâu.
       tabs = [...tabs, ["users", "👥 Người dùng"]];
     }
-    if(user.id === "admin" && !tabs.some(([k])=>k==="cms")) {
-      // Tab "CMS Nội dung" — CHỈ tài khoản admin thấy & chỉnh sửa (quản lý nội dung,
-      // banner, ảnh đại diện hiển thị trong app). Không nằm trong bảng phân quyền chức
-      // năng theo đơn vị vì không đơn vị nào khác được cấp quyền này.
+    if(isAdminAccount(user) && !tabs.some(([k])=>k==="cms")) {
+      // Tab "CMS Nội dung" — CHỈ tài khoản quản trị (admin, xh04) thấy & chỉnh sửa (quản
+      // lý nội dung, banner, ảnh đại diện hiển thị trong app). Không nằm trong bảng phân
+      // quyền chức năng theo đơn vị vì không đơn vị nào khác được cấp quyền này.
       tabs = [...tabs, ["cms", "🖼️ CMS Nội dung"]];
     }
     // An toàn: nếu 1 đơn vị lỡ bị cấu hình 0 chức năng, vẫn giữ lại tối thiểu "📦 Vật tư"
@@ -7262,7 +7268,7 @@ Bạn có chắc chắn không?`;
   // 1 tài khoản chỉ được cấp 1 dòng (VD "KHO VẬT TƯ" → chỉ Mini Bus) vẫn có thể tự bấm đổi
   // sang dòng xe khác (VD City Bus) và xem/thao tác nhầm dữ liệu không thuộc phận sự của
   // mình. Nay giới hạn đúng theo lineQuyen — tài khoản "admin" luôn có toàn quyền cả 3.
-  const allowedLinesForUser = user.id==="admin" ? LINE_IDS : (lineQuyen[user.don_vi] || []);
+  const allowedLinesForUser = isAdminAccount(user) ? LINE_IDS : (lineQuyen[user.don_vi] || []);
   const linesPickable = KL_LINES.filter(l=>allowedLinesForUser.includes(l.id));
   const mauRole   = isTHCK ? "#1d4ed8" : isKHO ? "#0f766e" : isKHTH ? "#7c3aed" : "#b45309";
   // 🚨 Danh sách đơn vị để chọn "gửi đến" khi báo khẩn cấp — lấy trực tiếp từ danh sách
@@ -9230,7 +9236,7 @@ Bạn có chắc chắn không?`;
           <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH} lineQuyen={lineQuyen} setLineQuyen={setLineQuyen} dbUpsertQuyenDongXe={dbUpsertQuyenDongXe} tabQuyen={tabQuyen} setTabQuyen={setTabQuyen} dbUpsertQuyenChucNang={dbUpsertQuyenChucNang}/>
         )}
 
-        {tab==="cms"&&user.id==="admin"&&(
+        {tab==="cms"&&isAdminAccount(user)&&(
           <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms}/>
         )}
 
