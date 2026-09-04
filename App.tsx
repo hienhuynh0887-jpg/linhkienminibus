@@ -446,6 +446,7 @@ const APP_I18N = {
   tab_bc:      {vi:"📈 Báo Cáo",       zh:"📈 报表"},
   tab_bom_mau: {vi:"🗂️ BOM Mẫu",      zh:"🗂️ BOM模板"},
   tab_users:   {vi:"👥 Người dùng",    zh:"👥 用户"},
+  tab_cms:     {vi:"🖼️ CMS",          zh:"🖼️ CMS"},
   // Header brand / role
   brandTitle:  {vi:"Quản Lý Vật Tư BOM", zh:"BOM 物料管理系统"},
   roleTHCK:    {vi:"NHÀ MÁY THCK",     zh:"THCK 工厂"},
@@ -7424,17 +7425,17 @@ Bạn có chắc chắn không?`;
 
       {/* TABS — thanh viên nang bo tròn, tab đang chọn nổi trắng (giống ảnh thiết kế) */}
       {(()=>{
-        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
+        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
         return(
-          <div style={{background:"#c2410c",borderBottom:"1px solid #9a3412",padding:"10px 16px 14px"}}>
-            <div style={{display:"flex",gap:4,background:"#ea580c",borderRadius:12,padding:4,overflowX:"auto"}}>
+          <div style={{background:"#0b2545",borderBottom:"1px solid #071a30",padding:"10px 16px 14px"}}>
+            <div style={{display:"flex",gap:4,background:"#123a66",borderRadius:12,padding:4,overflowX:"auto"}}>
               {TABS_NOW.map(([k])=>{
                 const active=tab===k;
                 const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`);
                 return(
                   <button key={k} onClick={()=>setTab(k)} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
                     flex:"1 0 auto",minWidth:76,borderRadius:9,fontWeight:800,textAlign:"center",
-                    color:"#ffffff",background:active?"#fb923c":"transparent",
+                    color:"#ffffff",background:active?"#1d4ed8":"transparent",
                     opacity:active?1:0.68,
                     boxShadow:active?"0 1px 6px rgba(0,0,0,0.35)":"none",
                     padding:"9px 8px",fontSize:12.5,whiteSpace:"nowrap"}}>
@@ -7577,10 +7578,10 @@ Bạn có chắc chắn không?`;
 
       {/* BOTTOM NAV — thanh điều hướng dưới cùng, hiển thị đúng bộ tab đã phân quyền cho từng phòng ban (NHÀ MÁY THCK / Kho vật tư / Xưởng hàn / KHTH...) */}
       {(()=>{
-        const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥"};
-        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng"};
+        const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
+        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
         return(
-          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#c2410c",borderTop:"1px solid #9a3412",boxShadow:"0 -2px 12px rgba(0,0,0,0.35)",display:"flex",overflowX:"auto"}}>
+          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#0b2545",borderTop:"1px solid #071a30",boxShadow:"0 -2px 12px rgba(0,0,0,0.35)",display:"flex",overflowX:"auto"}}>
             {TABS_NOW.map(([k])=>{
               const active=tab===k;
               const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
