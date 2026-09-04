@@ -271,7 +271,7 @@ const USERS_DEF = [
 // bỏ qua bảng phân quyền dòng xe...). Gồm "admin" (mặc định) và "xh04" (được nâng cấp
 // ngang quyền admin theo yêu cầu — vẫn giữ nguyên đơn vị/role gốc là Xưởng Hàn để không
 // ảnh hưởng các luồng nghiệp vụ khác, chỉ được CỘNG THÊM quyền quản trị).
-const isAdminAccount = (u) => !!u && (u.id === "admin" || u.id === "xh04");
+const isAdminAccount = (u) => !!u && (u.id === "admin" || u.id === "xh04" || u.is_admin === true);
 
 // ═══════════════════════════════════════════════════════════════
 //  ✅ ICON THẬT CHO TỪNG ĐƠN VỊ — cắt trực tiếp từ bộ icon minh hoạ do người dùng cung
@@ -2248,7 +2248,7 @@ function DeleteDeptModal({modal,onClose,onConfirm}){
 
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe, tabQuyen, setTabQuyen, dbUpsertQuyenChucNang}){
   const {t} = useLang();
-  const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});
+  const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
   // ── State cho giao diện gọn (accordion) + tìm kiếm ──
@@ -2568,7 +2568,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       dbUpsertUser&&dbUpsertUser({...form});
       fl("✓ Đã thêm tài khoản");
     }
-    setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});setEdit(null);
+    setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});setEdit(null);
   };
   const del=id=>{
     if(id===currentUser.id){fl("⚠️ Không thể xóa tài khoản đang dùng!");return;}
@@ -2578,7 +2578,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     fl("✓ Đã xóa");
   };
   const startEdit=u=>{setForm({...u});setEdit(u.id);setAddOpen(true);};
-  const resetForm=()=>{setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧"});setEdit(null);};
+  const resetForm=()=>{setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});setEdit(null);};
 
   // Coi là "Online" nếu last_active trong vòng 45s gần nhất (heartbeat gửi mỗi 20s)
   const ONLINE_MS=45000;
@@ -2799,6 +2799,10 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             </select>
           </div>
         </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,padding:"9px 12px",background:form.is_admin?"#fef3c7":"#f8fafc",border:form.is_admin?"1.5px solid #f59e0b":"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",width:"fit-content"}}>
+          <input type="checkbox" checked={!!form.is_admin} onChange={e=>setForm(f=>({...f,is_admin:e.target.checked}))} style={{width:16,height:16,cursor:"pointer"}}/>
+          <span style={{fontSize:12.5,fontWeight:700,color:"#92400e"}}>🛡️ Cấp quyền Quản trị viên (Admin — toàn quyền cả 3 dòng xe, thấy tab CMS &amp; Người dùng)</span>
+        </label>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{fontSize:12,color:flash2.startsWith("⚠️")?"#dc2626":"#16a34a",minWidth:160}}>{flash2}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:8}}>
@@ -2864,7 +2868,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                     <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
                       <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
                       <td style={{padding:"8px 12px",fontWeight:700,color:grpMau,fontFamily:"monospace"}}>{u.id}</td>
-                      <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}</td>
+                      <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}{isAdminAccount(u)&&<span style={{background:"#fef3c7",color:"#92400e",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>🛡️ Admin</span>}</td>
                       <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
                       <td style={{padding:"8px 12px"}}>
                         {isOnline(u)
@@ -7254,9 +7258,10 @@ Bạn có chắc chắn không?`;
   const donViTabKeys = getTabKeysForDonVi(tabQuyen, user.don_vi);
   const TABS_NOW  = (()=>{
     let tabs = TABS_ALL.filter(([k])=>donViTabKeys.includes(k));
-    if(isXH && user.id === "xh04" && !tabs.some(([k])=>k==="users")) {
-      // Thêm "users" tab cho xh04 (tài khoản quản trị đặc biệt) dù bảng phân quyền chức
-      // năng của đơn vị "XƯỞNG HÀN" có bị giới hạn đến đâu.
+    if(isAdminAccount(user) && !tabs.some(([k])=>k==="users")) {
+      // Thêm "users" tab cho MỌI tài khoản quản trị (admin, xh04, hoặc tài khoản bất kỳ
+      // được tick "🛡️ Cấp quyền Quản trị viên") dù bảng phân quyền chức năng của đơn vị
+      // đó có bị giới hạn đến đâu — admin luôn cần thấy "👥 Người dùng" để quản lý.
       tabs = [...tabs, ["users", "👥 Người dùng"]];
     }
     if(isAdminAccount(user) && !tabs.some(([k])=>k==="cms")) {
@@ -7765,7 +7770,6 @@ Bạn có chắc chắn không?`;
                    : isTHCK ? thFull.filter(v=>(v.ng||"").trim().toUpperCase()==="THCK")
                    : thFull;
           const thByMa={};th.forEach(v=>{thByMa[v.ma]=v;});
-          const daSoan=bom.filter(v=>{const slCN=v.dm*soXe;const sl=soan[v.ma]?.sl??slCN;return soan[v.ma]?.on&&sl>=slCN;});
           // Tính mã đã duyệt đủ (done=true trong th) - dùng để lọc khỏi danh sách soạn
           const daDuyetDuSet=new Set(th.filter(v=>v.done).map(v=>v.ma));
           // Vật tư thiếu SL = đã có trong phiếu nhưng SL nhận < SL cần
@@ -7775,18 +7779,24 @@ Bạn có chắc chắn không?`;
           const soanThieuSet=new Set(th.filter(v=>v.giaoThieu&&v.dnXN>0).map(v=>v.ma));
           // Chỉ giữ lại: chưa được soạn HOẶC đã soạn nhưng thiếu SL (loại bỏ đã duyệt đủ)
           const bomHienThiGoc=bom.filter(v=>!daDuyetDuSet.has(v.ma)||thieuSlSet.has(v.ma)||soanThieuSet.has(v.ma));
-          // ✅ Thẻ thống kê tổng quan (Tổng mã/Đã soạn/Chưa soạn) phải tính TRÊN TOÀN BỘ dự án,
-          // coi các mã "đã duyệt đủ" (bị ẩn khỏi danh sách soạn) là ĐÃ HOÀN THÀNH — tránh nghịch lý
-          // "Đã duyệt đủ 55 mã" nhưng "Chưa soạn" vẫn đếm cả 55 mã đó (56/56).
-          const hoanThanhSet=new Set([...daDuyetDuSet,...daSoan.map(v=>v.ma)]);
-          const soMaHoanThanh=hoanThanhSet.size;
-          const soMaChuaSoanTong=bom.length-soMaHoanThanh;
+          // ✅ FIX: trước đây "Chưa soạn"/"Đã soạn" tính theo SỐ MÃ DUY NHẤT (hoanThanhSet là
+          // Set các mã), trong khi danh sách hiển thị thực tế (bomHienThiGoc) tính theo SỐ
+          // DÒNG BOM (1 mã có thể lặp lại ở nhiều dòng nếu cần lắp ở nhiều vị trí khác nhau
+          // trong cùng dự án). Khi 1 mã "đã duyệt đủ" bị ẩn, TẤT CẢ các dòng khác cùng mã đó
+          // cũng bị ẩn theo — khiến số dòng còn hiển thị ít hơn hẳn con số "Chưa soạn" (tính
+          // theo mã duy nhất). Nay tính lại "Chưa soạn" TRỰC TIẾP từ bomHienThiGoc (đúng những
+          // dòng sẽ hiện ra khi bấm vào ô này) để 2 con số luôn khớp nhau.
+          const bomHienThiGocIds=new Set(bomHienThiGoc.map(v=>v.id));
+          const soMaChuaSoanTong=bomHienThiGoc.filter(v=>!soan[v.ma]?.on).length;
+          const soMaHoanThanh=bom.length-soMaChuaSoanTong;
           const pct=bom.length?Math.round(soMaHoanThanh/bom.length*100):0;
           const xong=pct===100&&bom.length>0;
           // ✅ Bộ lọc nhanh: Tất cả / Chưa soạn / Đã soạn / Thiếu SL.
           // "Thiếu SL" hiển thị TOÀN BỘ mã thuộc soanThieuSet (không ẩn mã nào, kể cả đã duyệt đủ).
+          // "Đã soạn" = phần bù chính xác của "Chưa soạn" trong TOÀN BỘ bom (gồm cả các dòng đã
+          // duyệt đủ bị ẩn khỏi bomHienThiGoc) — khớp đúng số soMaHoanThanh ở trên.
           const bomHienThi = soanFilter==="thieu" ? bom.filter(v=>soanThieuSet.has(v.ma))
-                            : soanFilter==="da"    ? bom.filter(v=>hoanThanhSet.has(v.ma))
+                            : soanFilter==="da"    ? bom.filter(v=>!bomHienThiGocIds.has(v.id)||soan[v.ma]?.on)
                             : soanFilter==="chua"  ? bomHienThiGoc.filter(v=>!soan[v.ma]?.on)
                             : bomHienThiGoc;
           // ✅ FIX: số mã dùng cho popup xác nhận "Gửi X mã đã soạn?" và điều kiện khoá nút Gửi —
@@ -7882,7 +7892,7 @@ Bạn có chắc chắn không?`;
                     shareText={`Soạn hàng ${proj.ten} — ${soanFilterLabel}: ${bomHienThi.length} mã`}
                     onExcel={()=>{
                       const rows=bomHienThi.map(v=>{
-                        const ok=hoanThanhSet.has(v.ma);
+                        const ok=!bomHienThiGocIds.has(v.id)||soan[v.ma]?.on;
                         return {
                           "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
                           "ĐM/1XE":v.dm,[`Cần(×${soXe})`]:v.dm*soXe,
@@ -7894,7 +7904,7 @@ Bạn có chắc chắn không?`;
                     }}
                     onPDF={()=>{
                       const mkRow=v=>{
-                        const ok=hoanThanhSet.has(v.ma);
+                        const ok=!bomHienThiGocIds.has(v.id)||soan[v.ma]?.on;
                         return `<tr>
                         <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                         <td style="text-align:center">${v.dv}</td>
@@ -9240,7 +9250,7 @@ Bạn có chắc chắn không?`;
           );
         })()}
 
-        {tab==="users"&&user.id==="xh04"&&(
+        {tab==="users"&&isAdminAccount(user)&&(
           <UsersPanel currentUser={user} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser} dbDeleteUser={dbDeleteUser} lockOtherXH={lockOtherXH} lineQuyen={lineQuyen} setLineQuyen={setLineQuyen} dbUpsertQuyenDongXe={dbUpsertQuyenDongXe} tabQuyen={tabQuyen} setTabQuyen={setTabQuyen} dbUpsertQuyenChucNang={dbUpsertQuyenChucNang}/>
         )}
 
