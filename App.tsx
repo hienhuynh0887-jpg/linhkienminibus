@@ -7435,32 +7435,39 @@ Bạn có chắc chắn không?`;
         </div>
       )}
 
-      {/* TABS — thanh viên nang bo tròn, tab đang chọn nổi trắng (giống ảnh thiết kế) */}
-      {(()=>{
-        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
-        return(
-          <div style={{background:"#0b2545",borderBottom:"1px solid #071a30",padding:"10px 16px 14px"}}>
-            <div style={{display:"flex",gap:4,background:"#123a66",borderRadius:12,padding:4,overflowX:"auto"}}>
+      {/* ── LAYOUT: sidebar dọc bên TRÁI + cột nội dung chính bên phải ──
+          (trước đây là thanh TABS ngang phía trên + thanh nav cố định phía dưới —
+          nay gộp thành 1 sidebar dọc duy nhất, giữ nguyên toàn bộ tab/chức năng). */}
+      <div style={{display:"flex",alignItems:"flex-start"}}>
+
+        {/* SIDEBAR — thanh điều hướng dọc, cố định bên trái, cao theo màn hình */}
+        {(()=>{
+          const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
+          const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
+          return(
+            <div style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:76,maxHeight:"100vh",overflowY:"auto",background:"#0b2545",borderRight:"1px solid #071a30",display:"flex",flexDirection:"column",zIndex:30}}>
               {TABS_NOW.map(([k])=>{
                 const active=tab===k;
-                const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`);
+                const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
                 return(
                   <button key={k} onClick={()=>setTab(k)} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
-                    flex:"1 0 auto",minWidth:76,borderRadius:9,fontWeight:800,textAlign:"center",
-                    color:"#ffffff",background:active?"#1d4ed8":"transparent",
-                    opacity:active?1:0.68,
-                    boxShadow:active?"0 1px 6px rgba(0,0,0,0.35)":"none",
-                    padding:"9px 8px",fontSize:12.5,whiteSpace:"nowrap"}}>
-                    {label}
+                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,
+                    padding:"12px 4px",background:active?"#1d4ed8":"transparent",opacity:active?1:0.68,
+                    borderLeft:active?"3px solid #ffffff":"3px solid transparent",textAlign:"center"}}>
+                    <span style={{fontSize:19}}>{TAB_ICON[k]||"•"}</span>
+                    <span style={{fontSize:10,fontWeight:800,color:"#ffffff",lineHeight:1.2,whiteSpace:"normal"}}>{label}</span>
                   </button>
                 );
               })}
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
+
+        {/* CỘT NỘI DUNG CHÍNH — bên phải sidebar */}
+        <div style={{flex:1,minWidth:0}}>
 
       {/* ── Bộ chuyển 2 trang con của tab "Báo cáo": Đang thực hiện / Đã hoàn thành ──
+
           Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
       {tab==="bc"&&(()=>{
         // ✅ Dự án đang chọn (pid) đã hoàn thành hay chưa — dùng CHUNG điều kiện với banner
@@ -7588,29 +7595,7 @@ Bạn có chắc chắn không?`;
         );
       })()}
 
-      {/* BOTTOM NAV — thanh điều hướng dưới cùng, hiển thị đúng bộ tab đã phân quyền cho từng phòng ban (NHÀ MÁY THCK / Kho vật tư / Xưởng hàn / KHTH...) */}
-      {(()=>{
-        const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
-        const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
-        return(
-          <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:30,background:"#0b2545",borderTop:"1px solid #071a30",boxShadow:"0 -2px 12px rgba(0,0,0,0.35)",display:"flex",overflowX:"auto"}}>
-            {TABS_NOW.map(([k])=>{
-              const active=tab===k;
-              const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
-              return(
-                <button key={k} onClick={()=>setTab(k)} style={{flex:"1 0 auto",minWidth:64,border:"none",background:active?"rgba(255,255,255,0.14)":"none",cursor:"pointer",fontFamily:"inherit",
-                  display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"10px 6px 8px",
-                  borderTop:active?"2.5px solid #ffffff":"2.5px solid transparent"}}>
-                  <span style={{fontSize:19,filter:"none",opacity:active?1:.6}}>{TAB_ICON[k]||"•"}</span>
-                  <span style={{fontSize:10.5,fontWeight:800,color:"#ffffff",opacity:active?1:.6,whiteSpace:"nowrap"}}>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        );
-      })()}
-
-      <div style={{padding:"12px 10px",boxSizing:"border-box",width:"100%",paddingBottom:76}}>
+      <div style={{padding:"12px 10px",boxSizing:"border-box",width:"100%",paddingBottom:16}}>
 
         {/* ── DANH SÁCH BOM ── */}
         {tab==="ds"&&(
@@ -9260,6 +9245,8 @@ Bạn có chắc chắn không?`;
 
       </div>
 
+        </div>{/* /CỘT NỘI DUNG CHÍNH */}
+      </div>{/* /LAYOUT sidebar + nội dung */}
 
       {/* ── MODALS ── */}
       {(modal||newP)&&(
