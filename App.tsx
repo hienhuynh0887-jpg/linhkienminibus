@@ -7319,10 +7319,20 @@ Bạn có chắc chắn không?`;
         @media (min-width:1024px){
           .kl-header-inner{ height:88px !important; }
           .kl-sidebar-desktop{ width:117px !important; }
-          .kl-main-desktop{ max-width:1400px; margin:0 auto; }
+          .kl-main-desktop{ max-width:1400px; margin:0 auto; padding:0 20px; box-sizing:border-box; }
+          /* Khối thao tác nhanh — trên máy tính luôn giữ đúng 4 cột đều nhau, không co lại 2 cột */
+          .kl-quickcards{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:16px !important; }
+          /* Khối tổng quan (Dòng xe/Dự án + Tiến độ) — trên máy tính xếp NGANG HÀNG thành 1 dải
+             thay vì xếp chồng 2 tầng như trên điện thoại, tận dụng chiều rộng màn hình */
+          .kl-overview-grid{ flex-direction:row !important; align-items:stretch !important; }
+          .kl-overview-grid > *{ margin-bottom:0 !important; }
+          .kl-overview-grid > *:first-child{ flex:1.3 !important; }
+          .kl-overview-grid > *:last-child{ flex:1 !important; }
         }
         @media (min-width:1440px){
           .kl-sidebar-desktop{ width:225px !important; }
+          .kl-main-desktop{ padding:0 32px; }
+          .kl-quickcards{ gap:20px !important; }
         }
       `}</style>
 
@@ -7567,7 +7577,7 @@ Bạn có chắc chắn không?`;
                 mỗi thẻ có icon 3D riêng + tiêu đề + phụ đề, giống bố cục 4 khối ở ảnh mẫu desktop.
                 Dùng CSS grid auto-fit để tự co giãn: 4 cột trên màn rộng, 2 cột trên điện thoại hẹp. ── */}
             <div style={{padding:"10px 0 12px"}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(132px,1fr))",gap:10}}>
+              <div className="kl-quickcards" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(132px,1fr))",gap:10}}>
                 {[
                   {icon:<IconGlobeCN size={30}/>, title:lang==="vi"?"Ngôn ngữ":"语言", sub:lang==="vi"?"Việt · Trung":"越南语 · 中文", bg:"linear-gradient(135deg,#eff6ff,#dbeafe)", accent:"#2563eb", onClick:()=>setLangSaved(lang==="vi"?"zh":"vi")},
                   {icon:<IconKey3D size={30}/>, title:"Đổi mật khẩu", sub:"Bảo mật tài khoản", bg:"linear-gradient(135deg,#fff7ed,#ffedd5)", accent:"#ea580c", onClick:()=>setShowChangePw(true)},
@@ -7592,6 +7602,10 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
 
+            {/* ── Trên điện thoại: 2 khối này xếp chồng (Dòng xe/Dự án ở trên, Tiến độ ở dưới).
+                Trên máy tính (≥1024px, xem CSS .kl-overview-grid ở trên): xếp NGANG HÀNG thành
+                1 dải để tận dụng chiều rộng màn hình, không còn bị dồn hẹp như trên di động. ── */}
+            <div className="kl-overview-grid" style={{display:"flex",flexDirection:"column",gap:0}}>
             {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗ */}
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               {/* DÒNG XE */}
@@ -7659,6 +7673,7 @@ Bạn có chắc chắn không?`;
                 <div style={{fontSize:8.5,fontWeight:900,color:"#9ca3af",letterSpacing:.5,textTransform:"uppercase"}}>Tiến Độ</div>
               </div>
             </div>
+            </div>{/* đóng .kl-overview-grid */}
 
             {/* ✅ Đã bỏ hoàn toàn nút "＋ Thêm xe mới" và nút "🗑️ Xoá dự án" theo yêu cầu. */}
 
