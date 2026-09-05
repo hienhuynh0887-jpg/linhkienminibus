@@ -7563,16 +7563,32 @@ Bạn có chắc chắn không?`;
             {/* ── Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — đặt NGAY TRÊN khối
                 "Dòng xe / Dự án" (trước đây nằm trong Header và có thể bị cắt/ẩn ở mép phải
                 trên màn hình hẹp) ── */}
-            <div style={{display:"flex",justifyContent:"flex-end",padding:"10px 0 6px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:2,background:"#f8fafc",border:"1px solid #eef1f5",borderRadius:11,padding:3,flexShrink:0}}>
-                <button onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
-                  style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🌐</button>
-                <button onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
-                  style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🔑</button>
-                <button onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
-                  style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>✍️</button>
-                <button onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
-                  title="Đăng xuất" style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"var(--red)"}}>⏻</button>
+            {/* ── Thao tác nhanh — phiên bản "đặc sắc": 4 thẻ rộng hết chiều ngang màn hình,
+                mỗi thẻ có icon 3D riêng + tiêu đề + phụ đề, giống bố cục 4 khối ở ảnh mẫu desktop.
+                Dùng CSS grid auto-fit để tự co giãn: 4 cột trên màn rộng, 2 cột trên điện thoại hẹp. ── */}
+            <div style={{padding:"10px 0 12px"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(132px,1fr))",gap:10}}>
+                {[
+                  {icon:<IconGlobeCN size={30}/>, title:lang==="vi"?"Ngôn ngữ":"语言", sub:lang==="vi"?"Việt · Trung":"越南语 · 中文", bg:"linear-gradient(135deg,#eff6ff,#dbeafe)", accent:"#2563eb", onClick:()=>setLangSaved(lang==="vi"?"zh":"vi")},
+                  {icon:<IconKey3D size={30}/>, title:"Đổi mật khẩu", sub:"Bảo mật tài khoản", bg:"linear-gradient(135deg,#fff7ed,#ffedd5)", accent:"#ea580c", onClick:()=>setShowChangePw(true)},
+                  {icon:<IconPenSign3D size={30}/>, title:user.chu_ky?"Sửa chữ ký":"Tạo chữ ký", sub:"Chữ ký điện tử", bg:"linear-gradient(135deg,#f5f3ff,#ede9fe)", accent:"#7c3aed", onClick:()=>setShowSignPad(true)},
+                  {icon:<IconUserGear3D size={30}/>, title:"Tài khoản", sub:user.ten||"Đăng xuất", bg:"linear-gradient(135deg,#fdf2f8,#fce7f3)", accent:"#db2777", onClick:()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}},
+                ].map((it,i)=>(
+                  <div key={i} onClick={it.onClick} title={it.title}
+                    style={{cursor:"pointer",background:it.bg,border:`1px solid ${it.accent}22`,borderRadius:16,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,boxShadow:"0 2px 6px rgba(0,0,0,0.06)",transition:"transform .12s, box-shadow .12s",userSelect:"none"}}
+                    onMouseDown={e=>{e.currentTarget.style.transform="scale(0.96)";}}
+                    onMouseUp={e=>{e.currentTarget.style.transform="scale(1)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";}}
+                  >
+                    <div style={{width:42,height:42,borderRadius:12,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,0.12)"}}>
+                      {it.icon}
+                    </div>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={{fontSize:12.5,fontWeight:800,color:"#1f2937",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.title}</div>
+                      <div style={{fontSize:10,color:it.accent,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginTop:1}}>{it.sub}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
