@@ -7387,18 +7387,6 @@ Bạn có chắc chắn không?`;
                 </div>
               );
             })()}
-
-            {/* Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — cụm dọc, khối trắng bo góc */}
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"#ffffff",border:"1px solid #eef1f5",borderRadius:11,padding:3,flexShrink:0}}>
-              <button onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
-                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🌐</button>
-              <button onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
-                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🔑</button>
-              <button onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
-                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>✍️</button>
-              <button onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
-                title="Đăng xuất" style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"var(--red)"}}>⏻</button>
-            </div>
           </div>
         </div>
       </div>
@@ -7572,6 +7560,22 @@ Bạn có chắc chắn không?`;
         const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
         return(
           <div style={{background:"#fff",borderBottom:"1px solid #e4e9f2",padding:"0 10px 14px"}}>
+            {/* ── Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — đặt NGAY TRÊN khối
+                "Dòng xe / Dự án" (trước đây nằm trong Header và có thể bị cắt/ẩn ở mép phải
+                trên màn hình hẹp) ── */}
+            <div style={{display:"flex",justifyContent:"flex-end",padding:"10px 0 6px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:2,background:"#f8fafc",border:"1px solid #eef1f5",borderRadius:11,padding:3,flexShrink:0}}>
+                <button onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
+                  style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🌐</button>
+                <button onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
+                  style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🔑</button>
+                <button onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
+                  style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>✍️</button>
+                <button onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
+                  title="Đăng xuất" style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"var(--red)"}}>⏻</button>
+              </div>
+            </div>
+
             {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗ */}
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               {/* DÒNG XE */}
