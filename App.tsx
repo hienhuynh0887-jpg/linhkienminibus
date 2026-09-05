@@ -418,13 +418,14 @@ const isSyncedUnit = (unit1, unit2) => {
 // XH    → Xem phiếu, xác nhận, duyệt, quản lý BOM, người dùng
 // KHTH  → Vai trò MỚI, chỉ xem — không soạn hàng, không duyệt, không quản lý BOM/người dùng
 const TABS_ALL = [
-  ["ds",      "📦 Vật tư"],
-  ["soan",    "📋 Soạn Hàng"],
-  ["duyet",   "✅ Nhận Hàng"],
-  ["pgn",     "📄 Phiếu GN"],
-  ["bc",      "📈 Báo Cáo"],
-  ["bom_mau", "🗂️ BOM Mẫu"],
-  ["users",   "👥 Người dùng"],
+  ["ds",        "📦 Vật tư"],
+  ["soan",      "📋 Soạn Hàng"],
+  ["duyet",     "✅ Kiểm Tra Xác Nhận"],
+  ["pgn",       "📄 Phiếu GN"],
+  ["bc",        "📈 Báo Cáo"],
+  ["hoanthanh", "🏁 Các Dự Án Đã Hoàn Thành"],
+  ["bom_mau",   "🗂️ Tạo BOM Mẫu"],
+  ["users",     "👥 Phân Quyền Sử Dụng"],
 ];
 const TABS_THCK     = TABS_ALL.filter(([k])=>!["users","duyet","bom_mau"].includes(k));
 const TABS_XUONGHAN = TABS_ALL.filter(([k])=>!["users"].includes(k));
@@ -446,14 +447,15 @@ const TAB_KEYS_BY_ROLE = {thck:TABS_THCK_KEYS, xuonghan:TABS_XUONGHAN_KEYS, kho:
 // ─── Từ điển đa ngôn ngữ TOÀN APP (dùng qua LangCtx) ────────────────
 const APP_I18N = {
   // Tabs
-  tab_ds:      {vi:"📦 Vật tư",        zh:"📦 物料"},
-  tab_soan:    {vi:"📋 Soạn Hàng",     zh:"📋 备料"},
-  tab_duyet:   {vi:"✅ Nhận Hàng",     zh:"✅ 收货"},
-  tab_pgn:     {vi:"📄 Phiếu GN",      zh:"📄 收发单"},
-  tab_bc:      {vi:"📈 Báo Cáo",       zh:"📈 报表"},
-  tab_bom_mau: {vi:"🗂️ BOM Mẫu",      zh:"🗂️ BOM模板"},
-  tab_users:   {vi:"👥 Người dùng",    zh:"👥 用户"},
-  tab_cms:     {vi:"🖼️ CMS",          zh:"🖼️ CMS"},
+  tab_ds:        {vi:"📦 Vật tư",              zh:"📦 物料"},
+  tab_soan:      {vi:"📋 Soạn Hàng",           zh:"📋 备料"},
+  tab_duyet:     {vi:"✅ Kiểm Tra Xác Nhận",   zh:"✅ 核实确认"},
+  tab_pgn:       {vi:"📄 Phiếu GN",            zh:"📄 收发单"},
+  tab_bc:        {vi:"📈 Báo Cáo",             zh:"📈 报表"},
+  tab_hoanthanh: {vi:"🏁 Các Dự Án Đã Hoàn Thành", zh:"🏁 已完成项目"},
+  tab_bom_mau:   {vi:"🗂️ Tạo BOM Mẫu",        zh:"🗂️ 创建BOM模板"},
+  tab_users:     {vi:"👥 Phân Quyền Sử Dụng",  zh:"👥 权限分配"},
+  tab_cms:       {vi:"🖼️ Quản Trị CMS",       zh:"🖼️ CMS管理"},
   // Header brand / role
   brandTitle:  {vi:"Quản Lý Vật Tư BOM", zh:"BOM 物料管理系统"},
   roleTHCK:    {vi:"NHÀ MÁY THCK",     zh:"THCK 工厂"},
@@ -1442,13 +1444,14 @@ const LINE_QUYEN_DEFAULT = {
 // (Vì dùng chung quy ước T() như các bảng khác, nếu tên bảng có hậu tố dòng xe — VD
 // "canh_bao_khan_citybus" — hãy tạo thêm bảng tương ứng hoặc bỏ hậu tố tùy nhu cầu.)
 const TAB_META = [
-  {id:"ds",      label:"📦 VẬT TƯ"},
-  {id:"soan",    label:"📋 SOẠN HÀNG / KIỂM TRA"},
-  {id:"duyet",   label:"✅ NHẬN HÀNG / XÁC NHẬN"},
-  {id:"pgn",     label:"📄 PHIẾU GN"},
-  {id:"bc",      label:"📈 BÁO CÁO"},
-  {id:"bom_mau", label:"🗂️ BOM MẪU"},
-  {id:"users",   label:"👥 NGƯỜI DÙNG"},
+  {id:"ds",        label:"📦 VẬT TƯ"},
+  {id:"soan",      label:"📋 SOẠN HÀNG / KIỂM TRA"},
+  {id:"duyet",     label:"✅ KIỂM TRA XÁC NHẬN"},
+  {id:"pgn",       label:"📄 PHIẾU GN"},
+  {id:"bc",        label:"📈 BÁO CÁO"},
+  {id:"hoanthanh", label:"🏁 CÁC DỰ ÁN ĐÃ HOÀN THÀNH"},
+  {id:"bom_mau",   label:"🗂️ TẠO BOM MẪU"},
+  {id:"users",     label:"👥 PHÂN QUYỀN SỬ DỤNG"},
 ];
 // Xác định vai trò GỐC của 1 tên đơn vị theo quy ước đặt tên (dùng để suy ra bộ tab mặc
 // định cho đơn vị chưa có dòng riêng trong bảng phân quyền chức năng).
@@ -2714,7 +2717,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       {/* ── PHÂN QUYỀN CHỨC NĂNG (TAB) THEO ĐƠN VỊ (gấp gọn mặc định) ── */}
       <AccordionCard icon="🎛️" title={<b>PHÂN QUYỀN CHỨC NĂNG THEO ĐƠN VỊ</b>} badge={`${allDonViGroups.length} đơn vị`} badgeColor="#0f766e"
         open={permOpen2} onToggle={()=>setPermOpen2(o=>!o)}>
-        <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Tick chọn (các) nhiệm vụ mà mỗi đơn vị được phép thao tác/xem sau khi đăng nhập — độc lập với bảng "Phân quyền dòng xe" ở trên (bảng đó quyết định XEM DỮ LIỆU DÒNG XE NÀO, bảng này quyết định LÀM NHIỆM VỤ GÌ). Bỏ tick "🗂️ BOM Mẫu"/"✅ Nhận Hàng" khỏi 1 kho chuyên trách chỉ Soạn Hàng, hoặc bỏ tick "📋 Soạn Hàng" khỏi 1 xưởng chuyên trách chỉ Nhận Hàng, v.v. Tài khoản <b>admin</b> và tài khoản đặc biệt <b>xh04</b> luôn giữ trọn bộ chức năng của mình.</div>
+        <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Tick chọn (các) nhiệm vụ mà mỗi đơn vị được phép thao tác/xem sau khi đăng nhập — độc lập với bảng "Phân quyền dòng xe" ở trên (bảng đó quyết định XEM DỮ LIỆU DÒNG XE NÀO, bảng này quyết định LÀM NHIỆM VỤ GÌ). Bỏ tick "🗂️ Tạo BOM Mẫu"/"✅ Kiểm Tra Xác Nhận" khỏi 1 kho chuyên trách chỉ Soạn Hàng, hoặc bỏ tick "📋 Soạn Hàng" khỏi 1 xưởng chuyên trách chỉ Kiểm Tra Xác Nhận, v.v. Mọi tab luôn HIỆN ĐỦ trên thanh công cụ của mọi tài khoản — tab nào KHÔNG được tick ở đây sẽ hiện MỜ và báo "Bạn chưa được quyền truy cập" khi bấm vào. Tài khoản <b>admin</b> và tài khoản đặc biệt <b>xh04</b> luôn giữ trọn bộ chức năng của mình.</div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
@@ -7258,23 +7261,36 @@ Bạn có chắc chắn không?`;
   // thấy đúng nhiệm vụ đã được phân công (VD "XH_MINIBUS" có thể bị giới hạn chỉ còn
   // "✅ Nhận Hàng" thay vì trọn bộ chức năng của vai trò "xuonghan").
   const donViTabKeys = getTabKeysForDonVi(tabQuyen, user.don_vi);
+  // ✅ TABS_NOW = bộ tab tài khoản này ĐƯỢC PHÉP truy cập (dùng để xác định tab nào bấm
+  // được, tab nào bị khoá) — giữ nguyên 100% logic tính quyền như trước.
   const TABS_NOW  = (()=>{
     let tabs = TABS_ALL.filter(([k])=>donViTabKeys.includes(k));
     if(isAdminAccount(user) && !tabs.some(([k])=>k==="users")) {
       // Thêm "users" tab cho MỌI tài khoản quản trị (admin, xh04, hoặc tài khoản bất kỳ
       // được tick "🛡️ Cấp quyền Quản trị viên") dù bảng phân quyền chức năng của đơn vị
-      // đó có bị giới hạn đến đâu — admin luôn cần thấy "👥 Người dùng" để quản lý.
-      tabs = [...tabs, ["users", "👥 Người dùng"]];
+      // đó có bị giới hạn đến đâu — admin luôn cần thấy "👥 Phân Quyền Sử Dụng" để quản lý.
+      tabs = [...tabs, ["users", "👥 Phân Quyền Sử Dụng"]];
     }
     if(isAdminAccount(user) && !tabs.some(([k])=>k==="cms")) {
-      // Tab "CMS Nội dung" — CHỈ tài khoản quản trị (admin, xh04) thấy & chỉnh sửa (quản
+      // Tab "Quản Trị CMS" — CHỈ tài khoản quản trị (admin, xh04) thấy & chỉnh sửa (quản
       // lý nội dung, banner, ảnh đại diện hiển thị trong app). Không nằm trong bảng phân
       // quyền chức năng theo đơn vị vì không đơn vị nào khác được cấp quyền này.
-      tabs = [...tabs, ["cms", "🖼️ CMS Nội dung"]];
+      tabs = [...tabs, ["cms", "🖼️ Quản Trị CMS"]];
     }
     // An toàn: nếu 1 đơn vị lỡ bị cấu hình 0 chức năng, vẫn giữ lại tối thiểu "📦 Vật tư"
     // để tài khoản không rơi vào màn trắng không điều hướng được.
     if(!tabs.length) tabs = TABS_ALL.filter(([k])=>k==="ds");
+    return tabs;
+  })();
+  // ✅ Bộ KEY được phép truy cập (Set để tra cứu nhanh trong sidebar).
+  const allowedTabKeySet = new Set(TABS_NOW.map(([k])=>k));
+  // ✅ TABS_DISPLAY = TOÀN BỘ tab hiển thị trên thanh công cụ cho MỌI tài khoản (kể cả tab
+  // chưa được cấp quyền) — thống nhất giao diện cho tất cả tài khoản. Tab không có quyền
+  // vẫn HIỆN nhưng bị làm mờ + bấm vào báo "Bạn chưa được quyền truy cập" (xem sidebar bên
+  // dưới), thay vì bị ẩn hẳn như trước đây.
+  const TABS_DISPLAY = (()=>{
+    let tabs = [...TABS_ALL];
+    if(!tabs.some(([k])=>k==="cms")) tabs = [...tabs, ["cms", "🖼️ Quản Trị CMS"]];
     return tabs;
   })();
   // ✅ Dòng xe mà tài khoản đang đăng nhập được PHÉP truy cập, dùng để giới hạn bộ chọn
@@ -7481,24 +7497,50 @@ Bạn có chắc chắn không?`;
         {/* SIDEBAR — W≈117px, gradient navy #062C67→#031D46 phủ TOÀN BỘ chiều cao theo spec
             "Header & Sidebar". Item active = ô vuông gradient #168CFF→#0872E8 kèm glow xanh. */}
         {(()=>{
-          const TAB_ICON = {ds:"🏠", soan:"🔧", duyet:"✅", pgn:"📄", bc:"📊", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
-          const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
+          const TAB_ICON = {ds:"🏠", soan:"🔧", duyet:"✅", pgn:"📄", bc:"📊", hoanthanh:"🏁", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
+          const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Kiểm tra xác nhận", bom_mau:"Tạo BOM mẫu", pgn:"Phiếu GN", bc:"Báo cáo", hoanthanh:"Dự án đã hoàn thành", users:"Phân quyền sử dụng", cms:"Quản trị CMS"};
+          // ✅ Tab "🏁 Các Dự Án Đã Hoàn Thành" là 1 LỐI VÀO NHANH tới đúng nội dung "✅ Đã hoàn
+          // thành" đã có sẵn bên trong tab "📈 Báo Cáo" (bcSubTab==="done") — không tạo lại UI,
+          // chỉ điều hướng state hiện có (tab="bc" + bcSubTab="done") để tái dùng 100% logic cũ.
+          const goToTab = (k) => {
+            if(!allowedTabKeySet.has(k)){
+              alert("⚠️ BẠN CHƯA ĐƯỢC QUYỀN TRUY CẬP NỘI DUNG NÀY, VUI LÒNG LIÊN HỆ QUẢN TRỊ VIÊN.");
+              return;
+            }
+            if(k==="hoanthanh"){
+              setTab("bc");
+              bcNav.markManual(pid);
+              setBcSubTab("done");
+              setBcDoneViewPid(null);
+            } else if(k==="bc"){
+              setTab("bc");
+              if(bcSubTab==="done"){ bcNav.markManual(pid); setBcSubTab("dang"); }
+            } else {
+              setTab(k);
+            }
+          };
           return(
             <div className="kl-sidebar-desktop" style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:92,minHeight:"100vh",overflowY:"auto",
               background:"linear-gradient(180deg,#062C67 0%,#031D46 100%)",display:"flex",flexDirection:"column",zIndex:30,boxSizing:"border-box"}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"20px 10px 12px",flexShrink:0}}>
-                {TABS_NOW.map(([k])=>{
-                  const active=tab===k;
+                {TABS_DISPLAY.map(([k])=>{
+                  const active = k==="hoanthanh" ? (tab==="bc"&&bcSubTab==="done")
+                    : k==="bc" ? (tab==="bc"&&bcSubTab!=="done")
+                    : tab===k;
+                  const allowed = allowedTabKeySet.has(k);
                   const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
                   return(
-                    <button key={k} onClick={()=>setTab(k)} title={label} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
+                    <button key={k} onClick={()=>goToTab(k)}
+                      title={allowed?label:`${label} — 🔒 Chưa được cấp quyền`}
+                      style={{border:"none",cursor:allowed?"pointer":"not-allowed",fontFamily:"inherit",
                       width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
-                      padding:"6px 2px",background:"transparent",textAlign:"center"}}>
+                      padding:"6px 2px",background:"transparent",textAlign:"center",opacity:allowed?1:.4}}>
                       <span style={{width:44,height:44,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",
                         fontSize:19,background:active?"linear-gradient(135deg,#168CFF,#0872E8)":"rgba(255,255,255,0.06)",
-                        color:active?"#fff":"#a9c3ec",
+                        color:active?"#fff":"#a9c3ec",position:"relative",
                         boxShadow:active?"0 4px 14px rgba(22,140,255,0.45)":"none",transition:"background .15s,color .15s"}}>
                         {TAB_ICON[k]||"•"}
+                        {!allowed&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:11,background:"#0B326D",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>🔒</span>}
                       </span>
                       <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
                     </button>
