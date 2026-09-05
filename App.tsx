@@ -7302,75 +7302,102 @@ Bạn có chắc chắn không?`;
 
   return(
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f0f4f8",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(110deg,#EAF5FF,#EFF7FF)",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"}}>
 
-      {/* HEADER — thanh công cụ trên, phong cách enterprise SaaS (Linear/Vercel/Stripe):
-          1 dòng duy nhất, nhiều khoảng thở, màu dùng để báo trạng thái chứ không trang trí. */}
-      <div style={{background:"#ffffff",borderBottom:"1px solid #e5e9f0"}}>
-        <div style={{height:64,padding:"0 24px",display:"flex",alignItems:"center",gap:16}}>
+      {/* ── DESIGN TOKENS + QUY TẮC MÀN HÌNH MÁY TÍNH (theo UI_Design_Specification_Dashboard_BOM.docx) ──
+          ≥1440px: sidebar 220–230px, main max-width≈1400px. 1024–1439px: giữ sidebar≈117px.
+          Dưới 1024px vẫn giữ hành vi/kích thước mobile hiện có (không đụng vào). */}
+      <style>{`
+        :root{
+          --navy:#06285F; --blue:#0867D8; --blue-light:#2B8EF3; --cyan:#35B9F4;
+          --green:#12A875; --green-dark:#05865F; --purple:#7540E8;
+          --orange:#F3B52B; --red:#E94B55; --bg:#EEF7FF;
+          --text:#0B326D; --text-secondary:#71839D;
+          --radius-md:14px; --radius-lg:17px; --radius-xl:22px; --radius-pill:999px;
+          --shadow-card:0 8px 25px rgba(22,83,130,.10);
+        }
+        @media (min-width:1024px){
+          .kl-header-inner{ height:88px !important; }
+          .kl-sidebar-desktop{ width:117px !important; }
+          .kl-main-desktop{ max-width:1400px; margin:0 auto; }
+        }
+        @media (min-width:1440px){
+          .kl-sidebar-desktop{ width:225px !important; }
+        }
+      `}</style>
 
-          {/* Logo + tên hệ thống */}
-          <div style={{display:"flex",alignItems:"center",gap:11,flexShrink:0,minWidth:0}}>
-            <div style={{width:38,height:38,borderRadius:10,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0,color:"#fff",overflow:"hidden"}}>
+      {/* HEADER — H≈88px (desktop), gradient navy→blue theo token Header (#06285F → #125BC0) */}
+      <div style={{background:"linear-gradient(110deg,#06285F,#125BC0)",borderBottom:"1px solid #06285F"}}>
+        <div className="kl-header-inner" style={{height:64,padding:"0 24px",display:"flex",alignItems:"center",gap:16,boxSizing:"border-box"}}>
+
+          {/* Logo + tên hệ thống — logo ≈57×44px, brand title 16/700 màu trắng theo spec Typography */}
+          <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0,minWidth:0}}>
+            <div style={{width:57,height:44,borderRadius:10,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0,color:mauRole,overflow:"hidden"}}>
               {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":(
                 <img src={XH_BUS_ICON_B64} alt="Xe buýt điện" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>
               )}
             </div>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#0f172a",lineHeight:1.2}}>{t("brandTitle")}</div>
-              <div style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
+              <div style={{fontSize:16,fontWeight:700,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#ffffff",lineHeight:1.25}}>{t("brandTitle")}</div>
+              <div style={{fontSize:10.5,fontWeight:700,color:"#7fb0ff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:2}}>
                 {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
               </div>
             </div>
           </div>
 
-          {/* Ô tìm kiếm — khoảng thở trung tâm, không lệ thuộc màu mè */}
+          {/* Ô tìm kiếm — ≈376×43px, radius 24, nền rgba trắng .12 theo spec Header & Sidebar */}
           <div style={{flex:1,display:"flex",justifyContent:"center",minWidth:0}}>
-            <div style={{width:"100%",maxWidth:420,display:"flex",alignItems:"center",gap:8,background:"#f4f6f9",border:"1px solid #eaedf3",borderRadius:9,padding:"7.5px 12px",color:"#9aa5b8"}}>
-              <span style={{fontSize:13.5,flexShrink:0}}>🔍</span>
-              <span style={{fontSize:12.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>Tìm vật tư, mã, tên...</span>
-              <span style={{fontSize:9.5,fontWeight:800,color:"#b4bdcb",border:"1px solid #e3e7ef",borderRadius:5,padding:"1.5px 5px",flexShrink:0,letterSpacing:.2}}>Ctrl K</span>
+            <div style={{width:"100%",maxWidth:376,height:43,boxSizing:"border-box",display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.16)",borderRadius:24,padding:"0 14px",color:"rgba(255,255,255,0.55)"}}>
+              <span style={{fontSize:14,flexShrink:0}}>🔍</span>
+              <span style={{fontSize:12.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,color:"rgba(255,255,255,0.6)"}}>Tìm kiếm vật tư, mã, tên...</span>
+              <span style={{fontSize:9.5,fontWeight:800,color:"rgba(255,255,255,0.55)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:5,padding:"1.5px 5px",flexShrink:0,letterSpacing:.2}}>Ctrl + K</span>
             </div>
           </div>
 
-          {/* Cụm bên phải: trạng thái / thông báo / tài khoản / thao tác nhanh */}
-          <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+          {/* Cụm bên phải: thông báo / tài khoản (avatar≈42px) / thao tác nhanh */}
+          <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
             {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap"}}>{msg}</span>}
             {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={dbErr}>⚠️</span>}
 
             {/* 🔔 Chuông cảnh báo khẩn cấp — badge đỏ hiện số lượng chưa đọc */}
-            <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:36,height:36,borderRadius:10,background:canhBaoChuaDoc>0?"#fef2f2":"#f4f6f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15.5,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1px solid #fecaca":"1px solid #eaedf3"}}>
+            <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:40,height:40,borderRadius:"50%",background:"rgba(255,255,255,0.10)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1px solid #fca5a5":"1px solid rgba(255,255,255,0.16)"}}>
               🔔
-              {canhBaoChuaDoc>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:15,height:15,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}>{canhBaoChuaDoc>9?"9+":canhBaoChuaDoc}</span>}
+              {canhBaoChuaDoc>0&&<span style={{position:"absolute",top:-3,right:-3,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}>{canhBaoChuaDoc>9?"9+":canhBaoChuaDoc}</span>}
             </div>
 
-            <div style={{width:1,height:26,background:"#e9edf3",flexShrink:0}}/>
+            {/* Tài khoản — avatar 42px + giờ:phút + ngày, theo spec "Header & Sidebar" */}
+            {(()=>{
+              const _now=new Date();
+              const _hh=String(_now.getHours()).padStart(2,"0");
+              const _mm=String(_now.getMinutes()).padStart(2,"0");
+              const _dd=String(_now.getDate()).padStart(2,"0");
+              const _mo=String(_now.getMonth()+1).padStart(2,"0");
+              const _yy=_now.getFullYear();
+              const _thu=_now.getDay()+1;
+              return(
+                <div title={`${user.ten} · ${user.don_vi||""}`} style={{display:"flex",alignItems:"center",gap:9,flexShrink:0,cursor:"pointer"}}>
+                  <div style={{width:42,height:42,borderRadius:"50%",background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,overflow:"hidden",border:"2px solid rgba(255,255,255,.7)"}}>
+                    {user.avatar||<IconUserGear3D size={20}/>}
+                  </div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:800,color:"#ffffff",whiteSpace:"nowrap",lineHeight:1.2}}>{_hh}:{_mm}</div>
+                    <div style={{fontSize:9.5,color:"#c7dcff",whiteSpace:"nowrap",lineHeight:1.2,marginTop:1}}>Th {_thu}, {_dd}/{_mo}/{_yy}</div>
+                  </div>
+                  <span style={{fontSize:10,color:"#c7dcff",marginLeft:2}}>▾</span>
+                </div>
+              );
+            })()}
 
-            {/* Tài khoản — avatar + tên + đơn vị, gọn 1 hàng */}
-            <div style={{display:"flex",alignItems:"center",gap:9,flexShrink:0}}>
-              <div style={{width:32,height:32,borderRadius:"50%",background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,overflow:"hidden"}}>
-                {user.avatar||<IconUserGear3D size={20}/>}
-              </div>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:12.5,fontWeight:800,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140,lineHeight:1.2}}>{user.ten}</div>
-                <div style={{fontSize:10,color:"#94a3b8",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140,lineHeight:1.2,marginTop:1}}>{user.don_vi||""}</div>
-              </div>
-            </div>
-
-            <div style={{width:1,height:26,background:"#e9edf3",flexShrink:0}}/>
-
-            {/* Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — icon gọn, có tooltip */}
-            <div style={{display:"flex",alignItems:"center",gap:2,background:"#f8fafc",border:"1px solid #eef1f5",borderRadius:11,padding:3,flexShrink:0}}>
+            {/* Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — cụm dọc, khối trắng bo góc */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"#ffffff",border:"1px solid #eef1f5",borderRadius:11,padding:3,flexShrink:0}}>
               <button onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
-                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:800,color:"#475569"}}>
-                {lang==="vi"?"VI":"中"}
-              </button>
+                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🌐</button>
               <button onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
-                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🔑</button>
+                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🔑</button>
               <button onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
-                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>✍️</button>
+                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>✍️</button>
               <button onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
-                title="Đăng xuất" style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#dc2626"}}>⏻</button>
+                title="Đăng xuất" style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"var(--red)"}}>⏻</button>
             </div>
           </div>
         </div>
@@ -7451,13 +7478,15 @@ Bạn có chắc chắn không?`;
           nay gộp thành 1 sidebar dọc duy nhất, giữ nguyên toàn bộ tab/chức năng). */}
       <div style={{display:"flex",alignItems:"flex-start"}}>
 
-        {/* SIDEBAR — thanh điều hướng dọc, cố định bên trái, cao theo màn hình */}
+        {/* SIDEBAR — W≈117px, gradient navy #062C67→#031D46 phủ TOÀN BỘ chiều cao theo spec
+            "Header & Sidebar". Item active = ô vuông gradient #168CFF→#0872E8 kèm glow xanh. */}
         {(()=>{
-          const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
+          const TAB_ICON = {ds:"🏠", soan:"🔧", duyet:"✅", pgn:"📄", bc:"📊", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
           const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
           return(
-            <div style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:92,height:"100vh",overflowY:"auto",background:"#ffffff",borderRight:"1px solid #eef1f5",display:"flex",flexDirection:"column",zIndex:30}}>
-              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"18px 10px 8px"}}>
+            <div className="kl-sidebar-desktop" style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:92,minHeight:"100vh",overflowY:"auto",
+              background:"linear-gradient(180deg,#062C67 0%,#031D46 100%)",display:"flex",flexDirection:"column",zIndex:30,boxSizing:"border-box"}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"20px 10px 12px",flexShrink:0}}>
                 {TABS_NOW.map(([k])=>{
                   const active=tab===k;
                   const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
@@ -7466,27 +7495,28 @@ Bạn có chắc chắn không?`;
                       width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
                       padding:"6px 2px",background:"transparent",textAlign:"center"}}>
                       <span style={{width:44,height:44,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",
-                        fontSize:19,background:active?"#1d4ed8":"#f4f6f9",color:active?"#fff":"#64748b",
-                        boxShadow:active?"0 4px 10px rgba(29,78,216,0.28)":"none",transition:"background .15s,color .15s"}}>
+                        fontSize:19,background:active?"linear-gradient(135deg,#168CFF,#0872E8)":"rgba(255,255,255,0.06)",
+                        color:active?"#fff":"#a9c3ec",
+                        boxShadow:active?"0 4px 14px rgba(22,140,255,0.45)":"none",transition:"background .15s,color .15s"}}>
                         {TAB_ICON[k]||"•"}
                       </span>
-                      <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#1d4ed8":"#64748b",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
+                      <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
                     </button>
                   );
                 })}
               </div>
-              {/* Chân trang sidebar — thương hiệu, giữ nguyên tinh thần thiết kế tham chiếu */}
-              <div style={{padding:"14px 8px 18px",borderTop:"1px solid #f1f5f9",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
-                <img src={XH_BUS_ICON_B64} alt="Kim Long Motor" style={{width:32,height:32,borderRadius:9,objectFit:"cover"}}/>
-                <div style={{fontSize:9.5,fontWeight:800,color:"#0f172a",textAlign:"center",lineHeight:1.2}}>Kim Long Motor</div>
-                <div style={{fontSize:8,color:"#94a3b8",textAlign:"center",lineHeight:1.2}}>Vững bước tương lai</div>
+              {/* Chân trang sidebar — logo Kim Long Motor gắn cố định phía dưới cùng */}
+              <div style={{flex:1,minHeight:60,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",gap:6,padding:"18px 8px 20px",position:"relative",overflow:"hidden"}}>
+                <img src={XH_BUS_ICON_B64} alt="Kim Long Motor" style={{width:34,height:34,borderRadius:9,objectFit:"cover",flexShrink:0}}/>
+                <div style={{fontSize:9.5,fontWeight:800,color:"#ffffff",textAlign:"center",lineHeight:1.2}}>Kim Long Motor</div>
+                <div style={{fontSize:8,color:"#9db4dd",textAlign:"center",lineHeight:1.2}}>Vững bước tương lai</div>
               </div>
             </div>
           );
         })()}
 
         {/* CỘT NỘI DUNG CHÍNH — bên phải sidebar */}
-        <div style={{flex:1,minWidth:0}}>
+        <div className="kl-main-desktop" style={{flex:1,minWidth:0}}>
 
       {/* ── Bộ chuyển 2 trang con của tab "Báo cáo": Đang thực hiện / Đã hoàn thành ──
 
