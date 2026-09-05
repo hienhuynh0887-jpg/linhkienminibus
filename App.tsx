@@ -7304,65 +7304,76 @@ Bạn có chắc chắn không?`;
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
     <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f0f4f8",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"}}>
 
-      {/* HEADER — thẻ trắng bo góc: logo + tên app + hàng icon (giống ảnh thiết kế) */}
-      <div style={{background:"#ffffff",borderBottom:"1px solid #e4e9f2",position:"relative",color:"#132247"}}>
-        <div style={{position:"relative",zIndex:1}}>
+      {/* HEADER — thanh công cụ trên, phong cách enterprise SaaS (Linear/Vercel/Stripe):
+          1 dòng duy nhất, nhiều khoảng thở, màu dùng để báo trạng thái chứ không trang trí. */}
+      <div style={{background:"#ffffff",borderBottom:"1px solid #e5e9f0"}}>
+        <div style={{height:64,padding:"0 24px",display:"flex",alignItems:"center",gap:16}}>
 
-        {/* Brand row */}
-        <div style={{padding:"16px 16px 14px",display:"flex",alignItems:"center",gap:12,background:"#000000"}}>
-          <div style={{width:54,height:54,borderRadius:14,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0,color:"#fff",overflow:"hidden"}}>
-            {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":(
-              <img src={XH_BUS_ICON_B64} alt="Xe buýt điện" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:14}}/>
-            )}
-          </div>
-          <div style={{minWidth:0,flex:1}}>
-            <div style={{fontSize:19,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#ffffff"}}>{t("brandTitle")}</div>
-            <div style={{fontSize:13,fontWeight:800,color:"#60a5fa",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
-              {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
+          {/* Logo + tên hệ thống */}
+          <div style={{display:"flex",alignItems:"center",gap:11,flexShrink:0,minWidth:0}}>
+            <div style={{width:38,height:38,borderRadius:10,background:mauRole,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0,color:"#fff",overflow:"hidden"}}>
+              {isTHCK?"🏭":isKHO?"📦":isKHTH?"📋":(
+                <img src={XH_BUS_ICON_B64} alt="Xe buýt điện" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>
+              )}
+            </div>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"#0f172a",lineHeight:1.2}}>{t("brandTitle")}</div>
+              <div style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textTransform:"uppercase",letterSpacing:.4,marginTop:1}}>
+                {isTHCK?t("roleTHCK"):isKHO?t("roleKHO"):isKHTH?(user.don_vi||t("roleKHTH")):t("roleXH")}
+              </div>
             </div>
           </div>
-          {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap",flexShrink:0}}>{msg}</span>}
-          {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}} title={dbErr}>⚠️</span>}
-          {/* 🔔 Chuông cảnh báo khẩn cấp — badge đỏ hiện số lượng chưa đọc */}
-          <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:40,height:40,borderRadius:"50%",background:canhBaoChuaDoc>0?"#fef2f2":"#f8fafc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1.5px solid #fecaca":"1px solid #eef1f7"}}>
-            🔔
-            {canhBaoChuaDoc>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{canhBaoChuaDoc>9?"9+":canhBaoChuaDoc}</span>}
+
+          {/* Ô tìm kiếm — khoảng thở trung tâm, không lệ thuộc màu mè */}
+          <div style={{flex:1,display:"flex",justifyContent:"center",minWidth:0}}>
+            <div style={{width:"100%",maxWidth:420,display:"flex",alignItems:"center",gap:8,background:"#f4f6f9",border:"1px solid #eaedf3",borderRadius:9,padding:"7.5px 12px",color:"#9aa5b8"}}>
+              <span style={{fontSize:13.5,flexShrink:0}}>🔍</span>
+              <span style={{fontSize:12.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>Tìm vật tư, mã, tên...</span>
+              <span style={{fontSize:9.5,fontWeight:800,color:"#b4bdcb",border:"1px solid #e3e7ef",borderRadius:5,padding:"1.5px 5px",flexShrink:0,letterSpacing:.2}}>Ctrl K</span>
+            </div>
+          </div>
+
+          {/* Cụm bên phải: trạng thái / thông báo / tài khoản / thao tác nhanh */}
+          <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+            {msg&&<span style={{fontSize:10,color:"#16a34a",background:"#eefdf3",border:"1px solid #bbf7d0",borderRadius:20,padding:"3px 8px",whiteSpace:"nowrap"}}>{msg}</span>}
+            {dbErr&&<span style={{fontSize:10,color:"#991b1b",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:20,padding:"3px 8px",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={dbErr}>⚠️</span>}
+
+            {/* 🔔 Chuông cảnh báo khẩn cấp — badge đỏ hiện số lượng chưa đọc */}
+            <div onClick={()=>setShowCanhBaoList(true)} title="Cảnh báo khẩn cấp" style={{position:"relative",width:36,height:36,borderRadius:10,background:canhBaoChuaDoc>0?"#fef2f2":"#f4f6f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15.5,cursor:"pointer",flexShrink:0,border:canhBaoChuaDoc>0?"1px solid #fecaca":"1px solid #eaedf3"}}>
+              🔔
+              {canhBaoChuaDoc>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,minWidth:15,height:15,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}>{canhBaoChuaDoc>9?"9+":canhBaoChuaDoc}</span>}
+            </div>
+
+            <div style={{width:1,height:26,background:"#e9edf3",flexShrink:0}}/>
+
+            {/* Tài khoản — avatar + tên + đơn vị, gọn 1 hàng */}
+            <div style={{display:"flex",alignItems:"center",gap:9,flexShrink:0}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,overflow:"hidden"}}>
+                {user.avatar||<IconUserGear3D size={20}/>}
+              </div>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:12.5,fontWeight:800,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140,lineHeight:1.2}}>{user.ten}</div>
+                <div style={{fontSize:10,color:"#94a3b8",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140,lineHeight:1.2,marginTop:1}}>{user.don_vi||""}</div>
+              </div>
+            </div>
+
+            <div style={{width:1,height:26,background:"#e9edf3",flexShrink:0}}/>
+
+            {/* Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — icon gọn, có tooltip */}
+            <div style={{display:"flex",alignItems:"center",gap:2,background:"#f8fafc",border:"1px solid #eef1f5",borderRadius:11,padding:3,flexShrink:0}}>
+              <button onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
+                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:800,color:"#475569"}}>
+                {lang==="vi"?"VI":"中"}
+              </button>
+              <button onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
+                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🔑</button>
+              <button onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
+                style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>✍️</button>
+              <button onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
+                title="Đăng xuất" style={{border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#dc2626"}}>⏻</button>
+            </div>
           </div>
         </div>
-
-        <div style={{borderTop:"1px solid #eef1f7"}}/>
-
-        {/* Icon row — 4 mục: Ngôn ngữ / Đổi MK / Chữ ký / Tài khoản
-            ✅ Đã thay icon emoji phẳng bằng SVG 3D/neon (Globe+中 / Key / Pen ký / User+Gear) */}
-        <div style={{display:"flex"}}>
-          <div onClick={()=>setLangSaved(lang==="vi"?"zh":"vi")} title="Đổi ngôn ngữ Việt / Trung"
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
-            <IconGlobeCN size={30}/>
-            <span style={{fontSize:10.5,fontWeight:700,whiteSpace:"nowrap"}}>
-              <span style={{color:lang==="vi"?"#2563eb":"#9aa5bd"}}>VI</span>
-              <span style={{color:"#9aa5bd"}}> / </span>
-              <span style={{color:lang==="zh"?"#2563eb":"#9aa5bd"}}>中</span>
-            </span>
-          </div>
-          <div onClick={()=>setShowChangePw(true)} title="Đổi mật khẩu"
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
-            <IconKey3D size={30}/>
-            <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>Đổi MK</span>
-          </div>
-          <div onClick={()=>setShowSignPad(true)} title={user.chu_ky?"Sửa chữ ký":"Tạo chữ ký"}
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer",borderRight:"1px solid #eef1f7"}}>
-            <IconPenSign3D size={30}/>
-            <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>{user.chu_ky?"Sửa ký":"Tạo ký"}</span>
-          </div>
-          <div onClick={()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}}
-            title="Đăng xuất" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"12px 4px",cursor:"pointer"}}>
-            {user.avatar
-              ? <span style={{fontSize:19}}>{user.avatar}</span>
-              : <IconUserGear3D size={30}/>}
-            <span style={{fontSize:10.5,fontWeight:700,color:"#64748b",whiteSpace:"nowrap",maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis"}}>{user.ten}</span>
-          </div>
-        </div>
-        </div>{/* /zIndex:1 wrapper */}
       </div>
 
       {/* Modal chọn Dự án (được mở từ ô "DỰ ÁN" trong dashboard bên dưới) — ✅ Khi đang ở tab
@@ -7445,20 +7456,31 @@ Bạn có chắc chắn không?`;
           const TAB_ICON = {ds:"📦", soan:"📋", duyet:"✅", pgn:"📄", bc:"📈", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
           const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Xác nhận", bom_mau:"Quản lý BOM", pgn:"Phiếu GN", bc:"Báo cáo", users:"Người dùng", cms:"CMS Nội dung"};
           return(
-            <div style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:76,maxHeight:"100vh",overflowY:"auto",background:"#0b2545",borderRight:"1px solid #071a30",display:"flex",flexDirection:"column",zIndex:30}}>
-              {TABS_NOW.map(([k])=>{
-                const active=tab===k;
-                const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
-                return(
-                  <button key={k} onClick={()=>setTab(k)} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
-                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,
-                    padding:"12px 4px",background:active?"#1d4ed8":"transparent",opacity:active?1:0.68,
-                    borderLeft:active?"3px solid #ffffff":"3px solid transparent",textAlign:"center"}}>
-                    <span style={{fontSize:19}}>{TAB_ICON[k]||"•"}</span>
-                    <span style={{fontSize:10,fontWeight:800,color:"#ffffff",lineHeight:1.2,whiteSpace:"normal"}}>{label}</span>
-                  </button>
-                );
-              })}
+            <div style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:92,height:"100vh",overflowY:"auto",background:"#ffffff",borderRight:"1px solid #eef1f5",display:"flex",flexDirection:"column",zIndex:30}}>
+              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"18px 10px 8px"}}>
+                {TABS_NOW.map(([k])=>{
+                  const active=tab===k;
+                  const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
+                  return(
+                    <button key={k} onClick={()=>setTab(k)} title={label} style={{border:"none",cursor:"pointer",fontFamily:"inherit",
+                      width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
+                      padding:"6px 2px",background:"transparent",textAlign:"center"}}>
+                      <span style={{width:44,height:44,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",
+                        fontSize:19,background:active?"#1d4ed8":"#f4f6f9",color:active?"#fff":"#64748b",
+                        boxShadow:active?"0 4px 10px rgba(29,78,216,0.28)":"none",transition:"background .15s,color .15s"}}>
+                        {TAB_ICON[k]||"•"}
+                      </span>
+                      <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#1d4ed8":"#64748b",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Chân trang sidebar — thương hiệu, giữ nguyên tinh thần thiết kế tham chiếu */}
+              <div style={{padding:"14px 8px 18px",borderTop:"1px solid #f1f5f9",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                <img src={XH_BUS_ICON_B64} alt="Kim Long Motor" style={{width:32,height:32,borderRadius:9,objectFit:"cover"}}/>
+                <div style={{fontSize:9.5,fontWeight:800,color:"#0f172a",textAlign:"center",lineHeight:1.2}}>Kim Long Motor</div>
+                <div style={{fontSize:8,color:"#94a3b8",textAlign:"center",lineHeight:1.2}}>Vững bước tương lai</div>
+              </div>
             </div>
           );
         })()}
