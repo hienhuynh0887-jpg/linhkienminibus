@@ -2078,19 +2078,22 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
           (backToSelect, setAuthedUser/setStep/onLogout). ══════════════════ */}
       <header style={{border:"none",padding:"12px 3vw 10px"}}>
         <div onClick={backToSelect} title="Về trang chọn dòng xe"
-          style={{position:"relative",width:"100%",borderRadius:10,overflow:"hidden",cursor:"pointer",lineHeight:0,boxShadow:"0 4px 14px rgba(0,0,0,0.35)"}}>
-          <img src={headerBannerUrl||KL_BANNER_B64} alt="Kim Long Motor" style={{width:"100%",height:"auto",display:"block"}}/>
+          style={{position:"relative",width:"100%",height:130,borderRadius:10,overflow:"hidden",cursor:"pointer",lineHeight:0,boxShadow:"0 4px 14px rgba(0,0,0,0.35)"}}>
+          <img src={headerBannerUrl||KL_BANNER_B64} alt="Kim Long Motor" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}}/>
 
-          {/* Nút Đăng xuất — nhúng góc phải-trên của banner, GIỮ NGUYÊN handler cũ */}
-          <button onClick={e=>{e.stopPropagation();setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất"
+          {/* Nút Đăng xuất — nhúng góc phải-trên của banner. ⚠️ FIX: trước đây bấm là ĐĂNG
+              XUẤT NGAY LẬP TỨC, không hỏi lại — dễ bấm nhầm mất luôn phiên làm việc. Nay
+              luôn hỏi xác nhận trước; bấm "Hủy" trên hộp thoại sẽ KHÔNG làm gì cả, ở nguyên
+              màn hình hiện tại. */}
+          <button onClick={e=>{e.stopPropagation();if(!window.confirm("Đăng xuất khỏi hệ thống?"))return;setAuthedUser(null);setErr("");setStep("gate");onLogout&&onLogout();}} title="Đăng xuất"
             style={{
-              position:"absolute",top:6,right:6,zIndex:2,
-              background:"rgba(127,29,29,0.88)",border:"1px solid rgba(255,255,255,0.35)",color:"#fff",cursor:"pointer",fontFamily:"inherit",
-              borderRadius:8,padding:"4px 8px",display:"flex",alignItems:"center",gap:4,
+              position:"absolute",top:8,right:8,zIndex:2,
+              background:"rgba(127,29,29,0.9)",border:"1px solid rgba(255,255,255,0.4)",color:"#fff",cursor:"pointer",fontFamily:"inherit",
+              borderRadius:10,padding:"7px 13px",display:"flex",alignItems:"center",gap:6,
               boxShadow:"0 2px 8px rgba(0,0,0,0.45)"
             }}>
-            <KlIconPower size={11} color="#fff"/>
-            <span style={{fontWeight:800,fontSize:8.5,whiteSpace:"nowrap"}}>Đăng xuất</span>
+            <KlIconPower size={15} color="#fff"/>
+            <span style={{fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}>Đăng xuất</span>
           </button>
         </div>
       </header>
@@ -2794,16 +2797,29 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   const btn={border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:12,padding:"5px 11px"};
   const fl=m=>{setFlash2(m);setTimeout(()=>setFlash2(""),2500);};
 
-  const save=()=>{
+  // ⚠️ FIX LỖI NGHIÊM TRỌNG ("tạo tài khoản xong nhưng không đăng nhập được"): code cũ gọi
+  // dbUpsertUser(...) nhưng KHÔNG chờ (await) kết quả — nếu lưu lên Supabase thất bại (vd. cột
+  // dữ liệu sai kiểu, mất mạng, RLS chặn...), hàm vẫn cứ thêm tài khoản vào state cục bộ (local)
+  // và báo "✓ Đã thêm tài khoản" y như thành công. Tài khoản khi đó CHỈ tồn tại tạm trong bộ nhớ
+  // trình duyệt hiện tại — hễ tải lại trang (F5) hoặc đăng nhập từ máy/trình duyệt khác, danh
+  // sách "users" được nạp lại TỪ SUPABASE (không có tài khoản này) → đăng nhập báo sai mật khẩu,
+  // dù lúc tạo không thấy báo lỗi gì. Nay: PHẢI chờ dbUpsertUser xác nhận lưu THÀNH CÔNG trên máy
+  // chủ rồi mới cập nhật state cục bộ + báo "✓ Đã thêm"; nếu thất bại, báo lỗi rõ ràng và KHÔNG
+  // thêm vào danh sách, tránh ảo giác "đã tạo xong" trong khi máy chủ chưa hề có bản ghi đó.
+  const save=async()=>{
     if(!form.id.trim()||!form.ten.trim()||!form.pw.trim()){fl("⚠️ Điền đủ thông tin!");return;}
     if(editing){
-      setUsers(l=>l.map(u=>u.id===editing?{...u,...form}:u));
-      dbUpsertUser&&dbUpsertUser({...form});
+      const updated={...(users.find(u=>u.id===editing)||{}),...form};
+      const ok = dbUpsertUser ? await dbUpsertUser(updated) : true;
+      if(!ok){ fl("⚠️ Lưu lên máy chủ THẤT BẠI — chưa cập nhật!"); return; }
+      setUsers(l=>l.map(u=>u.id===editing?updated:u));
       fl("✓ Đã cập nhật");
     } else {
       if(users.find(u=>u.id===form.id)){fl("⚠️ ID đã tồn tại!");return;}
-      setUsers(l=>[...l,{...form}]);
-      dbUpsertUser&&dbUpsertUser({...form});
+      const newUser={...form};
+      const ok = dbUpsertUser ? await dbUpsertUser(newUser) : true;
+      if(!ok){ fl("⚠️ Lưu lên máy chủ THẤT BẠI — tài khoản CHƯA được tạo, vui lòng thử lại!"); return; }
+      setUsers(l=>[...l,newUser]);
       fl("✓ Đã thêm tài khoản");
     }
     setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});setEdit(null);
@@ -7932,57 +7948,21 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
 
-            {/* ── Bộ chuyển 2 trang con của tab "Báo cáo": Đang thực hiện / Đã hoàn thành ──
-
-                Đặt phía TRÊN khối "Dòng xe / Dự án" theo yêu cầu, chỉ hiện khi đang ở tab "bc". */}
-            {tab==="bc"&&(()=>{
-              // ✅ Dự án đang chọn (pid) đã hoàn thành hay chưa — dùng CHUNG điều kiện với banner
-              // "Đã nhận đủ vật tư toàn bộ!" (trang_thai==="hoan_thanh" HOẶC duAll).
-              const projDangChonDaXong = !!proj && (proj.trang_thai==="hoan_thanh"||duAll);
-              // ⚠️ FIX: trước đây khi dự án đang chọn đã hoàn thành, nút "🚧 Đang thực hiện" bị VÔ
-              // HIỆU HOÁ HẲN — khiến người dùng không còn cách nào bấm sang xem các dự án KHÁC vẫn
-              // đang thực hiện (nếu có). Đúng ra nút này vẫn phải bấm được — chỉ là khi dự án ĐANG
-              // CHỌN đã xong, bấm vào sẽ TỰ ĐỘNG chuyển sang dự án đang thực hiện ĐẦU TIÊN (nếu còn),
-              // để người dùng vẫn xem được các dự án chưa hoàn thành như bình thường. Chỉ khi KHÔNG
-              // CÒN dự án nào đang thực hiện (bcDangList rỗng) mới hiện trạng thái trống ở khu vực nội
-              // dung bên dưới (xem đoạn render "dang" chính) — nút vẫn luôn bấm được.
-              const chuyenSangDangThucHien=()=>{
-                let targetPid=pid;
-                if(projDangChonDaXong){
-                  const first=bcDangList[0];
-                  if(first) targetPid=first.id;
-                }
-                if(targetPid!==pid) sw(targetPid);
-                bcNav.markManual(targetPid);
-                setBcSubTab("dang");
-                setBcDoneViewPid(null);
-              };
-              return(
-              <div style={{background:"#fff",padding:"12px 10px 0",display:"flex",gap:8}}>
-                <button onClick={chuyenSangDangThucHien}
-                  title={projDangChonDaXong?(bcDangList.length>0?"Sẽ tự chuyển sang dự án đang thực hiện đầu tiên":"Không còn dự án nào đang thực hiện"):""}
-                  style={{flex:1,border:bcSubTab==="dang"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
-                    background:bcSubTab==="dang"?"linear-gradient(135deg,#312e81,#4338ca)":"#fff",color:bcSubTab==="dang"?"#fff":"#374151",
-                    boxShadow:bcSubTab==="dang"?"0 3px 10px rgba(67,56,202,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
-                  🚧 Đang thực hiện
-                </button>
-                {/* ✅ Bấm trực tiếp nút "✅ Đã hoàn thành" luôn quay về DANH SÁCH (reset bcDoneViewPid
-                    về null) — chỉ khi bấm vào 1 dự án CỤ THỂ trong danh sách mới vào xem chi tiết. */}
-                <button onClick={()=>{bcNav.markManual(pid);setBcSubTab("done");setBcDoneViewPid(null);}}
-                  style={{flex:1,border:bcSubTab==="done"?"none":"1px solid #e5e7eb",cursor:"pointer",fontFamily:"inherit",borderRadius:10,padding:"10px 8px",fontSize:12.5,fontWeight:800,
-                    background:bcSubTab==="done"?"linear-gradient(135deg,#16a34a,#15803d)":"#fff",color:bcSubTab==="done"?"#fff":"#374151",
-                    boxShadow:bcSubTab==="done"?"0 3px 10px rgba(22,163,74,0.3)":"0 1px 3px rgba(0,0,0,0.08)"}}>
-                  ✅ Đã hoàn thành{bcDoneList.length>0?` (${bcDoneList.length})`:""}
-                </button>
-              </div>
-              );
-            })()}
+            {/* ── Bộ chuyển 2 trang con của tab "Báo cáo" (Đang thực hiện / Đã hoàn thành) ĐÃ
+                BỊ BỎ theo yêu cầu — giờ đây "Báo Cáo" (sidebar) CHỈ hiện "🚧 Đang thực hiện",
+                còn "🏁 Các Dự Án Đã Hoàn Thành" (sidebar) CHỈ hiện "✅ Đã hoàn thành". Việc tự
+                động ép bcSubTab theo đúng trạng thái dự án (effect phía trên, dựa vào
+                trang_thai/duAll) vẫn hoạt động bình thường — chỉ bỏ 2 nút bấm tay thủ công. */}
 
             {/* ── Trên điện thoại: 2 khối này xếp chồng (Dòng xe/Dự án ở trên, Tiến độ ở dưới).
                 Trên máy tính (≥1024px, xem CSS .kl-overview-grid ở trên): xếp NGANG HÀNG thành
                 1 dải để tận dụng chiều rộng màn hình, không còn bị dồn hẹp như trên di động. ── */}
             <div className="kl-overview-grid" style={{display:"flex",flexDirection:"column",gap:0}}>
-            {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗ */}
+            {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗
+                ✅ ẨN HẲN khi đang ở tab "🖼️ Quản Trị CMS" theo yêu cầu — CMS quản lý nội dung
+                chung của toàn hệ thống, không gắn với 1 dòng xe/dự án cụ thể nào, nên 2 ô chọn
+                này không có ý nghĩa và dễ gây hiểu nhầm khi hiển thị ở màn CMS. */}
+            {tab!=="cms"&&(
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               {/* DÒNG XE */}
               <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e5e7eb",borderLeft:"3px solid #ec4899",borderRadius:12,padding:"12px",cursor:linesPickable.length>1?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:10}}>
@@ -8009,8 +7989,12 @@ Bạn có chắc chắn không?`;
                 <div style={{position:"absolute",right:-10,bottom:-15,fontSize:80,opacity:0.06,pointerEvents:"none",transform:"scaleX(-1)"}}>🚌</div>
               </div>
             </div>
+            )}
 
-            {/* ╔════ Tiến độ dự án — 1 khối duy nhất: icon lá + tiêu đề + vòng tròn % (giống mẫu) ════╗ */}
+            {/* ╔════ Tiến độ dự án — 1 khối duy nhất: icon lá + tiêu đề + vòng tròn % (giống mẫu) ════╗
+                ✅ Cũng bỏ hẳn khi ở tab "🖼️ Quản Trị CMS" theo yêu cầu — không chỉ ẩn mà loại
+                khỏi cây hiển thị luôn, vì CMS không liên quan tới tiến độ giao xe của dự án. */}
+            {tab!=="cms"&&(
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12,background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
               {/* Icon dòng xe — hiển thị đúng ảnh/icon theo dòng xe đang chọn (12M / City Bus / Mini Bus) */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:54,height:54,borderRadius:14,overflow:"hidden",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,0.12)",background:(activeLine==="minibus"||activeLine==="12m")?"transparent":(nhanDongXe(activeLine).nen||"#f3f4f6")}}>
@@ -8049,6 +8033,7 @@ Bạn có chắc chắn không?`;
                 <div style={{fontSize:8.5,fontWeight:900,color:"#9ca3af",letterSpacing:.5,textTransform:"uppercase"}}>Tiến Độ</div>
               </div>
             </div>
+            )}
             </div>{/* đóng .kl-overview-grid */}
 
             {/* ✅ Đã bỏ hoàn toàn nút "＋ Thêm xe mới" và nút "🗑️ Xoá dự án" theo yêu cầu. */}
