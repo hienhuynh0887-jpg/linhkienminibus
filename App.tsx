@@ -7659,12 +7659,13 @@ Bạn có chắc chắn không?`;
 
   return(
     <LangCtx.Provider value={{lang,t,setLang:setLangSaved}}>
-    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(110deg,#EAF5FF,#EFF7FF)",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"}}>
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(110deg,#EAF5FF,#EFF7FF)",minHeight:"100vh",width:"100%",maxWidth:"100vw",boxSizing:"border-box"}}>
 
       {/* ── DESIGN TOKENS + QUY TẮC MÀN HÌNH MÁY TÍNH (theo UI_Design_Specification_Dashboard_BOM.docx) ──
           ≥1440px: sidebar 220–230px, main max-width≈1400px. 1024–1439px: giữ sidebar≈117px.
           Dưới 1024px vẫn giữ hành vi/kích thước mobile hiện có (không đụng vào). */}
       <style>{`
+        html,body{ margin:0; overflow-x:hidden; }
         :root{
           --navy:#06285F; --blue:#0867D8; --blue-light:#2B8EF3; --cyan:#35B9F4;
           --green:#12A875; --green-dark:#05865F; --purple:#7540E8;
@@ -7836,10 +7837,17 @@ Bạn có chắc chắn không?`;
       {/* ── LAYOUT: sidebar dọc bên TRÁI + cột nội dung chính bên phải ──
           (trước đây là thanh TABS ngang phía trên + thanh nav cố định phía dưới —
           nay gộp thành 1 sidebar dọc duy nhất, giữ nguyên toàn bộ tab/chức năng). */}
-      <div style={{display:"flex",alignItems:"flex-start"}}>
+      <div style={{display:"flex",alignItems:"stretch"}}>
 
         {/* SIDEBAR — W≈117px, gradient navy #062C67→#031D46 phủ TOÀN BỘ chiều cao theo spec
-            "Header & Sidebar". Item active = ô vuông gradient #168CFF→#0872E8 kèm glow xanh. */}
+            "Header & Sidebar". Item active = ô vuông gradient #168CFF→#0872E8 kèm glow xanh.
+            ✅ FIX "thanh công cụ không hiển thị hết theo dữ liệu": nền navy giờ nằm ở khối NGOÀI
+            được kéo giãn (nhờ alignItems:"stretch" ở hàng flex cha ngay phía trên) nên LUÔN tự
+            chạy dài hết đúng bằng chiều cao cột nội dung/bảng chính, bất kể bảng dài bao nhiêu —
+            không còn bị cắt cụt giữa chừng để lộ khoảng trắng như trước. Icon 9 tab + logo được
+            bọc trong 1 lớp con position:"sticky" để vẫn luôn "dính" theo màn hình khi cuộn, đồng
+            thời có maxHeight:"100vh"+overflowY:"auto" để tự cuộn nội bộ, đảm bảo KHÔNG BAO GIỜ bị
+            thiếu/cắt tab nào dù màn hình thấp hay danh sách tab dài tới đâu. */}
         {(()=>{
           const TAB_ICON_CMP = {ds:IconBox3D, soan:IconClipboardCheck3D, duyet:IconShieldCheck3D, pgn:IconReceipt3D, bc:IconChartBar3D, hoanthanh:IconFlagFinish3D, bom_mau:IconFolderGear3D, users:IconUsersLock3D, cms:IconImageCms3D};
           const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Kiểm tra xác nhận", bom_mau:"Tạo BOM mẫu", pgn:"Phiếu GN", bc:"Báo cáo", hoanthanh:"Dự án đã hoàn thành", users:"Phân quyền sử dụng", cms:"Quản trị CMS"};
@@ -7864,42 +7872,50 @@ Bạn có chắc chắn không?`;
             }
           };
           return(
-            <div className="kl-sidebar-desktop" style={{position:"sticky",top:0,alignSelf:"flex-start",flexShrink:0,width:92,minHeight:"100vh",overflowY:"auto",
-              background:"linear-gradient(180deg,#062C67 0%,#031D46 100%)",display:"flex",flexDirection:"column",zIndex:30,boxSizing:"border-box"}}>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"20px 10px 12px",flexShrink:0}}>
-                {TABS_DISPLAY.map(([k])=>{
-                  const active = k==="hoanthanh" ? (tab==="bc"&&bcSubTab==="done")
-                    : k==="bc" ? (tab==="bc"&&bcSubTab!=="done")
-                    : tab===k;
-                  const allowed = allowedTabKeySet.has(k);
-                  const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
-                  const IconCmp = TAB_ICON_CMP[k];
-                  return(
-                    <button key={k} onClick={()=>goToTab(k)}
-                      title={allowed?label:`${label} — 🔒 Chưa được cấp quyền`}
-                      style={{border:"none",cursor:allowed?"pointer":"not-allowed",fontFamily:"inherit",
-                      width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
-                      padding:"6px 2px",background:"transparent",textAlign:"center",opacity:allowed?1:.45}}>
-                      <span className={active?"kl-tab-icon-active":""} style={{width:46,height:46,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",
-                        background:active?"rgba(56,189,248,0.16)":"rgba(255,255,255,0.05)",
-                        position:"relative",
-                        boxShadow:active?"0 0 0 2px rgba(56,189,248,0.55), 0 6px 16px rgba(22,140,255,0.4)":"none",
-                        transition:"background .15s,box-shadow .15s"}}>
-                        <span style={{display:"flex",filter:allowed?"none":"grayscale(.9) brightness(.7)"}}>
-                          {IconCmp?<IconCmp size={30}/>:<span style={{fontSize:19,color:"#a9c3ec"}}>•</span>}
+            <div className="kl-sidebar-desktop" style={{flexShrink:0,width:92,
+              background:"linear-gradient(180deg,#062C67 0%,#031D46 100%)",zIndex:30,boxSizing:"border-box"}}>
+              {/* Lớp DÍNH bên trong — chạy tự động theo chiều cao dữ liệu: khi cột nội dung bên
+                  phải ngắn, lớp này cao 100vh bình thường; khi bảng dữ liệu dài hơn 1 màn hình,
+                  position:"sticky" giữ icon+logo luôn hiển thị trong khung nhìn suốt quá trình
+                  cuộn, còn maxHeight+overflowY:"auto" đảm bảo nếu chính danh sách tab quá dài so
+                  với 1 màn hình (màn hình thấp/ngang) thì nó tự cuộn riêng — không tab nào bị ẩn. */}
+              <div style={{position:"sticky",top:0,height:"100vh",maxHeight:"100vh",overflowY:"auto",
+                display:"flex",flexDirection:"column",boxSizing:"border-box"}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"20px 10px 12px",flexShrink:0}}>
+                  {TABS_DISPLAY.map(([k])=>{
+                    const active = k==="hoanthanh" ? (tab==="bc"&&bcSubTab==="done")
+                      : k==="bc" ? (tab==="bc"&&bcSubTab!=="done")
+                      : tab===k;
+                    const allowed = allowedTabKeySet.has(k);
+                    const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
+                    const IconCmp = TAB_ICON_CMP[k];
+                    return(
+                      <button key={k} onClick={()=>goToTab(k)}
+                        title={allowed?label:`${label} — 🔒 Chưa được cấp quyền`}
+                        style={{border:"none",cursor:allowed?"pointer":"not-allowed",fontFamily:"inherit",
+                        width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
+                        padding:"6px 2px",background:"transparent",textAlign:"center",opacity:allowed?1:.45,flexShrink:0}}>
+                        <span className={active?"kl-tab-icon-active":""} style={{width:46,height:46,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",
+                          background:active?"rgba(56,189,248,0.16)":"rgba(255,255,255,0.05)",
+                          position:"relative",
+                          boxShadow:active?"0 0 0 2px rgba(56,189,248,0.55), 0 6px 16px rgba(22,140,255,0.4)":"none",
+                          transition:"background .15s,box-shadow .15s"}}>
+                          <span style={{display:"flex",filter:allowed?"none":"grayscale(.9) brightness(.7)"}}>
+                            {IconCmp?<IconCmp size={30}/>:<span style={{fontSize:19,color:"#a9c3ec"}}>•</span>}
+                          </span>
+                          {!allowed&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:11,background:"#0B326D",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>🔒</span>}
                         </span>
-                        {!allowed&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:11,background:"#0B326D",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>🔒</span>}
-                      </span>
-                      <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Chân trang sidebar — logo Kim Long Motor gắn cố định phía dưới cùng */}
-              <div style={{flex:1,minHeight:60,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",gap:6,padding:"18px 8px 20px",position:"relative",overflow:"hidden"}}>
-                <img src={XH_BUS_ICON_B64} alt="Kim Long Motor" style={{width:34,height:34,borderRadius:9,objectFit:"cover",flexShrink:0}}/>
-                <div style={{fontSize:9.5,fontWeight:800,color:"#ffffff",textAlign:"center",lineHeight:1.2}}>Kim Long Motor</div>
-                <div style={{fontSize:8,color:"#9db4dd",textAlign:"center",lineHeight:1.2}}>Vững bước tương lai</div>
+                        <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Chân trang sidebar — logo Kim Long Motor gắn cố định phía dưới cùng */}
+                <div style={{flex:1,minHeight:60,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",gap:6,padding:"18px 8px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+                  <img src={XH_BUS_ICON_B64} alt="Kim Long Motor" style={{width:34,height:34,borderRadius:9,objectFit:"cover",flexShrink:0}}/>
+                  <div style={{fontSize:9.5,fontWeight:800,color:"#ffffff",textAlign:"center",lineHeight:1.2}}>Kim Long Motor</div>
+                  <div style={{fontSize:8,color:"#9db4dd",textAlign:"center",lineHeight:1.2}}>Vững bước tương lai</div>
+                </div>
               </div>
             </div>
           );
