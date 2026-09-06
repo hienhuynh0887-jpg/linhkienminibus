@@ -133,7 +133,252 @@ function IconUserGear3D({size=30}){
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  🎨 ICON 3D / LUNG LINH — bộ icon riêng cho THANH SIDEBAR (9 tab chính), thay cho emoji
+//  phẳng cũ (🏠🔧✅📄📊🏁🗂️👥🖼️). Cùng phong cách gradient/glow như bộ icon phía trên
+//  (nền tròn/bo góc gradient + khối chi tiết nổi khối + vài chấm sáng lấp lánh).
+// ═══════════════════════════════════════════════════════════════
+function IconBox3D({size=30}){ // 📦 VẬT TƯ
+  const id="bx"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#134e4a"/><stop offset="100%" stopColor="#052e2b"/>
+        </radialGradient>
+        <linearGradient id={id+"top"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#6ee7b7"/><stop offset="100%" stopColor="#10b981"/>
+        </linearGradient>
+        <linearGradient id={id+"l"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#34d399"/><stop offset="100%" stopColor="#047857"/>
+        </linearGradient>
+        <linearGradient id={id+"r"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#059669"/><stop offset="100%" stopColor="#022c22"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M32 15 L50 24 L32 33 L14 24 Z" fill={`url(#${id}top)`}/>
+      <path d="M14 24 L32 33 L32 51 L14 42 Z" fill={`url(#${id}l)`}/>
+      <path d="M50 24 L32 33 L32 51 L50 42 Z" fill={`url(#${id}r)`}/>
+      <path d="M20 21 L38 30" stroke="#052e2b" strokeWidth="1.4" opacity=".5"/>
+      <circle cx="45" cy="16" r="1.6" fill="#a7f3d0"/>
+      <circle cx="16" cy="36" r="1.2" fill="#a7f3d0"/>
+    </svg>
+  );
+}
 
+function IconClipboardCheck3D({size=30}){ // 📋 SOẠN HÀNG / KIỂM TRA
+  const id="cb"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#1e3a8a"/><stop offset="100%" stopColor="#050b2e"/>
+        </radialGradient>
+        <linearGradient id={id+"board"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#dbeafe"/><stop offset="100%" stopColor="#93c5fd"/>
+        </linearGradient>
+        <linearGradient id={id+"clip"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fbbf24"/><stop offset="100%" stopColor="#d97706"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="16" y="14" width="32" height="40" rx="5" fill={`url(#${id}board)`} stroke="#1e40af" strokeWidth="1.2"/>
+      <rect x="24" y="10" width="16" height="9" rx="3" fill={`url(#${id}clip)`} stroke="#92400e" strokeWidth="1"/>
+      <line x1="21" y1="26" x2="35" y2="26" stroke="#1e3a8a" strokeWidth="2" opacity=".4" strokeLinecap="round"/>
+      <line x1="21" y1="32" x2="31" y2="32" stroke="#1e3a8a" strokeWidth="2" opacity=".4" strokeLinecap="round"/>
+      <path d="M22 42 L28 48 L43 33" fill="none" stroke="#059669" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="45" cy="17" r="1.5" fill="#bfdbfe"/>
+    </svg>
+  );
+}
+
+function IconShieldCheck3D({size=30}){ // ✅ KIỂM TRA XÁC NHẬN
+  const id="sc"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#064e3b"/><stop offset="100%" stopColor="#022c22"/>
+        </radialGradient>
+        <linearGradient id={id+"sh"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#6ee7b7"/><stop offset="55%" stopColor="#10b981"/><stop offset="100%" stopColor="#047857"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M32 11 L49 18 L49 32 C49 44 41 51 32 55 C23 51 15 44 15 32 L15 18 Z" fill={`url(#${id}sh)`} stroke="#022c22" strokeWidth="1.2"/>
+      <path d="M23 32 L29 39 L42 24" fill="none" stroke="#f0fdf4" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="46" cy="15" r="1.6" fill="#d1fae5"/>
+      <circle cx="18" cy="40" r="1.2" fill="#d1fae5"/>
+    </svg>
+  );
+}
+
+function IconReceipt3D({size=30}){ // 📄 PHIẾU GN
+  const id="rc"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#312e81"/><stop offset="100%" stopColor="#0b0a2e"/>
+        </radialGradient>
+        <linearGradient id={id+"pap"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fef9c3"/><stop offset="100%" stopColor="#fde68a"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M18 12 h28 v38 l-4 4 -4 -4 -4 4 -4 -4 -4 4 -4 -4 -4 4 Z" fill={`url(#${id}pap)`} stroke="#92400e" strokeWidth="1"/>
+      <line x1="23" y1="22" x2="41" y2="22" stroke="#92400e" strokeWidth="2" opacity=".55" strokeLinecap="round"/>
+      <line x1="23" y1="29" x2="41" y2="29" stroke="#92400e" strokeWidth="2" opacity=".55" strokeLinecap="round"/>
+      <line x1="23" y1="36" x2="34" y2="36" stroke="#92400e" strokeWidth="2" opacity=".55" strokeLinecap="round"/>
+      <circle cx="47" cy="16" r="1.6" fill="#fef3c7"/>
+    </svg>
+  );
+}
+
+function IconChartBar3D({size=30}){ // 📊 BÁO CÁO
+  const id="cbr"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#7c2d12"/><stop offset="100%" stopColor="#1c0a03"/>
+        </radialGradient>
+        <linearGradient id={id+"b1"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fca5a5"/><stop offset="100%" stopColor="#dc2626"/>
+        </linearGradient>
+        <linearGradient id={id+"b2"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#f59e0b"/>
+        </linearGradient>
+        <linearGradient id={id+"b3"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#6ee7b7"/><stop offset="100%" stopColor="#059669"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="14" y="34" width="9" height="18" rx="2" fill={`url(#${id}b1)`}/>
+      <rect x="27" y="22" width="9" height="30" rx="2" fill={`url(#${id}b2)`}/>
+      <rect x="40" y="12" width="9" height="40" rx="2" fill={`url(#${id}b3)`}/>
+      <path d="M14 18 L24 27 L33 19 L50 10" fill="none" stroke="#fef3c7" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" opacity=".9"/>
+      <circle cx="50" cy="10" r="2.2" fill="#fef3c7"/>
+    </svg>
+  );
+}
+
+function IconFlagFinish3D({size=30}){ // 🏁 CÁC DỰ ÁN ĐÃ HOÀN THÀNH
+  const id="fl"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#1e293b"/><stop offset="100%" stopColor="#020617"/>
+        </radialGradient>
+        <linearGradient id={id+"pole"} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#e2e8f0"/><stop offset="100%" stopColor="#94a3b8"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="20" y="10" width="4" height="42" rx="2" fill={`url(#${id}pole)`}/>
+      <path d="M24 13 h22 l-6 7 6 7 h-22 Z" fill="#f8fafc"/>
+      {[0,1,2,3].map(row=>[0,1,2,3].map(col=>(((row+col)%2===0)&&(
+        <rect key={row+"-"+col} x={24+col*5.5} y={13+row*3.5} width="5.5" height="3.5" fill="#0f172a"/>
+      ))))}
+      <circle cx="22" cy="54" r="3.2" fill="#94a3b8"/>
+      <circle cx="47" cy="16" r="1.6" fill="#fde68a"/>
+      <circle cx="43" cy="12" r="1.1" fill="#fde68a"/>
+    </svg>
+  );
+}
+
+function IconFolderGear3D({size=30}){ // 🗂️ TẠO BOM MẪU
+  const id="fg"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#581c87"/><stop offset="100%" stopColor="#160726"/>
+        </radialGradient>
+        <linearGradient id={id+"fd"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e9d5ff"/><stop offset="100%" stopColor="#a855f7"/>
+        </linearGradient>
+        <linearGradient id={id+"gr"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M12 22 h14 l4 5 h22 v23 a3 3 0 0 1 -3 3 h-34 a3 3 0 0 1 -3 -3 Z" fill={`url(#${id}fd)`} stroke="#6b21a8" strokeWidth="1.2"/>
+      <g transform="translate(41,40)">
+        <circle r="8.5" fill={`url(#${id}gr)`} stroke="#92400e" strokeWidth="1"/>
+        <circle r="3" fill="#fffbeb"/>
+        {[0,45,90,135,180,225,270,315].map(a=>(
+          <rect key={a} x="-1.3" y="-10.5" width="2.6" height="3.6" rx=".8" fill={`url(#${id}gr)`} transform={`rotate(${a})`}/>
+        ))}
+      </g>
+      <circle cx="18" cy="18" r="1.5" fill="#f3e8ff"/>
+    </svg>
+  );
+}
+
+function IconUsersLock3D({size=30}){ // 👥 PHÂN QUYỀN SỬ DỤNG
+  const id="ul"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#0c4a6e"/><stop offset="100%" stopColor="#03101c"/>
+        </radialGradient>
+        <linearGradient id={id+"face"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#fb923c"/>
+        </linearGradient>
+        <linearGradient id={id+"lock"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#7dd3fc"/><stop offset="100%" stopColor="#0284c7"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <circle cx="21" cy="24" r="6.4" fill={`url(#${id}face)`} opacity=".9"/>
+      <path d="M9 44 C9 34, 33 34, 33 44 L33 47 C33 47 9 47 9 44 Z" fill={`url(#${id}face)`} opacity=".9"/>
+      <circle cx="37" cy="24" r="6.4" fill={`url(#${id}face)`}/>
+      <path d="M25 44 C25 34, 49 34, 49 44 L49 47 C49 47 25 47 25 44 Z" fill={`url(#${id}face)`}/>
+      <g transform="translate(46,42)">
+        <rect x="-8" y="-2" width="16" height="13" rx="3" fill={`url(#${id}lock)`} stroke="#0c4a6e" strokeWidth="1"/>
+        <path d="M-4.5 -2 v-4 a4.5 4.5 0 0 1 9 0 v4" fill="none" stroke={`url(#${id}lock)`} strokeWidth="2.4"/>
+        <circle cx="0" cy="4.5" r="1.8" fill="#0c4a6e"/>
+      </g>
+      <circle cx="14" cy="14" r="1.3" fill="#e0f2fe"/>
+    </svg>
+  );
+}
+
+function IconImageCms3D({size=30}){ // 🖼️ QUẢN TRỊ CMS
+  const id="ic"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#831843"/><stop offset="100%" stopColor="#1a0510"/>
+        </radialGradient>
+        <linearGradient id={id+"fr"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fbcfe8"/><stop offset="100%" stopColor="#f472b6"/>
+        </linearGradient>
+        <linearGradient id={id+"mt"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#6ee7b7"/><stop offset="100%" stopColor="#059669"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="12" y="14" width="40" height="32" rx="4" fill={`url(#${id}fr)`} stroke="#831843" strokeWidth="1.2"/>
+      <rect x="16" y="18" width="32" height="24" rx="2" fill="#fdf2f8"/>
+      <circle cx="24" cy="26" r="4" fill="#fbbf24"/>
+      <path d="M16 40 L27 29 L34 36 L41 27 L48 40 Z" fill={`url(#${id}mt)`}/>
+      <circle cx="46" cy="18" r="1.6" fill="#fce7f3"/>
+    </svg>
+  );
+}
+
+// Nhận diện avatar là ẢNH THẬT (data URL đã upload / URL http) hay chỉ là 1 EMOJI mặc định
+// (🏭📦👤...) — dùng ở mọi nơi hiển thị avatar (header, bảng Phân quyền, CMS...) để quyết
+// định render <img> hay render text emoji.
+function isImgAvatar(a){
+  return typeof a==="string" && (a.startsWith("data:image")||a.startsWith("http"));
+}
 
 // ⚠️ Đã bỏ hẳn dữ liệu mẫu (seed) hard-code trong code (trước đây là 2 mảng BOM_XH/BOM_MB2
 // với hàng trăm dòng vật tư mẫu). Toàn bộ BOM mẫu giờ chỉ đọc từ Supabase (bảng "bom_mau" /
@@ -1787,7 +2032,7 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
                   </div>
                   <datalist id="tk-list">
                     {userList.map(u=>(
-                      <option key={u.id} value={u.id}>{`${u.avatar} ${u.ten} (${u.don_vi})`}</option>
+                      <option key={u.id} value={u.id}>{`${isImgAvatar(u.avatar)?"🧑":u.avatar} ${u.ten} (${u.don_vi})`}</option>
                     ))}
                   </datalist>
                 </div>
@@ -2218,7 +2463,7 @@ function DeleteDeptModal({modal,onClose,onConfirm}){
         <div style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,padding:"10px 12px",marginBottom:14,maxHeight:140,overflowY:"auto"}}>
           {affected.map(u=>(
             <div key={u.id} style={{fontSize:12,padding:"3px 0",display:"flex",gap:6,alignItems:"center"}}>
-              <span>{u.avatar}</span><span style={{fontWeight:700}}>{u.ten}</span><span style={{color:"#9ca3af",fontFamily:"monospace"}}>({u.id})</span>
+              <span>{isImgAvatar(u.avatar)?<img src={u.avatar} alt="" style={{width:16,height:16,borderRadius:"50%",objectFit:"cover",verticalAlign:"middle"}}/>:u.avatar}</span><span style={{fontWeight:700}}>{u.ten}</span><span style={{color:"#9ca3af",fontFamily:"monospace"}}>({u.id})</span>
             </div>
           ))}
         </div>
@@ -2859,7 +3104,11 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                 <tbody>
                   {grpList.map((u,i)=>(
                     <tr key={u.id} style={{borderBottom:"1px solid #f1f5f9",background:u.id===currentUser.id?"#eff6ff":i%2===0?"#fff":"#f9fafb"}}>
-                      <td style={{padding:"8px 12px",fontSize:20,width:40}}>{u.avatar}</td>
+                      <td style={{padding:"8px 12px",fontSize:20,width:40}}>
+                        {isImgAvatar(u.avatar)
+                          ? <img src={u.avatar} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",display:"block"}}/>
+                          : u.avatar}
+                      </td>
                       <td style={{padding:"8px 12px",fontWeight:700,color:grpMau,fontFamily:"monospace"}}>{u.id}</td>
                       <td style={{padding:"8px 12px",fontWeight:600}}>{u.ten}{u.id===currentUser.id&&<span style={{background:"#d1fae5",color:"#065f46",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>Đang dùng</span>}{isAdminAccount(u)&&<span style={{background:"#fef3c7",color:"#92400e",borderRadius:10,padding:"1px 8px",fontSize:10,marginLeft:6,fontWeight:700}}>🛡️ Admin</span>}</td>
                       <td style={{padding:"8px 12px",color:"#6b7280"}}>{u.don_vi}</td>
@@ -2918,7 +3167,8 @@ const CMS_LOAI = [
   {v:"noi_dung", l:"📝 Nội dung",     mo:"Khối văn bản (tiêu đề + mô tả) hiển thị trong app."},
   {v:"banner",   l:"🖼️ Banner",       mo:"Ảnh banner kèm tiêu đề, có thể gắn liên kết."},
   {v:"banner_header", l:"🏭 Banner đầu trang", mo:"Ảnh banner hiển thị ở đầu trang chọn dòng xe (đăng nhập) — thay cho ảnh mặc định. Chỉ cần bật \"Đang áp dụng\" và chọn ảnh, KHÔNG cần sửa code. Nếu có nhiều mục đang áp dụng, mục có \"Thứ tự hiển thị\" nhỏ nhất sẽ được dùng."},
-  {v:"avatar",   l:"👤 Ảnh đại diện", mo:"Ảnh đại diện dùng cho tài khoản/đơn vị."},
+  {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
+  {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
 
@@ -2935,7 +3185,75 @@ const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
-function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms}){
+function AccountAvatarManager({users, setUsers, dbUpsertUser}){
+  const [busyId, setBusyId] = useState("");
+  const [q, setQ] = useState("");
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"7px 14px"};
+
+  const list = (users||[]).filter(u=>{
+    const s=q.trim().toLowerCase();
+    if(!s) return true;
+    return u.ten.toLowerCase().includes(s) || u.id.toLowerCase().includes(s) || (u.don_vi||"").toLowerCase().includes(s);
+  });
+
+  const onPick = async(u, file)=>{
+    if(!file) return;
+    setBusyId(u.id);
+    try{
+      const b64 = await readImageAsBase64(file);
+      if(!b64){ setBusyId(""); return; }
+      const updated = {...u, avatar:b64};
+      const ok = await dbUpsertUser(updated);
+      if(ok) setUsers(list=>list.map(x=>x.id===u.id?updated:x));
+    }catch(err){
+      alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+    }
+    setBusyId("");
+  };
+
+  const onReset = async(u)=>{
+    if(!window.confirm(`Xoá ảnh đại diện của "${u.ten}", trả về biểu tượng mặc định?`)) return;
+    setBusyId(u.id);
+    const updated = {...u, avatar:"👤"};
+    const ok = await dbUpsertUser(updated);
+    if(ok) setUsers(list=>list.map(x=>x.id===u.id?updated:x));
+    setBusyId("");
+  };
+
+  return(
+    <div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:14,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:"10px 12px"}}>
+        📸 Tải 1 ảnh thật (chân dung) cho từng tài khoản bên dưới — ảnh sẽ thay thế icon mặc định, hiển thị ngay tại vòng tròn avatar ở góc phải thanh header khi tài khoản đó đăng nhập.
+      </div>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔎 Tìm theo tên / ID / đơn vị..."
+        style={{width:"100%",padding:"9px 12px",border:"1.5px solid #c7d2fe",borderRadius:8,fontSize:13,marginBottom:14,boxSizing:"border-box",outline:"none",fontFamily:"inherit"}}/>
+      <div style={{display:"grid",gap:8}}>
+        {list.length===0 && <div style={{textAlign:"center",color:"#9ca3af",fontSize:13,padding:24}}>Không tìm thấy tài khoản.</div>}
+        {list.map(u=>(
+          <div key={u.id} style={{display:"flex",alignItems:"center",gap:12,background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:10,padding:10,flexWrap:"wrap"}}>
+            <div style={{width:46,height:46,borderRadius:"50%",overflow:"hidden",flexShrink:0,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,border:"1.5px solid #e5e7eb"}}>
+              {isImgAvatar(u.avatar) ? <img src={u.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : (u.avatar||"👤")}
+            </div>
+            <div style={{flex:1,minWidth:120}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0b2545"}}>{u.ten}</div>
+              <div style={{fontSize:11,color:"#9ca3af",fontFamily:"monospace"}}>{u.id} · {u.don_vi}</div>
+            </div>
+            <label style={{...btn,background:"#eef2ff",color:"#1d4ed8",opacity:busyId===u.id?.6:1}}>
+              {busyId===u.id?"Đang tải...":"⬆️ Tải ảnh lên"}
+              <input type="file" accept="image/*" disabled={busyId===u.id} style={{display:"none"}}
+                onChange={e=>{const f=e.target.files?.[0];onPick(u,f);e.target.value="";}}/>
+            </label>
+            {isImgAvatar(u.avatar) && (
+              <button onClick={()=>onReset(u)} disabled={busyId===u.id} style={{...btn,background:"#fef2f2",color:"#dc2626",opacity:busyId===u.id?.6:1}}>Xoá ảnh</button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser}){
   const [subTab, setSubTab] = useState("noi_dung");
   const [form, setForm] = useState(CMS_E0);
   const [editing, setEditing] = useState(false);
@@ -3011,7 +3329,11 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms}){
         {CMS_LOAI.find(o=>o.v===subTab)?.mo}
       </div>
 
-      {/* Form thêm/sửa */}
+      {/* Form thêm/sửa — ẨN khi đang ở mục "📸 Ảnh đại diện Tài khoản" vì mục này dùng UI
+          riêng (danh sách tài khoản thật + nút tải ảnh từng dòng) thay vì form chung. */}
+      {subTab==="tai_khoan" ? (
+        <AccountAvatarManager users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
+      ) : (<>
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
         <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:12}}>
           {editing ? "✏️ Sửa mục" : "➕ Thêm mục mới"}
@@ -3105,6 +3427,7 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms}){
           </div>
         ))}
       </div>
+      </>)}
     </div>
   );
 }
@@ -7352,6 +7675,14 @@ Bạn có chắc chắn không?`;
           .kl-main-desktop{ padding:0 32px; }
           .kl-quickcards{ gap:20px !important; }
         }
+        /* 🎨 Icon 3D sidebar — hiệu ứng "lung linh": glow xanh nhấp nháy nhẹ quanh icon
+           đang được chọn, tạo cảm giác nổi khối/toả sáng thay vì icon phẳng tĩnh. */
+        @keyframes klTabIconGlow{
+          0%,100%{ box-shadow:0 0 0 2px rgba(56,189,248,.55), 0 6px 16px rgba(22,140,255,.4), 0 0 10px rgba(56,189,248,.25); }
+          50%{ box-shadow:0 0 0 2px rgba(125,211,252,.85), 0 8px 22px rgba(22,140,255,.6), 0 0 22px rgba(125,211,252,.6); }
+        }
+        .kl-tab-icon-active{ animation:klTabIconGlow 2.4s ease-in-out infinite; }
+        .kl-tab-icon-active svg{ filter:drop-shadow(0 2px 5px rgba(0,0,0,.35)); }
       `}</style>
 
       {/* HEADER — H≈88px (desktop), gradient navy→blue theo token Header (#06285F → #125BC0) */}
@@ -7373,14 +7704,9 @@ Bạn có chắc chắn không?`;
             </div>
           </div>
 
-          {/* Ô tìm kiếm — ≈376×43px, radius 24, nền rgba trắng .12 theo spec Header & Sidebar */}
-          <div style={{flex:1,display:"flex",justifyContent:"center",minWidth:0}}>
-            <div style={{width:"100%",maxWidth:376,height:43,boxSizing:"border-box",display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.16)",borderRadius:24,padding:"0 14px",color:"rgba(255,255,255,0.55)"}}>
-              <span style={{fontSize:14,flexShrink:0}}>🔍</span>
-              <span style={{fontSize:12.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,color:"rgba(255,255,255,0.6)"}}>Tìm kiếm vật tư, mã, tên...</span>
-              <span style={{fontSize:9.5,fontWeight:800,color:"rgba(255,255,255,0.55)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:5,padding:"1.5px 5px",flexShrink:0,letterSpacing:.2}}>Ctrl + K</span>
-            </div>
-          </div>
+          {/* Ô tìm kiếm đã được bỏ theo yêu cầu — giữ 1 div rỗng flex:1 để giữ bố cục 3 cột
+              (logo trái · khoảng trống giữa · cụm thông báo/tài khoản phải) không bị lệch. */}
+          <div style={{flex:1,minWidth:0}}/>
 
           {/* Cụm bên phải: thông báo / tài khoản (avatar≈42px) / thao tác nhanh */}
           <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
@@ -7405,7 +7731,9 @@ Bạn có chắc chắn không?`;
               return(
                 <div title={`${user.ten} · ${user.don_vi||""}`} style={{display:"flex",alignItems:"center",gap:9,flexShrink:0,cursor:"pointer"}}>
                   <div style={{width:42,height:42,borderRadius:"50%",background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,overflow:"hidden",border:"2px solid rgba(255,255,255,.7)"}}>
-                    {user.avatar||<IconUserGear3D size={20}/>}
+                    {isImgAvatar(user.avatar)
+                      ? <img src={user.avatar} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                      : (user.avatar||<IconUserGear3D size={20}/>)}
                   </div>
                   <div style={{minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:800,color:"#ffffff",whiteSpace:"nowrap",lineHeight:1.2}}>{_hh}:{_mm}</div>
@@ -7497,7 +7825,7 @@ Bạn có chắc chắn không?`;
         {/* SIDEBAR — W≈117px, gradient navy #062C67→#031D46 phủ TOÀN BỘ chiều cao theo spec
             "Header & Sidebar". Item active = ô vuông gradient #168CFF→#0872E8 kèm glow xanh. */}
         {(()=>{
-          const TAB_ICON = {ds:"🏠", soan:"🔧", duyet:"✅", pgn:"📄", bc:"📊", hoanthanh:"🏁", bom_mau:"🗂️", users:"👥", cms:"🖼️"};
+          const TAB_ICON_CMP = {ds:IconBox3D, soan:IconClipboardCheck3D, duyet:IconShieldCheck3D, pgn:IconReceipt3D, bc:IconChartBar3D, hoanthanh:IconFlagFinish3D, bom_mau:IconFolderGear3D, users:IconUsersLock3D, cms:IconImageCms3D};
           const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Kiểm tra xác nhận", bom_mau:"Tạo BOM mẫu", pgn:"Phiếu GN", bc:"Báo cáo", hoanthanh:"Dự án đã hoàn thành", users:"Phân quyền sử dụng", cms:"Quản trị CMS"};
           // ✅ Tab "🏁 Các Dự Án Đã Hoàn Thành" là 1 LỐI VÀO NHANH tới đúng nội dung "✅ Đã hoàn
           // thành" đã có sẵn bên trong tab "📈 Báo Cáo" (bcSubTab==="done") — không tạo lại UI,
@@ -7529,17 +7857,21 @@ Bạn có chắc chắn không?`;
                     : tab===k;
                   const allowed = allowedTabKeySet.has(k);
                   const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
+                  const IconCmp = TAB_ICON_CMP[k];
                   return(
                     <button key={k} onClick={()=>goToTab(k)}
                       title={allowed?label:`${label} — 🔒 Chưa được cấp quyền`}
                       style={{border:"none",cursor:allowed?"pointer":"not-allowed",fontFamily:"inherit",
                       width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
-                      padding:"6px 2px",background:"transparent",textAlign:"center",opacity:allowed?1:.4}}>
-                      <span style={{width:44,height:44,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",
-                        fontSize:19,background:active?"linear-gradient(135deg,#168CFF,#0872E8)":"rgba(255,255,255,0.06)",
-                        color:active?"#fff":"#a9c3ec",position:"relative",
-                        boxShadow:active?"0 4px 14px rgba(22,140,255,0.45)":"none",transition:"background .15s,color .15s"}}>
-                        {TAB_ICON[k]||"•"}
+                      padding:"6px 2px",background:"transparent",textAlign:"center",opacity:allowed?1:.45}}>
+                      <span className={active?"kl-tab-icon-active":""} style={{width:46,height:46,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",
+                        background:active?"rgba(56,189,248,0.16)":"rgba(255,255,255,0.05)",
+                        position:"relative",
+                        boxShadow:active?"0 0 0 2px rgba(56,189,248,0.55), 0 6px 16px rgba(22,140,255,0.4)":"none",
+                        transition:"background .15s,box-shadow .15s"}}>
+                        <span style={{display:"flex",filter:allowed?"none":"grayscale(.9) brightness(.7)"}}>
+                          {IconCmp?<IconCmp size={30}/>:<span style={{fontSize:19,color:"#a9c3ec"}}>•</span>}
+                        </span>
                         {!allowed&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:11,background:"#0B326D",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>🔒</span>}
                       </span>
                       <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
@@ -9391,7 +9723,7 @@ Bạn có chắc chắn không?`;
         )}
 
         {tab==="cms"&&isAdminAccount(user)&&(
-          <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms}/>
+          <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
         )}
 
       </div>
@@ -10050,7 +10382,7 @@ Bạn có chắc chắn không?`;
           onClick={e=>{if(e.target===e.currentTarget){setShowChangePw(false);setCpwForm({cur:"",next:"",confirm:""});setCpwErr("");setCpwOk("");}}}>
           <div style={{background:"#fff",borderRadius:14,padding:28,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
             <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>🔑 Đổi mật khẩu</div>
-            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Tài khoản: <b>{user.avatar} {user.ten}</b> ({user.id})</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Tài khoản: <b>{isImgAvatar(user.avatar)?"🧑":user.avatar} {user.ten}</b> ({user.id})</div>
             {[
               {label:"MẬT KHẨU HIỆN TẠI",key:"cur",placeholder:"NHẬP MK HIỆN TẠI"},
               {label:"MẬT KHẨU MỚI",key:"next",placeholder:"TỐI THIỂU 4 KÝ TỰ"},
