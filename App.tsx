@@ -2979,18 +2979,23 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       <AccordionCard icon="🎛️" title={<b>PHÂN QUYỀN CHỨC NĂNG THEO ĐƠN VỊ</b>} badge={`${allDonViGroups.length} đơn vị`} badgeColor="#0f766e"
         open={permOpen2} onToggle={()=>setPermOpen2(o=>!o)}>
         <div style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Tick chọn (các) nhiệm vụ mà mỗi đơn vị được phép thao tác/xem sau khi đăng nhập — độc lập với bảng "Phân quyền dòng xe" ở trên (bảng đó quyết định XEM DỮ LIỆU DÒNG XE NÀO, bảng này quyết định LÀM NHIỆM VỤ GÌ). Bỏ tick "🗂️ Tạo BOM Mẫu"/"✅ Kiểm Tra Xác Nhận" khỏi 1 kho chuyên trách chỉ Soạn Hàng, hoặc bỏ tick "📋 Soạn Hàng" khỏi 1 xưởng chuyên trách chỉ Kiểm Tra Xác Nhận, v.v. Mọi tab luôn HIỆN ĐỦ trên thanh công cụ của mọi tài khoản — tab nào KHÔNG được tick ở đây sẽ hiện MỜ và báo "Bạn chưa được quyền truy cập" khi bấm vào. Tài khoản <b>admin</b> và tài khoản đặc biệt <b>xh04</b> luôn giữ trọn bộ chức năng của mình.</div>
+        {/* ✅ FIX: bảng nhiều cột (mỗi dòng xe/nhiệm vụ 1 cột) tràn ngang trên màn hình nhỏ —
+            đã có overflowX:"auto" để vuốt ngang xem hết, và giờ GHIM CỐ ĐỊNH cột "Đơn vị"
+            (position:"sticky", left:0) để cuộn ngang bao xa vẫn luôn biết đang xem đơn vị nào,
+            kèm bóng đổ nhẹ bên phải để phân tách rõ với phần đang cuộn. */}
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
-              <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11}}>Đơn vị</th>
+              <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,color:"#6b7280",fontSize:11,position:"sticky",left:0,zIndex:2,background:"#f8fafc",boxShadow:"2px 0 4px -2px rgba(0,0,0,0.18)"}}>Đơn vị</th>
               {TAB_META.map(tb=><th key={tb.id} style={{padding:"8px 8px",textAlign:"center",fontWeight:700,color:"#6b7280",fontSize:10.5,whiteSpace:"nowrap"}}>{tb.label}</th>)}
             </tr></thead>
             <tbody>
               {allDonViGroups.map((dv,i)=>{
                 const dvTabs=getTabKeysForDonVi(tabQuyen,dv);
+                const rowBg=i%2===0?"#fff":"#f9fafb";
                 return(
-                <tr key={dv} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#f9fafb"}}>
-                  <td style={{padding:"8px 12px",fontWeight:600,whiteSpace:"nowrap"}}>{dv}</td>
+                <tr key={dv} style={{borderBottom:"1px solid #f1f5f9",background:rowBg}}>
+                  <td style={{padding:"8px 12px",fontWeight:600,whiteSpace:"nowrap",position:"sticky",left:0,zIndex:1,background:rowBg,boxShadow:"2px 0 4px -2px rgba(0,0,0,0.18)"}}>{dv}</td>
                   {TAB_META.map(tb=>{
                     const checked=dvTabs.includes(tb.id);
                     return (
@@ -3306,11 +3311,20 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
     const id = form.id || (subTab+"_"+Date.now());
     const row = {...form, id, loai:subTab, updated_at:new Date().toISOString()};
     const ok = await dbUpsertCms(row);
+    if(!ok){ setSaving(false); return; }
+    // ✅ Banner đầu trang: mỗi lúc chỉ nên tồn tại 1 banner để đỡ phình bảng cms_content
+    // (ảnh lưu base64 khá nặng) — mỗi khi ÁP DỤNG banner MỚI (không phải đang sửa banner cũ),
+    // tự động xoá hết các banner_header khác đang có trên Supabase lẫn trong danh sách hiển thị.
+    let oldIdsToRemove = [];
+    if(subTab==="banner_header" && !editing){
+      oldIdsToRemove = items.filter(x=>x.loai==="banner_header" && x.id!==id).map(x=>x.id);
+      for(const oldId of oldIdsToRemove){ await dbDeleteCms(oldId); }
+    }
     setSaving(false);
-    if(!ok) return;
     setItems(list=>{
       const exist = list.some(x=>x.id===id);
-      return exist ? list.map(x=>x.id===id?row:x) : [...list, row];
+      const merged = exist ? list.map(x=>x.id===id?row:x) : [...list, row];
+      return merged.filter(x=>!oldIdsToRemove.includes(x.id));
     });
     resetForm();
   };
@@ -3400,8 +3414,11 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
         </label>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onSave} disabled={saving}
-            style={{...btn,background:"#0b2545",color:"#fff",opacity:saving?0.6:1}}>
-            {saving ? "Đang lưu..." : (editing ? "💾 Lưu thay đổi" : "➕ Thêm mới")}
+            style={{...btn,
+              background: (subTab==="banner_header"&&!editing) ? "#8BC34A" : "#0b2545",
+              color: (subTab==="banner_header"&&!editing) ? "#1a2e05" : "#fff",
+              opacity:saving?0.6:1}}>
+            {saving ? "Đang lưu..." : (editing ? "💾 Lưu thay đổi" : (subTab==="banner_header" ? "✅ ÁP DỤNG" : "➕ Thêm mới"))}
           </button>
           {editing && (
             <button onClick={resetForm} style={{...btn,background:"#f1f5f9",color:"#374151"}}>Huỷ</button>
@@ -6770,49 +6787,31 @@ Bạn có chắc chắn không?`;
   const pctT=bom.length>0?Math.round(maDone/bom.length*100):0;
   const duAll=maDone===bom.length&&bom.length>0;
 
-  // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: chọn 1
-  // dự án đã hoàn thành (đã bấm nút HOẶC đã nhận đủ 100% vật tư) → tự chuyển hẳn sang
-  // "✅ Đã hoàn thành"; chọn dự án đang làm → tự chuyển về "🚧 Đang thực hiện".
-  // ⚠️ FIX LỖI "tự nhảy về Đang thực hiện sau vài giây": trước đây effect này phụ thuộc
-  // [pid, duAll] — cứ mỗi lần app tự làm mới dữ liệu theo định kỳ (poll ngầm mỗi 10-20s),
-  // "duAll" được tính lại (dù giá trị không đổi vẫn có thể coi là "chạy lại" do tham chiếu
-  // hàm/mảng nguồn thay đổi), khiến effect NGỠ RẰNG pid vừa đổi và ghi đè bcSubTab về đúng
-  // theo trạng_thái, XOÁ MẤT lựa chọn tay "Đã hoàn thành" của người dùng dù họ không hề đổi
-  // dự án. Nay CHỈ bỏ qua việc tự đồng bộ khi người dùng đã tự tay bấm 1 trong 2 nút trang
-  // con (hoặc tự bấm xem chi tiết từ danh sách "Đã hoàn thành") CHO ĐÚNG dự án đang xem —
-  // đánh dấu qua bcNav.markManual(pid) ngay tại nơi bấm nút (xem 2 nút "🚧/✅" và danh sách
-  // "Đã hoàn thành" bên dưới) — nhờ vậy lựa chọn tay được giữ nguyên cho tới khi người dùng
-  // THỰC SỰ chuyển sang xem 1 dự án khác (pid đổi).
-  // ⚠️ ĐÃ DI CHUYỂN xuống đây (từ phía trên component) để tránh lỗi "Cannot access 'duAll'
-  // before initialization" — effect này PHẢI nằm SAU dòng khai báo "const duAll=..." ở trên.
-  // ⚠️ FIX MỚI: dự án ĐÃ HOÀN THÀNH (trang_thai==="hoan_thanh" HOẶC duAll) giờ LUÔN LUÔN bị ép
-  // về "done", BỎ QUA cả cờ "manual" — vì y/c nghiệp vụ là dự án đã hoàn thành phải chuyển HẲN
-  // sang "Đã hoàn thành", không được phép hiển thị lại ở "Đang thực hiện" trong BẤT KỲ trường
-  // hợp nào (kể cả khi trước đó người dùng từng bấm nút "🚧 Đang thực hiện" thủ công cho ĐÚNG
-  // dự án này lúc nó CHƯA hoàn thành). Cờ "manual" giờ CHỈ còn tác dụng với dự án CHƯA hoàn
-  // thành (cho phép người dùng xem trước danh sách "Đã hoàn thành" trong lúc dự án vẫn đang
-  // làm dở, không ảnh hưởng gì tới nghiệp vụ).
+  // ✅ Tự đồng bộ trang con của tab "Báo cáo" theo ĐÚNG trạng thái dự án đang chọn: dự án ĐÃ
+  // HOÀN THÀNH — tức là đã bấm tay nút "✅ Hoàn thành" (trang_thai==="hoan_thanh") HOẶC đã
+  // nhận đủ 100% vật tư (duAll) — sẽ LUÔN được tự động chuyển hẳn sang "✅ Đã hoàn thành".
+  // Dự án chưa đạt 1 trong 2 điều kiện trên thì tự chuyển về "🚧 Đang thực hiện".
+  // ⚠️ Việc ép về "done" áp dụng CHO MỌI TRƯỜNG HỢP, kể cả khi người dùng trước đó đã tự bấm
+  // xem "🚧 Đang thực hiện" cho đúng dự án này (không xét cờ manual) — vì nghiệp vụ yêu cầu:
+  // hễ đủ điều kiện hoàn thành thì phải chuyển hẳn, không được phép "kẹt" ở Đang thực hiện.
+  // Cờ "manual" (bcNav) chỉ còn tác dụng cho dự án CHƯA đủ điều kiện hoàn thành (cho phép xem
+  // trước danh sách "Đã hoàn thành" trong lúc dự án vẫn đang làm dở).
   useEffect(()=>{
     if(!pid) return;
     const p=projs.find(x=>x.id===pid);
     if(!p) return;
-    // ✅ Dùng "duAll" (đã kiểm chứng đúng, chính là biến quyết định banner "Đã nhận đủ vật tư
-    // toàn bộ!" của dự án đang chọn) thay vì tính lại — đảm bảo tab tự nhảy khớp 100% với
-    // banner đang hiển thị.
     const daHoanThanh = p.trang_thai==="hoan_thanh"||duAll;
-    if(daHoanThanh){ setBcSubTab("done"); return; } // ép về "done", không xét cờ manual
+    if(daHoanThanh){ setBcSubTab("done"); return; }
     if(bcNav.isManual(pid)) return; // dự án CHƯA hoàn thành: vẫn tôn trọng lựa chọn tay của người dùng
     setBcSubTab("dang");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[pid,duAll,projs]);
 
   // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
-  // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC dự án
-  // đã nhận đủ 100% vật tư. Với dự án ĐANG ĐƯỢC CHỌN (p.id===pid), dùng THẲNG biến "duAll" ở
-  // trên (đã kiểm chứng đúng — chính là biến quyết định banner "Đã nhận đủ vật tư toàn bộ!")
-  // thay vì tính lại từ đầu, để badge đếm & vị trí danh mục LUÔN khớp 100% với banner đang
-  // hiển thị, không thể lệch nhau. Các dự án KHÁC (không phải đang chọn) vẫn dùng
-  // projFullyReceived(p) để tự tính riêng.
+  // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC đã nhận
+  // đủ 100% vật tư. Với dự án ĐANG ĐƯỢC CHỌN (p.id===pid) dùng thẳng biến "duAll" ở trên (đúng
+  // với banner "Đã nhận đủ vật tư toàn bộ!" đang hiển thị); các dự án khác tự tính qua
+  // projFullyReceived(p).
   const bcDoneList=useMemo(()=>[...projs].filter(p=>p.trang_thai==="hoan_thanh"||(p.id===pid?duAll:projFullyReceived(p))).sort((a,b)=>{
     const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
     const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
@@ -8975,9 +8974,10 @@ Bạn có chắc chắn không?`;
           const showingDoneList = bcSubTab==="done" && bcDoneViewPid!==pid;
           // ⚠️ CHỐT AN TOÀN: trường hợp bấm nút "🚧 Đang thực hiện" nhưng KHÔNG CÒN dự án nào
           // khác đang thực hiện (bcDangList rỗng) — dự án đang chọn (pid) vẫn là dự án ĐÃ hoàn
-          // thành. Lúc này bcSubTab="dang" nhưng KHÔNG được phép hiện chi tiết dự án đã xong ở
-          // đây (dù effect tự-đồng-bộ sẽ sớm ép lại "done" ở lần re-render kế, để chắc chắn
-          // không "loé" nhầm nội dung 1 khắc, chặn luôn tại đây bằng thông báo trống).
+          // thành (đã bấm nút HOẶC đã nhận đủ 100% vật tư). Lúc này bcSubTab="dang" nhưng KHÔNG
+          // được phép hiện chi tiết dự án đã xong ở đây (dù effect tự-đồng-bộ sẽ sớm ép lại
+          // "done" ở lần re-render kế, để chắc chắn không "loé" nhầm nội dung 1 khắc, chặn luôn
+          // tại đây bằng thông báo trống).
           const khongConDuAnDangLam = bcSubTab==="dang" && !!proj && (proj.trang_thai==="hoan_thanh"||duAll);
           return(
             <>
