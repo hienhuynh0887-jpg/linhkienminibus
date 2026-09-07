@@ -50,6 +50,47 @@ function IconGlobeCN({size=30}){
   );
 }
 
+// ✅ Bản "3D/neon" của icon Ngôn ngữ — cùng phong cách với IconKey3D/IconPenSign3D/
+// IconUserGear3D (nền tròn radial-gradient tối + khối gradient nổi bật + vài nét sáng trang
+// trí) thay vì nền phẳng như IconGlobeCN cũ, để đồng bộ với bộ icon 3D dùng cho thanh 4 mục.
+function IconGlobe3D({size=30}){
+  const id="g3"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#1e3a6b"/><stop offset="100%" stopColor="#0a0e1e"/>
+        </radialGradient>
+        <linearGradient id={id+"g"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#7dd3fc"/><stop offset="45%" stopColor="#2563eb"/><stop offset="100%" stopColor="#0f2a6b"/>
+        </linearGradient>
+        <radialGradient id={id+"hl"} cx="32%" cy="28%" r="55%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity=".9"/><stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <circle cx="30" cy="31" r="19" fill={`url(#${id}g)`}/>
+      <g stroke="#bfe6ff" strokeWidth="1.1" opacity=".8" fill="none">
+        <ellipse cx="30" cy="31" rx="19" ry="7"/>
+        <ellipse cx="30" cy="31" rx="19" ry="13"/>
+        <ellipse cx="30" cy="31" rx="7"  ry="19"/>
+        <ellipse cx="30" cy="31" rx="13" ry="19"/>
+        <line x1="11" y1="31" x2="49" y2="31"/>
+      </g>
+      <circle cx="30" cy="31" r="19" fill={`url(#${id}hl)`}/>
+      <g stroke="#93c5fd" strokeWidth="2" opacity=".6" strokeLinecap="round">
+        <line x1="2"  y1="18" x2="12" y2="18"/>
+        <line x1="0"  y1="24" x2="11" y2="24"/>
+      </g>
+      <g>
+        <rect x="37" y="35" width="25" height="20" rx="6" fill={`url(#${id}g)`} stroke="#0c2a63" strokeWidth="1"/>
+        <path d="M43 55 l0 6.5 l7.5 -6.5 Z" fill={`url(#${id}g)`}/>
+        <text x="49.5" y="49" textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff" fontFamily="sans-serif">中</text>
+      </g>
+    </svg>
+  );
+}
+
 function IconKey3D({size=30}){
   const id="kk"+Math.random().toString(36).slice(2,8);
   return(
@@ -668,7 +709,7 @@ const TABS_ALL = [
   ["duyet",     "✅ Kiểm Tra Xác Nhận"],
   ["pgn",       "📄 Phiếu GN"],
   ["bc",        "📈 Báo Cáo"],
-  ["hoanthanh", "🏁 Các Dự Án Đã Hoàn Thành"],
+  ["hoanthanh", "🏁 Dự Án Đã Hoàn Thành Vật Tư"],
   ["bom_mau",   "🗂️ Tạo BOM Mẫu"],
   ["users",     "👥 Phân Quyền Sử Dụng"],
 ];
@@ -697,7 +738,7 @@ const APP_I18N = {
   tab_duyet:     {vi:"✅ Kiểm Tra Xác Nhận",   zh:"✅ 核实确认"},
   tab_pgn:       {vi:"📄 Phiếu GN",            zh:"📄 收发单"},
   tab_bc:        {vi:"📈 Báo Cáo",             zh:"📈 报表"},
-  tab_hoanthanh: {vi:"🏁 Các Dự Án Đã Hoàn Thành", zh:"🏁 已完成项目"},
+  tab_hoanthanh: {vi:"🏁 Dự Án Đã Hoàn Thành Vật Tư", zh:"🏁 已完成物料项目"},
   tab_bom_mau:   {vi:"🗂️ Tạo BOM Mẫu",        zh:"🗂️ 创建BOM模板"},
   tab_users:     {vi:"👥 Phân Quyền Sử Dụng",  zh:"👥 权限分配"},
   tab_cms:       {vi:"🖼️ Quản Trị CMS",       zh:"🖼️ CMS管理"},
@@ -1793,6 +1834,13 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
   // "gate" (đăng nhập tài khoản) → "select" (chọn dòng xe) → "project" (chọn trạng thái dự án)
   const [step, setStep]   = useState(resume ? "project" : "gate");
   const [activeLine, setActiveLine] = useState(resume?.activeLine || null);
+  // ✅ Ngôn ngữ hiển thị nút bấm cạnh chuông "Thông báo" — dùng CHUNG khoá localStorage
+  // "appLang" với hệ thống chính (xem lang/setLangSaved trong component App chính) để khi
+  // đăng nhập vào hệ thống chính, ngôn ngữ vừa chọn ở màn Gate này được giữ nguyên liền mạch.
+  // Màn Gate hiện tại chưa có bộ từ điển zh riêng cho các nhãn của chính nó (CHÍNH XÁC, Đổi
+  // mật khẩu...) nên nút này chủ yếu để CHỌN TRƯỚC ngôn ngữ cho hệ thống chính sắp vào.
+  const [gateLang, setGateLang] = useState(()=>{try{return localStorage.getItem("appLang")||"vi";}catch{return "vi";}});
+  const toggleGateLang=()=>{const nl=gateLang==="vi"?"zh":"vi";setGateLang(nl);try{localStorage.setItem("appLang",nl);}catch{}};
   const [uid2, setUid2]   = useState("");
   const [pw, setPw]       = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -2114,6 +2162,15 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
         </div>
 
         <div style={{display:"flex",alignItems:"center",gap:18,flexWrap:"wrap"}}>
+          {/* ✅ Biểu tượng đổi ngôn ngữ (Việt/Trung) — đặt ngay cạnh chuông Thông báo */}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+            <button onClick={toggleGateLang} title={gateLang==="vi"?"Chuyển sang tiếng Trung":"切换为越南语"}
+              style={{border:"none",cursor:"pointer",background:"#0d1318",width:44,height:44,borderRadius:"50%",
+                display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 0 1px #232f3b"}}>
+              <IconGlobe3D size={26}/>
+            </button>
+            <span style={{fontSize:10,color:"#9ca3af",fontWeight:600}}>{gateLang==="vi"?"Việt · Trung":"越南语 · 中文"}</span>
+          </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
             {authedUser&&<GlobalCanhBaoBell donVi={authedUser.don_vi} ten={authedUser.ten} style={{width:44,height:44,fontSize:19}}/>}
             <span style={{fontSize:10,color:"#9ca3af",fontWeight:600}}>Thông báo</span>
@@ -7870,7 +7927,7 @@ Bạn có chắc chắn không?`;
             thiếu/cắt tab nào dù màn hình thấp hay danh sách tab dài tới đâu. */}
         {(()=>{
           const TAB_ICON_CMP = {ds:IconBox3D, soan:IconClipboardCheck3D, duyet:IconShieldCheck3D, pgn:IconReceipt3D, bc:IconChartBar3D, hoanthanh:IconFlagFinish3D, bom_mau:IconFolderGear3D, users:IconUsersLock3D, cms:IconImageCms3D};
-          const TAB_LABEL_XH = {ds:"Xưởng hàn", soan:"Kiểm tra", duyet:"Kiểm tra xác nhận", bom_mau:"Tạo BOM mẫu", pgn:"Phiếu GN", bc:"Báo cáo", hoanthanh:"Dự án đã hoàn thành", users:"Phân quyền sử dụng", cms:"Quản trị CMS"};
+          const TAB_LABEL_XH = {ds:"Vật tư", soan:"Soạn hàng", duyet:"Kiểm tra xác nhận", bom_mau:"Tạo BOM mẫu", pgn:"Phiếu GN", bc:"Báo cáo", hoanthanh:"Dự án đã hoàn thành vật tư", users:"Phân quyền sử dụng", cms:"Quản trị CMS"};
           // ✅ Tab "🏁 Các Dự Án Đã Hoàn Thành" là 1 LỐI VÀO NHANH tới đúng nội dung "✅ Đã hoàn
           // thành" đã có sẵn bên trong tab "📈 Báo Cáo" (bcSubTab==="done") — không tạo lại UI,
           // chỉ điều hướng state hiện có (tab="bc" + bcSubTab="done") để tái dùng 100% logic cũ.
@@ -7925,7 +7982,7 @@ Bạn có chắc chắn không?`;
                           </span>
                           {!allowed&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:11,background:"#0B326D",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>🔒</span>}
                         </span>
-                        <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal"}}>{label}</span>
+                        <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal",textTransform:"uppercase"}}>{label}</span>
                       </button>
                     );
                   })}
@@ -7961,7 +8018,7 @@ Bạn có chắc chắn không?`;
             <div style={{padding:"10px 0 12px"}}>
               <div className="kl-quickcards" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(132px,1fr))",gap:10}}>
                 {[
-                  {icon:<IconGlobeCN size={30}/>, title:lang==="vi"?"Ngôn ngữ":"语言", sub:lang==="vi"?"Việt · Trung":"越南语 · 中文", bg:"linear-gradient(135deg,#eff6ff,#dbeafe)", accent:"#2563eb", onClick:()=>setLangSaved(lang==="vi"?"zh":"vi")},
+                  {icon:<IconGlobe3D size={30}/>, title:lang==="vi"?"Ngôn ngữ":"语言", sub:lang==="vi"?"Việt · Trung":"越南语 · 中文", bg:"linear-gradient(135deg,#eff6ff,#dbeafe)", accent:"#2563eb", onClick:()=>setLangSaved(lang==="vi"?"zh":"vi")},
                   {icon:<IconKey3D size={30}/>, title:"Đổi mật khẩu", sub:"Bảo mật tài khoản", bg:"linear-gradient(135deg,#fff7ed,#ffedd5)", accent:"#ea580c", onClick:()=>setShowChangePw(true)},
                   {icon:<IconPenSign3D size={30}/>, title:user.chu_ky?"Sửa chữ ký":"Tạo chữ ký", sub:"Chữ ký điện tử", bg:"linear-gradient(135deg,#f5f3ff,#ede9fe)", accent:"#7c3aed", onClick:()=>setShowSignPad(true)},
                   {icon:<IconUserGear3D size={30}/>, title:"Tài khoản", sub:user.ten||"Đăng xuất", bg:"linear-gradient(135deg,#fdf2f8,#fce7f3)", accent:"#db2777", onClick:()=>{if(window.confirm("Đăng xuất?")){try{localStorage.removeItem("loggedInUser");localStorage.removeItem("screenMode");}catch{}setUser(null);setShowTongQuan(false);setShowKhoiTao(false);setShowDaThucHien(false);}}},
@@ -9062,7 +9119,7 @@ Bạn có chắc chắn không?`;
                   cho phép quay lại danh sách mà không cần đổi tab hay nút toggle. */}
               {bcSubTab==="done"&&(
                 <button onClick={()=>setBcDoneViewPid(null)}
-                  style={{border:"none",cursor:"pointer",fontFamily:"inherit",background:"#f0fdf4",color:"#15803d",fontWeight:800,fontSize:12.5,
+                  style={{border:"none",cursor:"pointer",fontFamily:"inherit",background:"#dc2626",color:"#fff",fontWeight:800,fontSize:12.5,
                     borderRadius:10,padding:"9px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:6,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
                   ← Quay lại danh sách Đã hoàn thành
                 </button>
