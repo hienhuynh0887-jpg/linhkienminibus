@@ -755,6 +755,17 @@ const IMPORT_FIELD_LABEL_KEYS = {
   px:  ["phanXuong"],
 };
 
+// ═══════════════════════════════════════════════════════════════
+//  🧩 GIAI ĐOẠN 2 — "Cột dự phòng" (spare fields) cho bảng vật tư (bom_items)
+//  Thay vì mỗi lần thêm cột mới phải sửa code + sửa Supabase (như 7 trường riêng
+//  của dòng xe 12m: ckgh, px, dai, rong, day_kt, tram, tnxh), ta cấp sẵn 5 "ô trống"
+//  dùng chung tên kỹ thuật o1..o5, lưu chung trong 1 cột jsonb "tuy_bien". Admin vào
+//  CMS đặt tên (nhãn)/kiểu/ẩn-hiện cho từng ô — theo TỪNG DÒNG XE — mà không cần đụng
+//  code hay chạy SQL. Hết 5 ô mới cần cân nhắc thêm ô hoặc nâng cấp lên field-builder
+//  đầy đủ (Giai đoạn 3).
+// ═══════════════════════════════════════════════════════════════
+const SPARE_FIELD_SLOTS = ["o1","o2","o3","o4","o5"];
+
 // ─── Từ điển đa ngôn ngữ TOÀN APP (dùng qua LangCtx) ────────────────
 const APP_I18N = {
   // Tabs
@@ -3483,6 +3494,7 @@ const CMS_LOAI = [
   {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
   {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
   {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
+  {v:"cot_tuy_bien", l:"🧩 Cột tùy biến", mo:"Thêm TỐI ĐA 5 cột mới vào bảng vật tư (BOM) mà KHÔNG cần sửa code hay chạy SQL — chỉ cần đặt tên, chọn kiểu (chữ/số) và bật hiển thị. Áp dụng riêng theo từng dòng xe. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo."},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
 
@@ -3706,7 +3718,119 @@ function LabelManager({labelOverrides, setLabelOverrides, dbUpsertLabel, dbDelet
   );
 }
 
-function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine}){
+// ═══════════════════════════════════════════════════════════════
+//  🧩 CustomFieldManager — GIAI ĐOẠN 2: admin tự thêm tối đa 5 cột mới vào bảng vật
+//  tư (o1..o5), RIÊNG theo từng dòng xe, không cần sửa code / chạy SQL. Mỗi ô gồm:
+//  tên hiển thị (vi/zh), kiểu dữ liệu (chữ/số), thứ tự hiển thị, và bật/tắt hiển thị.
+// ═══════════════════════════════════════════════════════════════
+function CustomFieldManager({customFieldDefs, setCustomFieldDefs, dbUpsertCustomField, activeLine}){
+  const [editLine, setEditLine] = useState(activeLine || "minibus");
+  const [busySlot, setBusySlot] = useState(null);
+  const [draft, setDraft] = useState({}); // {slot:{...}} — đang gõ dở, chưa lưu, riêng theo editLine
+
+  const inp={width:"100%",padding:"7px 9px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f8fafc"};
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"7px 14px"};
+
+  const onChangeEditLine = (id) => { setEditLine(id); setDraft({}); };
+  const defsOfLine = customFieldDefs[editLine] || {};
+
+  const DEFAULT_F = {nhan_vi:"",nhan_zh:"",kieu:"text",an_hien:false,thu_tu:0};
+  const getVal = (slot, field) => draft[slot]?.[field] ?? defsOfLine[slot]?.[field] ?? DEFAULT_F[field];
+  const setDraftVal = (slot, field, val) => setDraft(d=>({...d, [slot]:{...DEFAULT_F, ...defsOfLine[slot], ...d[slot], [field]:val}}));
+
+  const onSave = async(slot)=>{
+    const nhan_vi = getVal(slot,"nhan_vi");
+    if(getVal(slot,"an_hien") && !String(nhan_vi).trim()){
+      alert("⚠️ Phải đặt tên cột (Tiếng Việt) trước khi bật hiển thị."); return;
+    }
+    setBusySlot(slot);
+    const row = {
+      dong_xe:editLine, slot,
+      nhan_vi:String(nhan_vi||"").trim(), nhan_zh:String(getVal(slot,"nhan_zh")||"").trim(),
+      kieu:getVal(slot,"kieu")||"text", an_hien:!!getVal(slot,"an_hien"),
+      thu_tu:Number(getVal(slot,"thu_tu"))||0, updated_at:new Date().toISOString(),
+    };
+    const ok = await dbUpsertCustomField(row);
+    setBusySlot(null);
+    if(!ok) return;
+    setCustomFieldDefs(m=>({...m, [editLine]:{...(m[editLine]||{}), [slot]:row}}));
+    setDraft(d=>{const {[slot]:_, ...rest}=d; return rest;});
+  };
+
+  const Row = (slot, idx) => {
+    const isDirty = !!draft[slot];
+    const isOn = getVal(slot,"an_hien");
+    return (
+      <div key={slot} style={{background:"#fff",border:"1.5px solid "+(isOn?"#c4b5fd":"#e5e7eb"),borderRadius:10,padding:12,marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+          <span style={{fontSize:11,fontWeight:800,color:"#7c3aed",fontFamily:"monospace"}}>Ô {idx+1} ({slot})</span>
+          <label style={{display:"flex",alignItems:"center",gap:5,marginLeft:"auto",cursor:"pointer",fontSize:12,fontWeight:700,color:isOn?"#16a34a":"#9ca3af"}}>
+            <input type="checkbox" checked={isOn} onChange={e=>setDraftVal(slot,"an_hien",e.target.checked)}/>
+            {isOn?"Đang hiển thị":"Đang ẩn"}
+          </label>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+          <div>
+            <label style={{display:"block",fontSize:10,color:"#9ca3af",marginBottom:2}}>Tên cột (Tiếng Việt)</label>
+            <input style={inp} value={getVal(slot,"nhan_vi")} onChange={e=>setDraftVal(slot,"nhan_vi",e.target.value)} placeholder="VD: Trọng lượng (kg)"/>
+          </div>
+          <div>
+            <label style={{display:"block",fontSize:10,color:"#9ca3af",marginBottom:2}}>Tên cột (Tiếng Trung)</label>
+            <input style={inp} value={getVal(slot,"nhan_zh")} onChange={e=>setDraftVal(slot,"nhan_zh",e.target.value)}/>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div>
+            <label style={{display:"block",fontSize:10,color:"#9ca3af",marginBottom:2}}>Kiểu dữ liệu</label>
+            <select style={inp} value={getVal(slot,"kieu")} onChange={e=>setDraftVal(slot,"kieu",e.target.value)}>
+              <option value="text">Chữ (text)</option>
+              <option value="number">Số (number)</option>
+            </select>
+          </div>
+          <div>
+            <label style={{display:"block",fontSize:10,color:"#9ca3af",marginBottom:2}}>Thứ tự hiển thị</label>
+            <input type="number" style={inp} value={getVal(slot,"thu_tu")} onChange={e=>setDraftVal(slot,"thu_tu",e.target.value)}/>
+          </div>
+        </div>
+        <div style={{marginTop:10,textAlign:"right"}}>
+          <button onClick={()=>onSave(slot)} disabled={busySlot===slot||!isDirty}
+            style={{...btn,background:isDirty?"#7c3aed":"#e5e7eb",color:isDirty?"#fff":"#9ca3af",opacity:busySlot===slot?.6:1}}>
+            {busySlot===slot?"Đang lưu...":"💾 Lưu"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:14}}>
+        Thêm tối đa <b>5 cột mới</b> vào bảng vật tư (BOM) — <b>riêng cho từng dòng xe</b> — mà KHÔNG cần sửa code hay chạy SQL. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo ngay khi bạn bật "Đang hiển thị" và đặt tên.
+      </div>
+
+      <div style={{marginBottom:14}}>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>Cấu hình cột tùy biến cho dòng xe:</label>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {KL_LINES.map(l=>(
+            <div key={l.id} onClick={()=>onChangeEditLine(l.id)}
+              style={{padding:"7px 14px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:6,
+                background:editLine===l.id?nhanDongXe(l.id).mau:"#f1f5f9", color:editLine===l.id?"#fff":"#374151",
+                border:editLine===l.id?`2px solid ${nhanDongXe(l.id).mau}`:"2px solid transparent"}}>
+              <span>{nhanDongXe(l.id).icon}</span>{l.title}
+            </div>
+          ))}
+        </div>
+        {Object.keys(draft).length>0 && (
+          <div style={{fontSize:11,color:"#d97706",marginTop:6}}>⚠️ Đang có {Object.keys(draft).length} ô gõ dở chưa lưu — đổi dòng xe sẽ mất phần gõ dở này.</div>
+        )}
+      </div>
+
+      {SPARE_FIELD_SLOTS.map((slot,idx)=>Row(slot,idx))}
+    </div>
+  );
+}
+
+function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine, customFieldDefs, setCustomFieldDefs, dbUpsertCustomField}){
   const [subTab, setSubTab] = useState("noi_dung");
   const [form, setForm] = useState(CMS_E0);
   const [editing, setEditing] = useState(false);
@@ -3792,12 +3916,14 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
       </div>
 
       {/* Form thêm/sửa — ẨN khi đang ở mục "📸 Ảnh đại diện Tài khoản" (dùng UI riêng: danh
-          sách tài khoản thật + nút tải ảnh từng dòng) hoặc "🏷️ Nhãn / Tên cột" (dùng UI
-          riêng: danh sách key + ô nhập vi/zh) thay vì form chung dùng cho nội dung/banner. */}
+          sách tài khoản thật + nút tải ảnh từng dòng), "🏷️ Nhãn / Tên cột" hoặc "🧩 Cột
+          tùy biến" (mỗi mục dùng UI riêng) thay vì form chung dùng cho nội dung/banner. */}
       {subTab==="tai_khoan" ? (
         <AccountAvatarManager users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
       ) : subTab==="nhan" ? (
         <LabelManager labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
+      ) : subTab==="cot_tuy_bien" ? (
+        <CustomFieldManager customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField} activeLine={activeLine}/>
       ) : (<>
 
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
@@ -3904,7 +4030,12 @@ const E0={stt:0,ma:"",ten:"",dv:"Cái",dm:1,ng:"",vt:"",jig:"",gc:"",anh:"",
   // ✅ 7 trường MỚI — chỉ áp dụng/hiển thị khi activeLine==="12m" (xem Modal thêm/sửa
   // và bảng danh sách vật tư bên dưới). Với các dòng xe khác các trường này luôn rỗng
   // và không được gửi lên Supabase (xem dbUpsertBomRows).
-  ckgh:"dung_chung", px:"", dai:"", rong:"", day_kt:"", tram:"", tnxh:""};
+  ckgh:"dung_chung", px:"", dai:"", rong:"", day_kt:"", tram:"", tnxh:"",
+  // 🧩 GIAI ĐOẠN 2 — 5 ô "cột dự phòng" dùng CHUNG cho MỌI dòng xe, nội dung/nhãn/kiểu/
+  // ẩn-hiện do admin cấu hình riêng theo dòng xe trong CMS (xem SPARE_FIELD_SLOTS,
+  // customFieldDefs). Luôn gửi lên Supabase (không phân biệt dòng xe) vì cột "tuy_bien"
+  // tồn tại trên MỌI bảng bom_items* — xem SQL cạnh SPARE_FIELD_SLOTS.
+  tuy_bien:{}};
 
 // ── Thứ tự chuẩn Nguồn gốc: SUB MINI 1 → SUB MINI 2 → UB → MB → FT ──
 const DM_ORDER=["SUB MINI 1","SUB MINI 2","UB","MB","FT"];
@@ -4646,6 +4777,19 @@ export default function App(){
     ].filter(Boolean));
     return [...new Set([...dynamic, ...hardcodedAliases])];
   };
+  // 🧩 GIAI ĐOẠN 2 — cấu hình 5 "cột dự phòng" (o1..o5), RIÊNG theo từng dòng xe.
+  // Cấu trúc: {dong_xe: {slot: {nhan_vi,nhan_zh,kieu,an_hien,thu_tu}}}
+  const [customFieldDefs, setCustomFieldDefs] = useState({});
+  // Trả về danh sách slot ĐANG BẬT cho dòng xe hiện tại, đã sắp theo thứ tự hiển thị,
+  // kèm nhãn đúng ngôn ngữ đang chọn — dùng cho Modal Thêm/Sửa, bảng danh sách, Export.
+  const getEnabledCustomFields = (dongXe = activeLine) => {
+    const defs = customFieldDefs[dongXe] || {};
+    return SPARE_FIELD_SLOTS
+      .map(slot => ({slot, ...(defs[slot]||{})}))
+      .filter(f => f.an_hien && (f.nhan_vi||"").trim())
+      .sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0))
+      .map(f => ({slot:f.slot, kieu:f.kieu||"text", label:(lang==="zh"&&f.nhan_zh)?f.nhan_zh:f.nhan_vi}));
+  };
 
   // ═══ Kích hoạt bộ dịch toàn cục theo `lang` ═══
   // Đảm bảo TOÀN BỘ chữ trên MỌI tab/màn hình/modal/thông báo (kể cả những
@@ -4970,7 +5114,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14,r15]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -4991,6 +5135,8 @@ export default function App(){
           supabase.from("cms_content").select("*").order("thu_tu").range(0, 9999),
           // 🏷️ GIAI ĐOẠN 1 — nhãn do admin đổi qua CMS (xem IMPORT_FIELD_LABEL_KEYS ở trên)
           supabase.from("app_labels").select("*").range(0, 9999),
+          // 🧩 GIAI ĐOẠN 2 — cấu hình 5 "cột dự phòng" theo từng dòng xe
+          supabase.from("bom_custom_fields").select("*").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -5105,6 +5251,18 @@ export default function App(){
             m[dx][row.key]={vi:row.vi,zh:row.zh};
           });
           setLabelOverrides(m);
+        }
+        // 🧩 GIAI ĐOẠN 2 — nếu bảng "bom_custom_fields" chưa tạo, im lặng bỏ qua (không
+        // có ô tùy biến nào hiện ra, không ảnh hưởng gì đến phần còn lại của app).
+        if(r15.error){
+          console.warn("Chưa đọc được bảng bom_custom_fields (có thể chưa tạo bảng):",r15.error.message);
+        } else {
+          const cf={};
+          (r15.data||[]).forEach(row=>{
+            if(!cf[row.dong_xe]) cf[row.dong_xe]={};
+            cf[row.dong_xe][row.slot]={nhan_vi:row.nhan_vi,nhan_zh:row.nhan_zh,kieu:row.kieu,an_hien:row.an_hien,thu_tu:row.thu_tu};
+          });
+          setCustomFieldDefs(cf);
         }
       }catch(e){
         console.error("Supabase load error:",e);
@@ -5299,6 +5457,9 @@ export default function App(){
       vt:r.vt?String(r.vt).trim().slice(0,200):null,
       gc:r.gc?String(r.gc).trim().slice(0,1000):null,
       anh:r.anh||null,
+      // 🧩 GIAI ĐOẠN 2 — 5 ô "cột dự phòng" (o1..o5), gửi CHUNG cho MỌI dòng xe (khác với
+      // 7 cột riêng 12m bên dưới) vì cột "tuy_bien" đã được thêm trên MỌI bảng bom_items*.
+      tuy_bien:(r.tuy_bien && typeof r.tuy_bien==="object") ? r.tuy_bien : {},
       // ✅ CHỈ gửi 7 cột mới khi đang ở dòng xe 12m (activeLine==="12m") — bảng
       // bom_items của minibus/citybus KHÔNG có các cột này nên phải loại trừ, nếu
       // không Supabase/PostgREST sẽ báo lỗi "column ... does not exist".
@@ -5710,6 +5871,23 @@ export default function App(){
       return true;
     }catch(e){
       console.error("dbDeleteLabel:",e);
+      return false;
+    }
+  };
+  // 🧩 GIAI ĐOẠN 2 — Lưu cấu hình 1 "ô tùy biến" (slot o1..o5) cho 1 dòng xe cụ thể vào
+  // bảng "bom_custom_fields". Khóa duy nhất trên Supabase là (dong_xe, slot).
+  const dbUpsertCustomField=async(row)=>{
+    try{
+      const {error}=await supabase.from("bom_custom_fields").upsert(row,{onConflict:"dong_xe,slot"});
+      if(error){
+        console.error("dbUpsertCustomField:",error);
+        alert("⚠️ Lưu cột tùy biến thất bại: "+error.message+"\n(Có thể bảng bom_custom_fields chưa được tạo trên Supabase — xem SQL ở comment cạnh SPARE_FIELD_SLOTS trong code.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbUpsertCustomField:",e);
+      alert("⚠️ Lưu cột tùy biến thất bại: "+(e.message||"lỗi không xác định"));
       return false;
     }
   };
@@ -6343,6 +6521,10 @@ export default function App(){
               day_kt:String(r0["Dày"]||r0["DÀY"]||r0["Day"]||r0["day_kt"]||"").trim(),
               tram:String(r0["Trạm/Xí"]||r0["Trạm Xí"]||r0["[STT Trạm XH]"]||r0["STT Trạm XH"]||r0["Trạm XH"]||r0["tram"]||"").trim(),
               tnxh:String(r0["Trách nhiệm XH"]||r0["TRÁCH NHIỆM XH"]||r0["Trach nhiem XH"]||r0["tnxh"]||"").trim(),
+              // 🧩 GIAI ĐOẠN 2 — cột tùy biến: khớp theo ĐÚNG nhãn admin đang đặt trong CMS
+              // cho dòng xe hiện tại (vd cột Excel tên "Trọng lượng" → khớp slot o1 nếu
+              // admin đã đặt nhãn "Trọng lượng" cho o1). Không khớp gì thì để trống.
+              tuy_bien:Object.fromEntries(getEnabledCustomFields().map(f=>[f.slot, r0[f.label]||""])),
             };
           }).filter(r=>r.ma&&r.ten);
           if(!mapped.length){onResult([],"Không tìm thấy cột Mã số / Tên vật tư!");return;}
@@ -6423,6 +6605,9 @@ export default function App(){
               day_kt:g("Dày","DÀY","Day","day_kt"),
               tram:g("Trạm/Xí","Trạm Xí","[STT Trạm XH]","STT Trạm XH","Trạm XH","tram"),
               tnxh:g("Trách nhiệm XH","TRÁCH NHIỆM XH","Trach nhiem XH","tnxh"),
+              // 🧩 GIAI ĐOẠN 2 — cột tùy biến: khớp theo ĐÚNG nhãn admin đang đặt trong CMS
+              // cho dòng xe hiện tại. Không khớp gì thì để trống.
+              tuy_bien:Object.fromEntries(getEnabledCustomFields().map(f=>[f.slot, g(f.label)])),
             };
           }).filter(r=>r.ma&&r.ten);
           if(!mapped.length){onResult([],`Không tìm thấy dữ liệu! Sheet đọc: "${bestSheetName}". Kiểm tra cột Mã số / Tên vật tư.`);return;}
@@ -8649,12 +8834,15 @@ Bạn có chắc chắn không?`;
                         "Phân xưởng":v.px||"","Dài(mm)":v.dai||"","Rộng(mm)":v.rong||"","Dày(mm)":v.day_kt||"",
                         "Trạm/Xí":v.tram||"","Trách nhiệm XH":v.tnxh||"",
                       } : {}),
+                      // 🧩 GIAI ĐOẠN 2 — cột tùy biến đang bật cho dòng xe hiện tại
+                      ...Object.fromEntries(getEnabledCustomFields().map(f=>[f.label, v.tuy_bien?.[f.slot]||""])),
                     })),
                     `VatTu_${proj.ten.replace(/\s/g,"_")}`,
                     `Danh sách vật tư — ${proj.ten}`
                   )}
                   onPDF={()=>{
                     const is12m=activeLine==="12m";
+                    const cfList=getEnabledCustomFields();
                     const rows=filtered.map((v,i)=>`<tr>
                       <td>${v.stt}</td><td><b>${v.ma}</b></td><td class="l">${v.ten}</td>
                       <td style="text-align:center">${v.dv}</td>
@@ -8662,10 +8850,11 @@ Bạn có chắc chắn không?`;
                       <td style="text-align:center;font-weight:700;color:#065f46">${fmt(v.dm*soXe)}</td>
                       <td>${v.ng}</td><td class="l">${v.vt||""}</td><td>${v.jig||""}</td><td>${v.gc||""}</td>
                       ${is12m?`<td>${v.ckgh==="rieng"?"RIÊNG GH29Y":"DÙNG CHUNG"}</td><td>${v.px||""}</td><td>${v.dai||""}×${v.rong||""}×${v.day_kt||""}</td><td>${v.tram||""}</td><td>${v.tnxh||""}</td>`:""}
+                      ${cfList.map(f=>`<td>${v.tuy_bien?.[f.slot]||""}</td>`).join("")}
                     </tr>`).join("");
                     xuatPDF(`<h2>${t("rpDs")}</h2>
                       <p class="sub">${proj.icon} ${proj.ten} · ${filtered.length}/${bom.length} mã · ${soXe} xe</p>
-                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thDM")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thNguonGoc")}</th><th>${t("lbVT")}</th><th>JIG</th><th>${t("thGhiChu")}</th>${is12m?`<th>Check GH29Y</th><th>Phân xưởng</th><th>DxRxD(mm)</th><th>Trạm/Xí</th><th>Trách nhiệm XH</th>`:""}</tr></thead><tbody>${rows}</tbody></table>`,
+                      <table><thead><tr><th>${t("thSTT")}</th><th>${t("thMa")}</th><th>${t("thTen")}</th><th>${t("thDVT")}</th><th>${t("thDM")}</th><th>${t("thCan")}×${soXe}</th><th>${t("thNguonGoc")}</th><th>${t("lbVT")}</th><th>JIG</th><th>${t("thGhiChu")}</th>${is12m?`<th>Check GH29Y</th><th>Phân xưởng</th><th>DxRxD(mm)</th><th>Trạm/Xí</th><th>Trách nhiệm XH</th>`:""}${cfList.map(f=>`<th>${f.label}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>`,
                       `VatTu_${proj.ten}`);
                   }}
                 />
@@ -8713,10 +8902,13 @@ Bạn có chắc chắn không?`;
                 </div>
               ):(()=>{
                 const is12m=activeLine==="12m";
-                const vtCols=`44px 100px minmax(200px,1fr) 100px 90px 70px 60px 70px 90px 110px 60px${is12m?" 110px 80px 120px 80px 90px":""}${!isKHTH?" 80px":""}`;
-                const vtMinWidth=994+(is12m?480:0)+(!isKHTH?90:0);
+                const cfList=getEnabledCustomFields();
+                const cfColsPx=cfList.map(()=>" 90px").join("");
+                const vtCols=`44px 100px minmax(200px,1fr) 100px 90px 70px 60px 70px 90px 110px 60px${is12m?" 110px 80px 120px 80px 90px":""}${cfColsPx}${!isKHTH?" 80px":""}`;
+                const vtMinWidth=994+(is12m?480:0)+cfList.length*90+(!isKHTH?90:0);
                 const vtHeaders=[t("thSTT"),t("thMa"),t("thTen"),t("thNguonGoc"),t("lbVT"),"JIG",t("thDVT"),t("thDM"),t("thCanNhan"),t("thGhiChu"),"Ảnh",
                   ...(is12m?["Check GH29Y","Phân xưởng","DxRxD(mm)","Trạm/Xí","TN XH"]:[]),
+                  ...cfList.map(f=>f.label),
                   ...(!isKHTH?["Thao tác"]:[])];
                 return(
                 <div style={{overflowX:"auto"}}>
@@ -8752,6 +8944,9 @@ Bạn có chắc chắn không?`;
                           <div style={{padding:"8px 8px",textAlign:"center"}}>{v.tnxh||"—"}</div>
                         </>
                       )}
+                      {cfList.map(f=>(
+                        <div key={f.slot} style={{padding:"8px 8px",textAlign:"center",wordBreak:"break-word"}}>{v.tuy_bien?.[f.slot]||"—"}</div>
+                      ))}
                       {!isKHTH&&(
                         <div style={{padding:"6px 6px",display:"flex",gap:4,justifyContent:"center"}}>
                           <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"4px 7px",fontSize:11}}>✏️</button>
@@ -10315,7 +10510,8 @@ Bạn có chắc chắn không?`;
 
         {tab==="cms"&&isAdminAccount(user)&&(
           <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}
-            labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
+            labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}
+            customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField}/>
         )}
 
       </div>
@@ -10402,6 +10598,29 @@ Bạn có chắc chắn không?`;
                         <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Trách nhiệm XH</label>
                         <input value={cur.tnxh||""} onChange={e=>setCur(c=>({...c,tnxh:e.target.value}))} style={inp} placeholder="HẢI, ĐOÀN, PHIÊN..."/>
                       </div>
+                    </>
+                  )}
+
+                  {/* ═══════════════════════════════════════════════════════════
+                      🧩 GIAI ĐOẠN 2 — CÁC Ô TÙY BIẾN (o1..o5) — hiện ra tự động nếu
+                      admin đã BẬT + đặt tên cho ô nào trong CMS (🧩 Cột tùy biến),
+                      RIÊNG theo dòng xe đang chọn. Không cần sửa code khi thêm cột mới,
+                      chỉ cần bật + đặt tên trong CMS (tối đa 5 ô).
+                      ═══════════════════════════════════════════════════════════ */}
+                  {getEnabledCustomFields().length>0 && (
+                    <>
+                      <div style={{gridColumn:"1/3",borderTop:"1px dashed #d1d5db",paddingTop:10,marginTop:2,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:14}}>🧩</span>
+                        <span style={{fontSize:11,fontWeight:800,color:"#7c3aed",letterSpacing:.3}}>THÔNG TIN TÙY BIẾN</span>
+                      </div>
+                      {getEnabledCustomFields().map(f=>(
+                        <div key={f.slot}>
+                          <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>{f.label}</label>
+                          <input type={f.kieu==="number"?"number":"text"} value={cur.tuy_bien?.[f.slot]||""}
+                            onChange={e=>setCur(c=>({...c,tuy_bien:{...(c.tuy_bien||{}),[f.slot]:f.kieu==="number"?Number(e.target.value):e.target.value}}))}
+                            style={inp}/>
+                        </div>
+                      ))}
                     </>
                   )}
 
