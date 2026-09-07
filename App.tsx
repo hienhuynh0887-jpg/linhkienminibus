@@ -730,6 +730,31 @@ const TABS_KHTH_KEYS     = TABS_KHTH.map(([k])=>k);
 // có dòng riêng trong bảng "quyen_chuc_nang" trên Supabase.
 const TAB_KEYS_BY_ROLE = {thck:TABS_THCK_KEYS, xuonghan:TABS_XUONGHAN_KEYS, kho:TABS_KHO_KEYS, khth:TABS_KHTH_KEYS};
 
+// ═══════════════════════════════════════════════════════════════
+//  🏷️ GIAI ĐOẠN 1 — Đổi nhãn qua CMS (bảng "app_labels" trên Supabase)
+//  Admin sửa chữ hiển thị của bất kỳ key nào trong APP_I18N mà KHÔNG cần
+//  sửa code. Xem SQL tạo bảng ở comment cạnh khai báo state cmsItems.
+//
+//  IMPORT_FIELD_LABEL_KEYS: ánh xạ "field kỹ thuật" (cột trong bom_items,
+//  vd 'dm') → các key nhãn trong APP_I18N liên quan (vd 'lbDM1XE'). Dùng
+//  bởi hàm Import Excel/CSV để tự nhận diện tên cột theo ĐÚNG nhãn admin
+//  đang hiển thị hiện tại (kể cả sau khi đã đổi qua CMS), KHÔNG cần sửa
+//  code mỗi lần đổi nhãn. Field nào chưa có trong danh sách này (jig,
+//  ckgh, px, dai, rong, day_kt, tram, tnxh...) vẫn dùng danh sách tên cột
+//  viết cứng như cũ — muốn linh hoạt luôn thì thêm key nhãn cho nó vào
+//  APP_I18N rồi khai báo thêm 1 dòng ở đây.
+// ═══════════════════════════════════════════════════════════════
+const IMPORT_FIELD_LABEL_KEYS = {
+  ma:  ["lbMa","lbMaReq"],
+  ten: ["lbTen","lbTenReq"],
+  dv:  ["lbDV"],
+  dm:  ["lbDM1XE"],
+  vt:  ["lbVT"],
+  gc:  ["thGhiChu"],
+  ng:  ["thNguonGoc"],
+  px:  ["phanXuong"],
+};
+
 // ─── Từ điển đa ngôn ngữ TOÀN APP (dùng qua LangCtx) ────────────────
 const APP_I18N = {
   // Tabs
@@ -3457,6 +3482,7 @@ const CMS_LOAI = [
   {v:"banner_header", l:"🏭 Banner đầu trang", mo:"Ảnh banner hiển thị ở đầu trang chọn dòng xe (đăng nhập) — thay cho ảnh mặc định. Chỉ cần bật \"Đang áp dụng\" và chọn ảnh, KHÔNG cần sửa code. Nếu có nhiều mục đang áp dụng, mục có \"Thứ tự hiển thị\" nhỏ nhất sẽ được dùng."},
   {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
   {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
+  {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
 
@@ -3541,7 +3567,146 @@ function AccountAvatarManager({users, setUsers, dbUpsertUser}){
   );
 }
 
-function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser}){
+// ═══════════════════════════════════════════════════════════════
+//  🏷️ LabelManager — GIAI ĐOẠN 1: admin đổi nhãn hiển thị (vi/zh) của bất kỳ key
+//  nào trong APP_I18N, lưu vào bảng "app_labels", KHÔNG cần sửa code. Nhãn được lưu
+//  RIÊNG theo từng dòng xe (minibus/12m/citybus...) — đổi nhãn ở dòng xe nào chỉ ảnh
+//  hưởng dòng xe đó, không lan sang các dòng khác. Ưu tiên hiện sẵn danh sách các nhãn
+//  liên quan trực tiếp đến CỘT BOM (IMPORT_FIELD_LABEL_KEYS) lên đầu vì đây là nhu cầu
+//  hay gặp nhất; các nhãn khác gộp theo nhóm, tìm bằng ô tìm kiếm.
+// ═══════════════════════════════════════════════════════════════
+function LabelManager({labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine}){
+  // Dòng xe đang SỬA nhãn trong màn CMS này — mặc định = dòng xe admin đang xem ở app,
+  // nhưng admin có thể đổi sang dòng khác ngay tại đây để sửa nhãn cho dòng đó mà
+  // KHÔNG cần thoát ra màn chính để chuyển dòng xe.
+  const [editLine, setEditLine] = useState(activeLine || "minibus");
+  const [q, setQ] = useState("");
+  const [busyKey, setBusyKey] = useState(null);
+  const [draft, setDraft] = useState({}); // {key:{vi,zh}} — đang gõ dở, chưa lưu, riêng theo editLine
+
+  const inp={width:"100%",padding:"7px 9px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f8fafc"};
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"7px 14px"};
+
+  // Đổi dòng xe đang sửa → xóa nháp cũ (tránh lưu nhầm nháp của dòng xe A sang dòng xe B)
+  const onChangeEditLine = (id) => { setEditLine(id); setDraft({}); };
+
+  const overridesOfLine = labelOverrides[editLine] || {};
+
+  // Danh sách "cột BOM" ưu tiên hiện lên đầu — lấy trực tiếp từ IMPORT_FIELD_LABEL_KEYS
+  // để LUÔN đồng bộ với danh sách field mà hàm Import Excel đang nhận diện theo nhãn.
+  const priorityKeys = [...new Set(Object.values(IMPORT_FIELD_LABEL_KEYS).flat())];
+  const allKeys = Object.keys(APP_I18N);
+  const otherKeys = allKeys.filter(k=>!priorityKeys.includes(k));
+
+  const norm = s => (s||"").toLowerCase();
+  const matchQ = k => {
+    if(!q.trim()) return true;
+    const cur = overridesOfLine[k]?.vi || APP_I18N[k]?.vi || "";
+    return norm(k).includes(norm(q)) || norm(cur).includes(norm(q));
+  };
+
+  const getVal = (k, field) => draft[k]?.[field] ?? overridesOfLine[k]?.[field] ?? APP_I18N[k]?.[field] ?? "";
+  const setDraftVal = (k, field, val) => setDraft(d=>({...d, [k]:{vi:getVal(k,"vi"),zh:getVal(k,"zh"), ...d[k], [field]:val}}));
+
+  const onSave = async(k)=>{
+    const vi = getVal(k,"vi"), zh = getVal(k,"zh");
+    if(!vi.trim()){ alert("⚠️ Nhãn tiếng Việt không được để trống."); return; }
+    setBusyKey(k);
+    const ok = await dbUpsertLabel({key:k, dong_xe:editLine, vi, zh, updated_at:new Date().toISOString()});
+    setBusyKey(null);
+    if(!ok) return;
+    setLabelOverrides(m=>({...m, [editLine]:{...(m[editLine]||{}), [k]:{vi,zh}}}));
+    setDraft(d=>{const {[k]:_, ...rest}=d; return rest;});
+  };
+
+  const onReset = async(k)=>{
+    if(!confirm(`Khôi phục nhãn gốc cho "${k}" (dòng xe ${nhanDongXe(editLine).text})? (Xóa nhãn tùy chỉnh đã lưu trên CMS cho riêng dòng xe này)`)) return;
+    setBusyKey(k);
+    const ok = await dbDeleteLabel(k, editLine);
+    setBusyKey(null);
+    if(!ok) return;
+    setLabelOverrides(m=>{
+      const cur={...(m[editLine]||{})};
+      delete cur[k];
+      return {...m, [editLine]:cur};
+    });
+    setDraft(d=>{const {[k]:_, ...rest}=d; return rest;});
+  };
+
+  const Row = (k) => {
+    const isOverridden = !!overridesOfLine[k];
+    const isDirty = !!draft[k];
+    return (
+      <div key={k} style={{display:"flex",alignItems:"flex-end",gap:8,background:"#fff",border:"1.5px solid "+(isOverridden?"#93c5fd":"#e5e7eb"),borderRadius:10,padding:10,flexWrap:"wrap",marginBottom:8}}>
+        <div style={{minWidth:130,flexShrink:0}}>
+          <div style={{fontSize:10,color:"#9ca3af",fontFamily:"monospace"}}>{k}</div>
+          <div style={{fontSize:11,color:"#6b7280"}}>{isOverridden?"🏷️ Đã tùy chỉnh":"Mặc định gốc"}</div>
+        </div>
+        <div style={{flex:1,minWidth:140}}>
+          <label style={{display:"block",fontSize:10,color:"#9ca3af",marginBottom:2}}>Tiếng Việt</label>
+          <input style={inp} value={getVal(k,"vi")} onChange={e=>setDraftVal(k,"vi",e.target.value)}/>
+        </div>
+        <div style={{flex:1,minWidth:140}}>
+          <label style={{display:"block",fontSize:10,color:"#9ca3af",marginBottom:2}}>Tiếng Trung</label>
+          <input style={inp} value={getVal(k,"zh")} onChange={e=>setDraftVal(k,"zh",e.target.value)}/>
+        </div>
+        <button onClick={()=>onSave(k)} disabled={busyKey===k||!isDirty}
+          style={{...btn,background:isDirty?"#1d4ed8":"#e5e7eb",color:isDirty?"#fff":"#9ca3af",opacity:busyKey===k?.6:1}}>
+          {busyKey===k?"Đang lưu...":"💾 Lưu"}
+        </button>
+        {isOverridden && (
+          <button onClick={()=>onReset(k)} disabled={busyKey===k} style={{...btn,background:"#fef2f2",color:"#dc2626",opacity:busyKey===k?.6:1}}>
+            ↺ Khôi phục gốc
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:14}}>
+        Đổi chữ hiển thị của bất kỳ nhãn nào trong app — <b>riêng cho từng dòng xe</b>, áp dụng ngay lập tức cho mọi màn hình, bảng, form và <b>tự động được Import Excel nhận diện theo tên cột mới</b> (với các nhãn liên quan đến cột BOM bên dưới).
+      </div>
+
+      {/* Chọn dòng xe đang sửa nhãn */}
+      <div style={{marginBottom:14}}>
+        <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:6}}>Sửa nhãn cho dòng xe:</label>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {KL_LINES.map(l=>(
+            <div key={l.id} onClick={()=>onChangeEditLine(l.id)}
+              style={{padding:"7px 14px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:6,
+                background:editLine===l.id?nhanDongXe(l.id).mau:"#f1f5f9", color:editLine===l.id?"#fff":"#374151",
+                border:editLine===l.id?`2px solid ${nhanDongXe(l.id).mau}`:"2px solid transparent"}}>
+              <span>{nhanDongXe(l.id).icon}</span>{l.title}
+            </div>
+          ))}
+        </div>
+        {Object.keys(draft).length>0 && (
+          <div style={{fontSize:11,color:"#d97706",marginTop:6}}>⚠️ Đang có {Object.keys(draft).length} nhãn gõ dở chưa lưu — đổi dòng xe sẽ mất phần gõ dở này.</div>
+        )}
+      </div>
+
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔎 Tìm theo tên nhãn hoặc chữ hiển thị..."
+        style={{width:"100%",padding:"9px 12px",border:"1.5px solid #c7d2fe",borderRadius:8,fontSize:13,marginBottom:16,boxSizing:"border-box",outline:"none",fontFamily:"inherit"}}/>
+
+      <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:8}}>🎯 Nhãn cột BOM — dòng xe {nhanDongXe(editLine).text} (ưu tiên — Import Excel tự nhận diện theo đây)</div>
+      <div style={{marginBottom:20}}>
+        {priorityKeys.filter(matchQ).map(Row)}
+        {priorityKeys.filter(matchQ).length===0 && <div style={{color:"#9ca3af",fontSize:12,padding:8}}>Không có kết quả.</div>}
+      </div>
+
+      <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:8}}>📋 Các nhãn khác trong app — dòng xe {nhanDongXe(editLine).text}</div>
+      <div>
+        {q.trim()
+          ? otherKeys.filter(matchQ).map(Row)
+          : <div style={{color:"#9ca3af",fontSize:12,padding:8}}>Gõ từ khóa vào ô tìm kiếm ở trên để tìm và sửa các nhãn khác (danh sách đầy đủ khá dài, ẩn bớt cho gọn).</div>}
+      </div>
+    </div>
+  );
+}
+
+function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine}){
   const [subTab, setSubTab] = useState("noi_dung");
   const [form, setForm] = useState(CMS_E0);
   const [editing, setEditing] = useState(false);
@@ -3626,11 +3791,15 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
         {CMS_LOAI.find(o=>o.v===subTab)?.mo}
       </div>
 
-      {/* Form thêm/sửa — ẨN khi đang ở mục "📸 Ảnh đại diện Tài khoản" vì mục này dùng UI
-          riêng (danh sách tài khoản thật + nút tải ảnh từng dòng) thay vì form chung. */}
+      {/* Form thêm/sửa — ẨN khi đang ở mục "📸 Ảnh đại diện Tài khoản" (dùng UI riêng: danh
+          sách tài khoản thật + nút tải ảnh từng dòng) hoặc "🏷️ Nhãn / Tên cột" (dùng UI
+          riêng: danh sách key + ô nhập vi/zh) thay vì form chung dùng cho nội dung/banner. */}
       {subTab==="tai_khoan" ? (
         <AccountAvatarManager users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
+      ) : subTab==="nhan" ? (
+        <LabelManager labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
       ) : (<>
+
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
         <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:12}}>
           {editing ? "✏️ Sửa mục" : "➕ Thêm mục mới"}
@@ -4459,7 +4628,24 @@ export default function App(){
   // ── State ──
   const [lang, setLang] = useState(()=>localStorage.getItem("appLang")||"vi");
   const setLangSaved = l=>{setLang(l);localStorage.setItem("appLang",l);};
-  const t = k => (APP_I18N[k]&&APP_I18N[k][lang]) || APP_I18N[k]?.vi || k;
+  // 🏷️ Nhãn do admin đổi qua CMS (bảng "app_labels") — {key:{vi,zh}}. Rỗng nếu admin
+  // chưa đổi gì hoặc bảng chưa tạo → t() tự rơi về APP_I18N mặc định, không ảnh hưởng gì.
+  // Cấu trúc: {dong_xe: {key: {vi,zh}}} — MỖI DÒNG XE có bộ nhãn RIÊNG (vd nhãn "ĐM/1XE"
+  // có thể đổi thành "ĐỊNH MỨC" chỉ ở dòng xe 12m, còn Mini Bus/City Bus giữ nguyên).
+  const [labelOverrides, setLabelOverrides] = useState({});
+  const t = k => (labelOverrides[activeLine]?.[k]?.[lang]) || (APP_I18N[k]&&APP_I18N[k][lang]) || APP_I18N[k]?.vi || k;
+  // 📥 Dùng cho Import Excel/CSV: trả về TOÀN BỘ tên cột khả dĩ cho 1 field kỹ thuật —
+  // gồm nhãn admin ĐANG hiển thị (đã đổi qua CMS CHO DÒNG XE ĐANG XEM, cả vi lẫn zh),
+  // nhãn GỐC mặc định (để file Excel cũ theo mẫu cũ vẫn luôn import được), cộng thêm
+  // danh sách viết cứng truyền vào (các biến thể tên cột hay gặp, viết hoa/thường...).
+  const getImportAliases = (fieldKey, hardcodedAliases=[]) => {
+    const labelKeys = IMPORT_FIELD_LABEL_KEYS[fieldKey] || [];
+    const dynamic = labelKeys.flatMap(k => [
+      labelOverrides[activeLine]?.[k]?.vi, labelOverrides[activeLine]?.[k]?.zh,
+      APP_I18N[k]?.vi, APP_I18N[k]?.zh,
+    ].filter(Boolean));
+    return [...new Set([...dynamic, ...hardcodedAliases])];
+  };
 
   // ═══ Kích hoạt bộ dịch toàn cục theo `lang` ═══
   // Đảm bảo TOÀN BỘ chữ trên MỌI tab/màn hình/modal/thông báo (kể cả những
@@ -4784,7 +4970,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -4803,6 +4989,8 @@ export default function App(){
           supabase.from("quyen_chuc_nang").select("*").range(0, 9999),
           supabase.from(T("canh_bao_khan")).select("*").order("ts",{ascending:false}).range(0, 999),
           supabase.from("cms_content").select("*").order("thu_tu").range(0, 9999),
+          // 🏷️ GIAI ĐOẠN 1 — nhãn do admin đổi qua CMS (xem IMPORT_FIELD_LABEL_KEYS ở trên)
+          supabase.from("app_labels").select("*").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -4901,6 +5089,22 @@ export default function App(){
           console.warn("Chưa đọc được bảng cms_content (có thể chưa tạo bảng):",r13.error.message);
         } else {
           setCmsItems(r13.data||[]);
+        }
+        // 🏷️ GIAI ĐOẠN 1 — nếu bảng "app_labels" chưa tạo, im lặng bỏ qua (t() tự rơi về
+        // nhãn mặc định trong APP_I18N, không ảnh hưởng gì đến phần còn lại của app).
+        if(r14.error){
+          console.warn("Chưa đọc được bảng app_labels (có thể chưa tạo bảng):",r14.error.message);
+        } else {
+          // Cấu trúc lồng: {dong_xe: {key: {vi,zh}}} — mỗi dòng xe có bộ nhãn riêng.
+          // Dòng nào chưa có cột dong_xe (dữ liệu cũ trước khi tách theo dòng xe) mặc định
+          // coi là "minibus" để không mất dữ liệu đã đổi trước đó.
+          const m={};
+          (r14.data||[]).forEach(row=>{
+            const dx=row.dong_xe||"minibus";
+            if(!m[dx]) m[dx]={};
+            m[dx][row.key]={vi:row.vi,zh:row.zh};
+          });
+          setLabelOverrides(m);
         }
       }catch(e){
         console.error("Supabase load error:",e);
@@ -5474,6 +5678,38 @@ export default function App(){
       return true;
     }catch(e){
       console.error("dbDeleteCms:",e);
+      return false;
+    }
+  };
+  // 🏷️ GIAI ĐOẠN 1 — Lưu/xóa 1 nhãn tùy chỉnh trong bảng "app_labels", RIÊNG theo dòng
+  // xe (cột dong_xe). key phải trùng đúng key trong APP_I18N (vd 'lbDM1XE') để t() và
+  // getImportAliases() nhận diện được. Khóa duy nhất trên Supabase là (key, dong_xe).
+  const dbUpsertLabel=async(row)=>{
+    try{
+      const {error}=await supabase.from("app_labels").upsert(row,{onConflict:"key,dong_xe"});
+      if(error){
+        console.error("dbUpsertLabel:",error);
+        alert("⚠️ Lưu nhãn thất bại: "+error.message+"\n(Có thể bảng app_labels chưa được tạo/chưa có cột dong_xe trên Supabase — xem SQL ở comment cạnh IMPORT_FIELD_LABEL_KEYS trong code.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbUpsertLabel:",e);
+      alert("⚠️ Lưu nhãn thất bại: "+(e.message||"lỗi không xác định"));
+      return false;
+    }
+  };
+  const dbDeleteLabel=async(key,dongXe)=>{
+    try{
+      const {error}=await supabase.from("app_labels").delete().eq("key",key).eq("dong_xe",dongXe);
+      if(error){
+        console.error("dbDeleteLabel:",error);
+        alert("⚠️ Khôi phục nhãn gốc thất bại: "+error.message);
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbDeleteLabel:",e);
       return false;
     }
   };
@@ -6073,30 +6309,40 @@ export default function App(){
           const lines=text.split(/\r?\n/).filter(l=>l.trim());
           if(lines.length<2){onResult([],"File CSV trống!");return;}
           const headers=lines[0].split(",").map(h=>h.replace(/"/g,"").trim());
+          // 🏷️ helper: lấy giá trị đầu tiên khớp trong r0{} (dữ liệu 1 dòng) theo danh sách
+          // alias (đã gồm cả nhãn admin đang hiển thị trên CMS + nhãn gốc + tên viết cứng
+          // dự phòng). Nhận r0 làm tham số để dùng đúng dữ liệu của TỪNG dòng trong .map().
+          const pick=(r0,fieldKey,hardcoded)=>{
+            for(const k of getImportAliases(fieldKey,hardcoded)){
+              const v=String(r0[k]||"").trim();
+              if(v) return v;
+            }
+            return "";
+          };
           const mapped=lines.slice(1).map((line,i)=>{
             const cols=line.split(",").map(c=>c.replace(/"/g,"").trim());
-            const r={};
-            headers.forEach((h,j)=>{r[h]=cols[j]||"";});
+            const r0={};
+            headers.forEach((h,j)=>{r0[h]=cols[j]||"";});
             return{
-              stt:r["STT"]||r["stt"]||i+1,
-              ma:String(r["Mã số"]||r["ma"]||r["MA"]||r["id"]||"").trim(),
-              ten:String(r["Tên Vật Tư"]||r["Tên vật tư"]||r["ten"]||r["TEN"]||r["name"]||"").trim(),
-              dv:String(r["Đơn vị"]||r["ĐVT"]||r["dv"]||"Cái").trim(),
-              dm:Number(r["Định Mức"]||r["ĐM/1XE"]||r["ĐM"]||r["dm"]||1),
-              ng:String(r["Nguồn gốc"]||r["dmuc"]||r["Trạm"]||"").trim(),
-              vt:String(r["Vị trí"]||r["vt"]||r["Trạm"]||"").trim(),
-              jig:String(r["JIG"]||r["Jig"]||r["jig"]||"").trim(),
-              gc:String(r["Ghi chú"]||r["gc"]||"").trim(),
+              stt:r0["STT"]||r0["stt"]||i+1,
+              ma:pick(r0,"ma",["Mã số","ma","MA","id"]),
+              ten:pick(r0,"ten",["Tên Vật Tư","Tên vật tư","ten","TEN","name"]),
+              dv:pick(r0,"dv",["Đơn vị","ĐVT","dv"])||"Cái",
+              dm:Number(pick(r0,"dm",["Định Mức","ĐM/1XE","ĐM","dm"])||1),
+              ng:pick(r0,"ng",["Nguồn gốc","dmuc","Trạm"]),
+              vt:pick(r0,"vt",["Vị trí","vt","Trạm"]),
+              jig:String(r0["JIG"]||r0["Jig"]||r0["jig"]||"").trim(),
+              gc:pick(r0,"gc",["Ghi chú","gc"]),
               // ✅ 7 cột MỚI — chỉ có ý nghĩa khi import vào dòng xe 12m (nếu file không
               // có các cột này thì để rỗng, không ảnh hưởng các dòng xe khác)
-              ckgh:(()=>{const s=String(r["Check GH29Y"]||r["CHECK GH29Y"]||r["ckgh"]||"").trim().toLowerCase();
+              ckgh:(()=>{const s=String(r0["Check GH29Y"]||r0["CHECK GH29Y"]||r0["ckgh"]||"").trim().toLowerCase();
                 return (s.includes("riêng")||s.includes("rieng"))?"rieng":"dung_chung";})(),
-              px:String(r["Phân xưởng"]||r["PHÂN XƯỞNG"]||r["Phan xuong"]||r["px"]||"").trim(),
-              dai:String(r["Dài"]||r["DÀI"]||r["Dai"]||r["dai"]||"").trim(),
-              rong:String(r["Rộng"]||r["RỘNG"]||r["Rong"]||r["rong"]||"").trim(),
-              day_kt:String(r["Dày"]||r["DÀY"]||r["Day"]||r["day_kt"]||"").trim(),
-              tram:String(r["Trạm/Xí"]||r["Trạm Xí"]||r["[STT Trạm XH]"]||r["STT Trạm XH"]||r["Trạm XH"]||r["tram"]||"").trim(),
-              tnxh:String(r["Trách nhiệm XH"]||r["TRÁCH NHIỆM XH"]||r["Trach nhiem XH"]||r["tnxh"]||"").trim(),
+              px:pick(r0,"px",["Phân xưởng","PHÂN XƯỞNG","Phan xuong","px"]),
+              dai:String(r0["Dài"]||r0["DÀI"]||r0["Dai"]||r0["dai"]||"").trim(),
+              rong:String(r0["Rộng"]||r0["RỘNG"]||r0["Rong"]||r0["rong"]||"").trim(),
+              day_kt:String(r0["Dày"]||r0["DÀY"]||r0["Day"]||r0["day_kt"]||"").trim(),
+              tram:String(r0["Trạm/Xí"]||r0["Trạm Xí"]||r0["[STT Trạm XH]"]||r0["STT Trạm XH"]||r0["Trạm XH"]||r0["tram"]||"").trim(),
+              tnxh:String(r0["Trách nhiệm XH"]||r0["TRÁCH NHIỆM XH"]||r0["Trach nhiem XH"]||r0["tnxh"]||"").trim(),
             };
           }).filter(r=>r.ma&&r.ten);
           if(!mapped.length){onResult([],"Không tìm thấy cột Mã số / Tên vật tư!");return;}
@@ -6150,23 +6396,28 @@ export default function App(){
             const r={};
             headers.forEach((h,j)=>{r[h]=row[j]??""});
             const g=(...ks)=>{for(const k of ks){const v=String(r[k]||"").trim();if(v)return v;}return "";};
+            // 🏷️ gg(fieldKey, ...hardcoded): như g(), nhưng ưu tiên thử TRƯỚC các tên cột
+            // theo nhãn admin đang hiển thị trên CMS (kể cả sau khi đã đổi qua CMS), rồi
+            // mới đến danh sách viết cứng dự phòng — nhờ vậy import không "gãy" dù nhãn
+            // BOM có đổi tên hay thêm cột mới sau này.
+            const gg=(fieldKey,...hardcoded)=>g(...getImportAliases(fieldKey,hardcoded));
             // Hỗ trợ cả tên cột tiếng Anh (PART NO, PART NAME) và tiếng Việt
-            const ma=g("Mã số","Mã Số","MÃ VẬT TƯ","PART NO","MÃ SỐ","ma","MA","id");
-            const ten=g("Tên Vật Tư","TÊN VẬT TƯ TIẾNG VIỆT","PART NAME VIETNAM","Tên vật tư","TEN VẬT TƯ","ten","TEN","name");
+            const ma=gg("ma","Mã số","Mã Số","MÃ VẬT TƯ","PART NO","MÃ SỐ","ma","MA","id");
+            const ten=gg("ten","Tên Vật Tư","TÊN VẬT TƯ TIẾNG VIỆT","PART NAME VIETNAM","Tên vật tư","TEN VẬT TƯ","ten","TEN","name");
             return{
               stt:Number(r["STT"]||r["stt"]||r["NO."])||i+1,
               ma,ten,
-              dv:g("Đơn vị","ĐVT","dv")||"Cái",
-              dm:Number(r["Định Mức"]||r["ĐM/1XE"]||r["ĐỊNH MỨC/ XE"]||r["ĐM"]||r["dm"]||r["ĐỊNH MỨC/ XE"]||1)||1,
-              ng:g("Nguồn gốc","Danh Mục","TRẠM","Trạm","dmuc"),
-              vt:g("Vị Trí","Vị trí","TRẠM","Trạm","vt"),
+              dv:gg("dv","Đơn vị","ĐVT","dv")||"Cái",
+              dm:Number(gg("dm","Định Mức","ĐM/1XE","ĐỊNH MỨC/ XE","ĐM","dm")||1)||1,
+              ng:gg("ng","Nguồn gốc","Danh Mục","TRẠM","Trạm","dmuc"),
+              vt:gg("vt","Vị Trí","Vị trí","TRẠM","Trạm","vt"),
               jig:g("JIG","Jig","jig"),
-              gc:g("Ghi chú","Ghi Chú","GHI CHÚ","gc"),
+              gc:gg("gc","Ghi chú","Ghi Chú","GHI CHÚ","gc"),
               // ✅ 7 cột MỚI — chỉ có ý nghĩa khi import vào dòng xe 12m (nếu file không
               // có các cột này thì để rỗng, không ảnh hưởng các dòng xe khác)
               ckgh:(()=>{const s=g("Check GH29Y","CHECK GH29Y","ckgh").toLowerCase();
                 return (s.includes("riêng")||s.includes("rieng"))?"rieng":"dung_chung";})(),
-              px:g("Phân xưởng","PHÂN XƯỞNG","Phan xuong","px"),
+              px:gg("px","Phân xưởng","PHÂN XƯỞNG","Phan xuong","px"),
               dai:g("Dài","DÀI","Dai","dai"),
               rong:g("Rộng","RỘNG","Rong","rong"),
               day_kt:g("Dày","DÀY","Day","day_kt"),
@@ -10063,7 +10314,8 @@ Bạn có chắc chắn không?`;
         )}
 
         {tab==="cms"&&isAdminAccount(user)&&(
-          <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
+          <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}
+            labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
         )}
 
       </div>
