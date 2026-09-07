@@ -4999,6 +4999,11 @@ export default function App(){
   //   alter table projects add column if not exists ngay_hoan_thanh text default '';
   //   alter table projects add column if not exists sop_tu text default '';
   //   alter table projects add column if not exists sop_den text default '';
+  //   alter table projects add column if not exists ngay_du_vt text default '';
+  //   alter table projects add column if not exists du_vt_ts text default '';
+  // ("ngay_du_vt"/"du_vt_ts" — NGÀY dự án ĐẠT ĐỦ 100% vật tư lần đầu tiên, ghi tự động, dùng
+  // cho cột "NGÀY HOÀN THÀNH VẬT TƯ" ở bảng danh sách "Dự án đã hoàn thành", xem effect gần
+  // "projFullyReceived" ở trên.)
   const dbUpsertProj=async(p)=>{
     // ✅ FIX: supabase.from(...).upsert() KHÔNG tự throw khi lưu thất bại — nó trả về
     // {data, error}. Code cũ chỉ try/catch lỗi network/exception, không kiểm tra field
@@ -5274,6 +5279,22 @@ export default function App(){
       return dn+EPS>=cn;
     });
   },[bomDB,phDB]);
+
+  // ✅ Tự động ghi nhận "NGÀY HOÀN THÀNH VẬT TƯ" = ngày dự án ĐẠT ĐỦ 100% vật tư LẦN ĐẦU TIÊN
+  // — dùng cho cột "NGÀY HOÀN THÀNH VẬT TƯ (ngày duyệt đủ vật tư)" ở bảng "Dự án đã hoàn thành".
+  // Hệ thống không lưu sẵn thời điểm duyệt đủ của TỪNG mã, nên ta đánh dấu ngay thời điểm PHÁT
+  // HIỆN dự án đủ 100% (projFullyReceived) — chỉ ghi 1 LẦN DUY NHẤT (bỏ qua nếu đã có
+  // "du_vt_ts"), áp dụng cho MỌI dự án (không chỉ dự án đang chọn/pid) nhờ projFullyReceived
+  // hoạt động độc lập theo bomDB/phDB của từng dự án.
+  useEffect(()=>{
+    const toStamp=projs.filter(p=>!p.du_vt_ts&&projFullyReceived(p));
+    if(toStamp.length===0) return;
+    const now=new Date();
+    const ngay=now.toISOString().slice(0,10);
+    setProjs(ps=>ps.map(p=>toStamp.some(x=>x.id===p.id)?{...p,ngay_du_vt:ngay,du_vt_ts:now.toISOString()}:p));
+    toStamp.forEach(p=>{ dbUpsertProj({...p,ngay_du_vt:ngay,du_vt_ts:now.toISOString()}).catch(()=>{}); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[projs,projFullyReceived]);
 
   // ✅ bcDoneList (danh sách "Đã hoàn thành" của tab Báo cáo) được tính bên dưới, SAU khi
   // "duAll" (biến đã kiểm chứng đúng, dùng để tô màu banner "Đã nhận đủ vật tư toàn bộ!")
@@ -8987,22 +9008,48 @@ Bạn có chắc chắn không?`;
                   — Chưa có dự án nào hoàn thành cho dòng xe này —
                 </div>
               ):(
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {bcDoneList.map(p=>(
-                    // ✅ Bấm vào 1 dự án trong danh sách "Đã hoàn thành" → chọn dự án đó (sw) +
-                    // đặt "bcDoneViewPid" = id dự án này để chuyển sang xem CHI TIẾT báo cáo của
-                    // đúng dự án đó, KHÔNG đổi bcSubTab (nút "✅ Đã hoàn thành" vẫn giữ nguyên
-                    // trạng thái được chọn — không còn tự nhảy về "🚧 Đang thực hiện" nữa).
-                    <div key={p.id} onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcDoneViewPid(p.id);}}
-                      style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:p.id===pid?"1.5px solid #16a34a":"1px solid #f1f5f9"}}>
-                      <div style={{width:38,height:38,borderRadius:"50%",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.icon||"✅"}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13.5,fontWeight:800,color:"#1f2937",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.ten}</div>
-                        <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>📅 Hoàn thành: {p.ngay_hoan_thanh||"—"}</div>
-                      </div>
-                      <span style={{fontSize:16,color:"#9ca3af",flexShrink:0}}>›</span>
-                    </div>
-                  ))}
+                // ✅ Bảng danh sách dự án ĐÃ HOÀN THÀNH (theo yêu cầu) — thay cho danh sách dạng
+                // thẻ cũ. Cột "NGÀY HOÀN THÀNH VẬT TƯ" lấy từ "ngay_du_vt" (ngày dự án đạt đủ
+                // 100% vật tư lần đầu — xem effect tự-ghi-nhận gần "projFullyReceived"); nếu dự
+                // án được đánh dấu hoàn thành thủ công mà chưa kịp có "ngay_du_vt" (hiếm, do vừa
+                // mới bấm) thì dự phòng lấy "ngay_hoan_thanh". Bấm nút "👁️ Xem chi tiết" ở cột
+                // cuối để mở đúng màn hình báo cáo chi tiết (banner+thống kê+biểu đồ) như cũ.
+                <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+                  <div style={{overflowX:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:720}}>
+                      <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
+                        {["STT","Tên dự án","Dòng xe","Loại xe","SL xe","Ngày khởi tạo","Ngày hoàn thành vật tư",""].map((h,hi)=>(
+                          <th key={hi} style={{padding:"9px 10px",textAlign:hi===1?"left":"center",fontWeight:700,color:"#6b7280",fontSize:10.5,whiteSpace:"nowrap",
+                            position:hi===0?"sticky":undefined,left:hi===0?0:undefined,zIndex:hi===0?2:undefined,background:"#f8fafc",
+                            boxShadow:hi===0?"2px 0 4px -2px rgba(0,0,0,0.18)":undefined}}>{h}</th>
+                        ))}
+                      </tr></thead>
+                      <tbody>
+                        {bcDoneList.map((p,idx)=>{
+                          const rowBg=p.id===pid?"#f0fdf4":(idx%2===0?"#fff":"#f9fafb");
+                          return(
+                          <tr key={p.id} style={{borderBottom:"1px solid #f1f5f9",background:rowBg}}>
+                            <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:"#6b7280",position:"sticky",left:0,zIndex:1,background:rowBg,boxShadow:"2px 0 4px -2px rgba(0,0,0,0.18)"}}>{idx+1}</td>
+                            <td style={{padding:"8px 10px",fontWeight:800,color:"#1f2937",whiteSpace:"nowrap"}}>{p.icon?`${p.icon} `:""}{p.ten}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center",whiteSpace:"nowrap"}}>{KL_LINES.find(l=>l.id===activeLine)?.title||"Mini Bus"}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center",whiteSpace:"nowrap"}}>{p.mo_ta||p.ten}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700}}>{p.so_xe||1}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center",whiteSpace:"nowrap"}}>{p.ngay_khoi_tao||"—"}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center",whiteSpace:"nowrap",fontWeight:700,color:"#0f766e"}}>{p.ngay_du_vt||p.ngay_hoan_thanh||"—"}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center"}}>
+                              {/* ✅ Bấm "Xem chi tiết" → chọn dự án đó (sw) + đặt "bcDoneViewPid" để
+                                  chuyển sang xem CHI TIẾT báo cáo (banner+thống kê+biểu đồ) của
+                                  đúng dự án đó, KHÔNG đổi bcSubTab. */}
+                              <button onClick={()=>{bcNav.markManual(p.id);sw(p.id);setBcDoneViewPid(p.id);}}
+                                style={{border:"none",cursor:"pointer",fontFamily:"inherit",background:"#0f766e",color:"#fff",fontWeight:700,fontSize:11,
+                                  borderRadius:8,padding:"6px 12px",whiteSpace:"nowrap"}}>👁️ Xem chi tiết</button>
+                            </td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )
             ):khongConDuAnDangLam?(
