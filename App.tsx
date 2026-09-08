@@ -2124,7 +2124,11 @@ const KL_PROJECT_STATUSES = [
 // ─── Login Screen — Cổng vào (tài khoản) → chọn dòng xe → trạng thái dự án ────
 // resume: khi quay lại từ màn "Tổng quan" (nút "← Trở về"), truyền {authedUser,userList,activeLine}
 // để mở thẳng BƯỚC 3 (chọn trạng thái dự án) — không bắt đăng nhập lại từ đầu.
-function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
+function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gateIntro}){
+  // 🚪 Khối "Chọn dòng xe" — nếu admin chưa cấu hình gì trong CMS, "gateIntro" (prop, tính từ
+  // readGateIntro) đã tự trả về GATE_INTRO_DEFAULTS nên màn hình vẫn hiện ĐÚNG chữ/màu gốc
+  // như trước khi có CMS — không cần kiểm tra rỗng ở đây.
+  const gi = gateIntro || GATE_INTRO_DEFAULTS;
   // "gate" (đăng nhập tài khoản) → "select" (chọn dòng xe) → "project" (chọn trạng thái dự án)
   const [step, setStep]   = useState(resume ? "project" : "gate");
   const [activeLine, setActiveLine] = useState(resume?.activeLine || null);
@@ -2529,15 +2533,18 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
           suốt mọi bước (Chọn dòng xe / Chọn trạng thái dự án), không biến mất khi điều hướng. */}
       {authedUser?.id==="xh04"&&(
         <div style={{margin:"18px 3vw 0",paddingTop:18,borderTop:"1px dashed rgba(255,255,255,0.16)",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+          {/* 🚪 Tiêu đề/mô tả/màu chữ/ảnh nền đọc từ CMS (khối "gate_intro") — xem "gi" đầu
+              component. Nếu admin chưa cấu hình gì, "gi" tự trả về đúng chữ/màu mặc định gốc. */}
           <div onClick={()=>{setActiveLine("minibus");onLogin(authedUser,userList,{openNewProject:false,line:"minibus",directTab:"duyet"});}}
             style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,width:"100%",
-              background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
+              background:gi.anh?`linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.45)), url(${gi.anh}) center/cover no-repeat`:"rgba(255,255,255,0.06)",
+              border:"1px solid rgba(255,255,255,0.14)",
               borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center",boxSizing:"border-box"}}>
-            <span style={{color:"#f59e0b",fontWeight:800,fontSize:14}}>
-              ⚡ Truy cập hệ thống chính →
+            <span style={{color:gi.bannerTitleColor,fontWeight:800,fontSize:14}}>
+              {gi.bannerTitle}
             </span>
-            <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
-              Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan
+            <span style={{color:gi.bannerSubColor,fontSize:12,lineHeight:1.55,opacity:.85}}>
+              {gi.bannerSub}
             </span>
           </div>
         </div>
@@ -2553,12 +2560,16 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
           đổi dòng xe sau khi đã vào hệ thống chính (không mất chức năng chọn dòng xe). */}
       {authedUser?.role==="khth"&&authedUser?.id!=="xh04"&&getAllowedLines(authedUser).length>1&&(
         <div style={{margin:"18px 3vw 0",paddingTop:18,borderTop:"1px dashed rgba(255,255,255,0.16)",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+          {/* Tiêu đề + màu + ảnh nền dùng CHUNG với thẻ trên (CMS "gate_intro") — riêng dòng
+              mô tả GIỮ NGUYÊN chữ khác biệt cho nhóm "khth" (không thuộc khối 5 dòng CMS,
+              vì đây là nội dung RIÊNG theo vai trò, không phải nội dung chung của màn hình). */}
           <div onClick={()=>{const l=activeLine||"minibus";setActiveLine(l);onLogin(authedUser,userList,{openNewProject:false,line:l,directTab:"ds"});}}
             style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,width:"100%",
-              background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.14)",
+              background:gi.anh?`linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.45)), url(${gi.anh}) center/cover no-repeat`:"rgba(255,255,255,0.06)",
+              border:"1px solid rgba(255,255,255,0.14)",
               borderRadius:16,padding:"14px 24px",maxWidth:420,textAlign:"center",boxSizing:"border-box"}}>
-            <span style={{color:"#f59e0b",fontWeight:800,fontSize:14}}>
-              ⚡ Truy cập hệ thống chính →
+            <span style={{color:gi.bannerTitleColor,fontWeight:800,fontSize:14}}>
+              {gi.bannerTitle}
             </span>
             <span style={{color:"#fff",fontSize:12,lineHeight:1.55,opacity:.85}}>
               Xem Vật tư / Phiếu GN / Báo cáo của dòng xe đang chọn bên dưới
@@ -2620,10 +2631,24 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl}){
 
       {step==="select" && (
         <div id="select-view">
-          <div className="hero">
-            <div className="eyebrow">Hệ thống quản lý vật tư</div>
-            <h2>Bạn muốn chọn dòng xe nào?</h2>
-            <p>Chọn dòng sản phẩm để tiếp tục vào hệ thống quản lý sản xuất tương ứng.</p>
+          {/* 🚪 3 dòng chữ (nhãn nhỏ / tiêu đề lớn / mô tả) + ảnh nền — CMS khối "gate_intro"
+              (biến "gi" ở đầu component). Giữ nguyên class CSS gốc ("hero"/"eyebrow") để không
+              đổi bố cục/kiểu chữ — chỉ override NỘI DUNG chữ + MÀU chữ + nền qua inline style
+              (inline style luôn thắng CSS class nên vẫn áp dụng đúng màu tuỳ chỉnh). */}
+          <div className="hero" style={gi.anh?{
+              backgroundImage:`linear-gradient(rgba(10,14,20,0.72),rgba(10,14,20,0.72)), url(${gi.anh})`,
+              backgroundSize:"cover", backgroundPosition:"center", borderRadius:16,
+            }:undefined}>
+            {/* ✅ Đặt lại biến CSS "--steel" NGAY TRÊN element này (không phải toàn trang) —
+                chấm tròn nhỏ trước chữ (CSS ::before) dùng "var(--steel)" nên tự đổi màu theo
+                CHỮ, không cần thêm phần tử màu thủ công nào khác. (Viền/nền mờ của khung nhỏ
+                quanh nhãn vẫn giữ tông xanh dịu mặc định cho đồng bộ khung UI, chỉ chữ+chấm đổi
+                theo màu tuỳ chỉnh.) */}
+            <div className="eyebrow" style={{"--steel":gi.eyebrowColor,color:gi.eyebrowColor}}>
+              {gi.eyebrow}
+            </div>
+            <h2 style={{color:gi.headingColor}}>{gi.heading}</h2>
+            <p style={{color:gi.subColor}}>{gi.sub}</p>
           </div>
           <main>
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
@@ -3550,6 +3575,8 @@ const CMS_LOAI = [
   {v:"huong_dan", l:"📖 Hướng Dẫn Sử Dụng PM", mo:"Nội dung hướng dẫn sử dụng các chức năng trong phần mềm — hiển thị cho MỌI tài khoản ở tab \"📖 Hướng Dẫn Sử Dụng PM\". Lưu riêng ở bảng \"huong_dan_pm\" trên Supabase (xem SQL ở comment cạnh khai báo state huongDanList)."},
   {v:"banner",   l:"🖼️ Banner",       mo:"Ảnh banner kèm tiêu đề, có thể gắn liên kết."},
   {v:"banner_header", l:"🏭 Banner đầu trang", mo:"Ảnh banner hiển thị ở đầu trang chọn dòng xe (đăng nhập) — thay cho ảnh mặc định. Chỉ cần bật \"Đang áp dụng\" và chọn ảnh, KHÔNG cần sửa code. Nếu có nhiều mục đang áp dụng, mục có \"Thứ tự hiển thị\" nhỏ nhất sẽ được dùng."},
+  {v:"gate_intro", l:"🚪 Khối \"Chọn dòng xe\"", mo:"Khối \"⚡ Truy cập hệ thống chính → Bạn muốn chọn dòng xe nào?\" ở màn hình chọn dòng xe (đăng nhập) — sửa TỪNG dòng chữ, đổi màu riêng từng dòng và đổi ảnh nền cho cả khối."},
+  {v:"layout", l:"🧭 Giao diện Sidebar & Header", mo:"Điều chỉnh kích thước thanh Sidebar (trái) và Header (trên) sau khi đăng nhập, đổi ảnh nền cho Header, và sắp xếp lại thứ tự các tab hiển thị trên Sidebar — KHÔNG cần sửa code."},
   {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
   {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
   {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
@@ -3557,6 +3584,51 @@ const CMS_LOAI = [
   {v:"gop_y", l:"📬 Góp ý người dùng", mo:"Xem toàn bộ góp ý/phản hồi mà người dùng đã gửi từ tab \"💬 Góp Ý Kiến - Cải Tiến PM\"."},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
+
+// ═══════════════════════════════════════════════════════════════
+// 🚪 KHỐI "CHỌN DÒNG XE" (màn hình đăng nhập độc lập) — ✅ Gộp 5 dòng chữ (tiêu đề +
+// mô tả của thẻ "⚡ Truy cập hệ thống chính", nhãn "Hệ thống quản lý vật tư", tiêu đề lớn
+// "Bạn muốn chọn dòng xe nào?" và mô tả bên dưới) + 1 ảnh nền thành MỘT khối CMS DUY NHẤT
+// (loai:"gate_intro") để admin sửa từng dòng chữ, đổi màu riêng từng dòng, và đổi ảnh nền
+// cho cả khối — KHÔNG cần sửa code. Do bảng "cms_content" chỉ có sẵn cột "mo_ta" (text),
+// 5 nội dung + 5 màu được đóng gói thành 1 chuỗi JSON lưu trong CHÍNH cột "mo_ta" (không
+// cần ALTER TABLE thêm cột nào) — ảnh nền lưu ở cột "anh" có sẵn. Chỉ CẦN 1 dòng DUY NHẤT
+// (id cố định "gate_intro_main") — bấm "💾 Lưu" ở dưới sẽ luôn cập nhật ĐÚNG dòng đó.
+const GATE_INTRO_ID = "gate_intro_main";
+// Giá trị mặc định — ĐÚNG với chữ/màu đang hiển thị cứng trong code trước khi có CMS, để
+// khi admin CHƯA cấu hình gì (hoặc tắt "Đang áp dụng"), màn hình vẫn hiển thị y hệt như cũ.
+const GATE_INTRO_DEFAULTS = {
+  bannerTitle:  "⚡ Truy cập hệ thống chính →",
+  bannerTitleColor: "#f59e0b",
+  bannerSub:    "Là hệ thống vận hành giao/nhận vật tư của các xưởng liên quan",
+  bannerSubColor: "#ffffff",
+  eyebrow:      "Hệ thống quản lý vật tư",
+  eyebrowColor: "#2f8fff",
+  heading:      "Bạn muốn chọn dòng xe nào?",
+  headingColor: "#f5f9fb",
+  sub:          "Chọn dòng sản phẩm để tiếp tục vào hệ thống quản lý sản xuất tương ứng.",
+  subColor:     "#a6b6c0",
+};
+// Các dòng chữ có thể sửa — dùng để sinh form nhập liệu (label + key text + key màu) và để
+// đọc lại giá trị khi hiển thị, tránh lặp code 5 lần.
+const GATE_INTRO_FIELDS = [
+  {key:"bannerTitle", colorKey:"bannerTitleColor", label:"Tiêu đề thẻ \"Truy cập hệ thống chính\""},
+  {key:"bannerSub",   colorKey:"bannerSubColor",   label:"Mô tả thẻ \"Truy cập hệ thống chính\""},
+  {key:"eyebrow",     colorKey:"eyebrowColor",     label:"Nhãn nhỏ (VD: Hệ thống quản lý vật tư)"},
+  {key:"heading",     colorKey:"headingColor",     label:"Tiêu đề lớn (VD: Bạn muốn chọn dòng xe nào?)"},
+  {key:"sub",         colorKey:"subColor",         label:"Mô tả dưới tiêu đề lớn"},
+];
+// Đọc 1 mục CMS loai:"gate_intro" (nếu có, đang áp dụng) → trả về object đầy đủ 5 dòng chữ +
+// 5 màu + ảnh nền, tự điền phần thiếu bằng GATE_INTRO_DEFAULTS (phòng khi JSON cũ thiếu field
+// mới thêm sau này). Trả về {...GATE_INTRO_DEFAULTS, anh:""} nếu chưa cấu hình/đang tắt.
+function readGateIntro(cmsItems){
+  const it = (cmsItems||[]).filter(x=>x.loai==="gate_intro" && x.an_hien)
+    .sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0))[0];
+  if(!it) return {...GATE_INTRO_DEFAULTS, anh:""};
+  let parsed = {};
+  try{ parsed = it.mo_ta ? JSON.parse(it.mo_ta) : {}; }catch{ parsed = {}; }
+  return {...GATE_INTRO_DEFAULTS, ...parsed, anh: it.anh||""};
+}
 
 // Đọc 1 file ảnh do người dùng chọn → chuỗi base64 (data URL), TỰ ĐỘNG nén/giảm kích
 // thước qua canvas trước khi lưu — vì ảnh chụp thẳng từ điện thoại thường 3-8MB, base64
@@ -3596,6 +3668,345 @@ const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
     img.src = url;
   }catch(e){ readRaw(); }
 });
+
+// 🚪 UI quản trị khối "Chọn dòng xe" (xem GATE_INTRO_* ở trên) — dùng readImageAsBase64 (đã
+// khai báo phía trên, tự nén ảnh) cho ảnh nền, form riêng 5 dòng chữ + 5 ô chọn màu, LƯU
+// GỘP thành 1 dòng CMS DUY NHẤT (id cố định GATE_INTRO_ID, loai:"gate_intro").
+function GateIntroManager({items, setItems, dbUpsertCms, dbDeleteCms}){
+  const existing = items.find(x=>x.loai==="gate_intro" && x.id===GATE_INTRO_ID);
+  const [form, setForm] = useState(()=>{
+    let parsed = {};
+    try{ parsed = existing?.mo_ta ? JSON.parse(existing.mo_ta) : {}; }catch{ parsed = {}; }
+    return {...GATE_INTRO_DEFAULTS, ...parsed, anh: existing?.anh||"", an_hien: existing?.an_hien ?? true};
+  });
+  const [saving, setSaving] = useState(false);
+  const [imgBusy, setImgBusy] = useState(false);
+  const [ok, setOk] = useState("");
+
+  const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f8fafc"};
+  const lbl={display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:4};
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"8px 16px"};
+
+  const onPickImage = async(e)=>{
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setImgBusy(true);
+    try{
+      const b64 = await readImageAsBase64(file);
+      setForm(f=>({...f, anh:b64}));
+    }catch(err){
+      alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+    }finally{
+      setImgBusy(false);
+    }
+  };
+
+  const onSave = async()=>{
+    setSaving(true); setOk("");
+    const {anh, an_hien, ...texts} = form;
+    const row = {
+      id: GATE_INTRO_ID, loai:"gate_intro",
+      tieu_de: "Khối Chọn dòng xe (màn đăng nhập)",
+      mo_ta: JSON.stringify(texts),
+      anh: anh||"", lien_ket:"", thu_tu:0, an_hien,
+      updated_at: new Date().toISOString(),
+    };
+    const okSave = await dbUpsertCms(row);
+    setSaving(false);
+    if(!okSave) return;
+    setItems(list=>{
+      const exist = list.some(x=>x.id===GATE_INTRO_ID);
+      return exist ? list.map(x=>x.id===GATE_INTRO_ID?row:x) : [...list, row];
+    });
+    setOk("✅ Đã lưu — vào lại màn đăng nhập để xem thay đổi.");
+    setTimeout(()=>setOk(""),3000);
+  };
+
+  const onResetDefault = ()=>{
+    if(!window.confirm("Khôi phục lại toàn bộ chữ/màu MẶC ĐỊNH ban đầu (bỏ tuỳ chỉnh hiện tại)?")) return;
+    setForm({...GATE_INTRO_DEFAULTS, anh:form.anh, an_hien:form.an_hien});
+  };
+
+  return(
+    <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
+      <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:4}}>🚪 Khối "Chọn dòng xe" — màn hình đăng nhập</div>
+      <div style={{fontSize:11.5,color:"#9ca3af",marginBottom:14}}>
+        Sửa từng dòng chữ, đổi màu riêng từng dòng và đổi ảnh nền cho cả khối "⚡ Truy cập hệ
+        thống chính → Bạn muốn chọn dòng xe nào?". Chỉ 1 khối duy nhất cho toàn hệ thống.
+      </div>
+
+      {/* Ảnh nền */}
+      <div style={{marginBottom:16,paddingBottom:16,borderBottom:"1px dashed #e5e7eb"}}>
+        <label style={lbl}>Ảnh nền cho cả khối (không bắt buộc — để trống dùng nền tối mặc định)</label>
+        <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
+          <input type="file" accept="image/*" onChange={onPickImage} disabled={imgBusy}/>
+          {form.anh && (
+            <div style={{position:"relative"}}>
+              <img src={form.anh} alt="" style={{width:140,height:78,objectFit:"cover",borderRadius:8,border:"1.5px solid #e5e7eb"}}/>
+              <button onClick={()=>setForm(f=>({...f,anh:""}))}
+                style={{position:"absolute",top:-8,right:-8,width:20,height:20,borderRadius:"50%",border:"none",
+                  background:"#dc2626",color:"#fff",fontSize:11,cursor:"pointer",lineHeight:"20px",padding:0}}>✕</button>
+            </div>
+          )}
+        </div>
+        {imgBusy && <div style={{fontSize:11,color:"#7c3aed",marginTop:4}}>⏳ Đang xử lý ảnh (nén/giảm kích thước)...</div>}
+      </div>
+
+      {/* 5 dòng chữ + 5 màu */}
+      <div style={{display:"grid",gap:12,marginBottom:14}}>
+        {GATE_INTRO_FIELDS.map(fld=>(
+          <div key={fld.key} style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+            <div style={{flex:"1 1 220px",minWidth:180}}>
+              <label style={lbl}>{fld.label}</label>
+              <input style={inp} value={form[fld.key]||""} onChange={e=>setForm(f=>({...f,[fld.key]:e.target.value}))}/>
+            </div>
+            <div style={{width:90}}>
+              <label style={lbl}>Màu chữ</label>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <input type="color" value={form[fld.colorKey]||"#ffffff"} onChange={e=>setForm(f=>({...f,[fld.colorKey]:e.target.value}))}
+                  style={{width:34,height:30,border:"1.5px solid #c7d2fe",borderRadius:6,padding:2,cursor:"pointer",background:"#f8fafc"}}/>
+                <span style={{fontSize:10.5,color:"#9ca3af",fontFamily:"monospace"}}>{form[fld.colorKey]}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#374151",marginBottom:14,cursor:"pointer"}}>
+        <input type="checkbox" checked={form.an_hien} onChange={e=>setForm(f=>({...f,an_hien:e.target.checked}))}/>
+        Đang áp dụng (bật = dùng nội dung/màu/ảnh tuỳ chỉnh ở trên; tắt = quay về mặc định gốc)
+      </label>
+
+      {ok&&<div style={{background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#065f46",marginBottom:12}}>{ok}</div>}
+
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={onSave} disabled={saving||imgBusy}
+          style={{...btn,background:"#0b2545",color:"#fff",opacity:(saving||imgBusy)?0.6:1}}>
+          {saving ? "Đang lưu..." : imgBusy ? "⏳ Đang xử lý ảnh..." : "💾 Lưu"}
+        </button>
+        <button onClick={onResetDefault} style={{...btn,background:"#f1f5f9",color:"#374151"}}>↺ Khôi phục mặc định</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🧭 KHỐI "GIAO DIỆN SIDEBAR & HEADER" — cho phép admin (qua CMS) tự chỉnh: kích thước
+// thanh Sidebar (trái) + thanh Header (trên) SAU KHI ĐĂNG NHẬP, đổi ảnh nền cho Header, và
+// sắp xếp lại thứ tự hiển thị các tab trên Sidebar — KHÔNG cần sửa code. Lưu GỘP thành 1
+// dòng CMS DUY NHẤT (id cố định APP_LAYOUT_ID, loai:"app_layout"), giống hệt cách làm của
+// "gate_intro" ở trên: các số đo + danh sách thứ tự tab được đóng gói JSON trong cột
+// "mo_ta", ảnh nền Header lưu ở cột "anh" có sẵn.
+const APP_LAYOUT_ID = "app_layout_main";
+const APP_LAYOUT_DEFAULTS = {
+  sidebarWidthMobile:  92,   // Bề rộng Sidebar khi màn hình < 1024px (điện thoại/máy tính bảng)
+  sidebarWidthDesktop: 117,  // Bề rộng Sidebar khi màn hình 1024–1439px
+  sidebarWidthWide:    225,  // Bề rộng Sidebar khi màn hình ≥ 1440px
+  headerHeightMobile:  64,   // Chiều cao Header khi màn hình < 1024px
+  headerHeightDesktop: 88,   // Chiều cao Header khi màn hình ≥ 1024px
+  tabOrder: [],              // Thứ tự khoá tab tuỳ chỉnh trên Sidebar — rỗng = dùng thứ tự mặc định
+};
+// Nhãn (icon + chữ) của TẤT CẢ tab có thể xuất hiện trên Sidebar — CHỈ dùng để hiển thị
+// danh sách sắp xếp thứ tự bên trong CMS, KHÔNG dùng để đổi chữ hiển thị thật trên Sidebar
+// (chữ thật vẫn lấy qua t("tab_xxx") như cũ — xem mục "🏷️ Nhãn / Tên cột" nếu muốn đổi chữ).
+// Thứ tự khai báo bên dưới cũng chính là THỨ TỰ MẶC ĐỊNH khi admin chưa tuỳ chỉnh gì.
+const ALL_TAB_LABELS_MAP = {
+  ds:"📦 Vật tư", soan:"📋 Soạn Hàng", duyet:"✅ Kiểm Tra Xác Nhận", pgn:"📄 Phiếu GN",
+  bc:"📈 Báo Cáo", hoanthanh:"🏁 Dự Án Đã Hoàn Thành Vật Tư", bom_mau:"🗂️ Tạo BOM Mẫu",
+  users:"👥 Phân Quyền Sử Dụng", gopy:"💬 Góp Ý Kiến - Cải Tiến PM",
+  huongdan:"📖 Hướng Dẫn Sử Dụng PM", cms:"🖼️ Quản Trị CMS",
+};
+const ALL_TAB_KEYS_DEFAULT_ORDER = Object.keys(ALL_TAB_LABELS_MAP);
+// Đọc 1 mục CMS loai:"app_layout" (nếu có, đang áp dụng) → trả về object đầy đủ số đo +
+// thứ tự tab, tự điền phần thiếu bằng APP_LAYOUT_DEFAULTS (phòng khi JSON cũ thiếu field
+// mới thêm sau này). Trả về {...APP_LAYOUT_DEFAULTS, headerBg:""} nếu admin chưa cấu
+// hình/đang tắt — giao diện hiển thị y hệt như trước khi có tính năng này.
+function readAppLayout(cmsItems){
+  const it = (cmsItems||[]).find(x=>x.loai==="app_layout" && x.id===APP_LAYOUT_ID);
+  if(!it || !it.an_hien) return {...APP_LAYOUT_DEFAULTS, headerBg:""};
+  let parsed = {};
+  try{ parsed = it.mo_ta ? JSON.parse(it.mo_ta) : {}; }catch{ parsed = {}; }
+  return {...APP_LAYOUT_DEFAULTS, ...parsed, headerBg: it.anh||""};
+}
+
+// 🧭 UI quản trị khối "Giao diện Sidebar & Header" — dùng readImageAsBase64 (đã khai báo
+// phía trên, tự nén ảnh) cho ảnh nền Header, form nhập số đo + kéo thứ tự tab bằng nút
+// ▲/▼, LƯU GỘP thành 1 dòng CMS DUY NHẤT (id cố định APP_LAYOUT_ID, loai:"app_layout").
+function AppLayoutManager({items, setItems, dbUpsertCms, dbDeleteCms}){
+  const existing = items.find(x=>x.loai==="app_layout" && x.id===APP_LAYOUT_ID);
+  const [form, setForm] = useState(()=>{
+    let parsed = {};
+    try{ parsed = existing?.mo_ta ? JSON.parse(existing.mo_ta) : {}; }catch{ parsed = {}; }
+    const merged = {...APP_LAYOUT_DEFAULTS, ...parsed};
+    if(!merged.tabOrder || !merged.tabOrder.length) merged.tabOrder = [...ALL_TAB_KEYS_DEFAULT_ORDER];
+    return {...merged, headerBg: existing?.anh||"", an_hien: existing?.an_hien ?? false};
+  });
+  const [saving, setSaving] = useState(false);
+  const [imgBusy, setImgBusy] = useState(false);
+  const [ok, setOk] = useState("");
+
+  const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f8fafc"};
+  const lbl={display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:4};
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"8px 16px"};
+
+  const setNum = (key)=>(e)=>{
+    const v = parseInt(e.target.value,10);
+    setForm(f=>({...f,[key]: isNaN(v)?"":v}));
+  };
+
+  const onPickImage = async(e)=>{
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setImgBusy(true);
+    try{
+      const b64 = await readImageAsBase64(file);
+      setForm(f=>({...f, headerBg:b64}));
+    }catch(err){
+      alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+    }finally{
+      setImgBusy(false);
+    }
+  };
+
+  const moveTab = (idx, dir)=>{
+    setForm(f=>{
+      const arr = [...f.tabOrder];
+      const j = idx+dir;
+      if(j<0 || j>=arr.length) return f;
+      [arr[idx], arr[j]] = [arr[j], arr[idx]];
+      return {...f, tabOrder:arr};
+    });
+  };
+
+  const onSave = async()=>{
+    setSaving(true); setOk("");
+    const {headerBg, an_hien, ...rest} = form;
+    // Kiểm tra hợp lệ nhẹ — nếu người dùng xoá trắng ô số, tự trả về mặc định gốc để tránh
+    // lưu giá trị rỗng làm vỡ layout.
+    const safe = {...rest};
+    Object.keys(APP_LAYOUT_DEFAULTS).forEach(k=>{
+      if(k==="tabOrder") return;
+      if(!safe[k] || safe[k]<=0) safe[k]=APP_LAYOUT_DEFAULTS[k];
+    });
+    const row = {
+      id: APP_LAYOUT_ID, loai:"app_layout",
+      tieu_de: "Giao diện Sidebar & Header",
+      mo_ta: JSON.stringify(safe),
+      anh: headerBg||"", lien_ket:"", thu_tu:0, an_hien,
+      updated_at: new Date().toISOString(),
+    };
+    const okSave = await dbUpsertCms(row);
+    setSaving(false);
+    if(!okSave) return;
+    setItems(list=>{
+      const exist = list.some(x=>x.id===APP_LAYOUT_ID);
+      return exist ? list.map(x=>x.id===APP_LAYOUT_ID?row:x) : [...list, row];
+    });
+    setForm(f=>({...f, ...safe}));
+    setOk("✅ Đã lưu — áp dụng ngay trên toàn hệ thống.");
+    setTimeout(()=>setOk(""),3000);
+  };
+
+  const onResetDefault = ()=>{
+    if(!window.confirm("Khôi phục lại toàn bộ kích thước & thứ tự tab MẶC ĐỊNH ban đầu (giữ nguyên ảnh nền Header đang chọn)?")) return;
+    setForm(f=>({...APP_LAYOUT_DEFAULTS, tabOrder:[...ALL_TAB_KEYS_DEFAULT_ORDER], headerBg:f.headerBg, an_hien:f.an_hien}));
+  };
+
+  return(
+    <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
+      <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:4}}>🧭 Giao diện Sidebar & Header</div>
+      <div style={{fontSize:11.5,color:"#9ca3af",marginBottom:14}}>
+        Điều chỉnh bề rộng thanh Sidebar (trái) và chiều cao thanh Header (trên) sau khi đăng
+        nhập, đổi ảnh nền Header, và sắp xếp lại thứ tự các tab hiển thị trên Sidebar. Chỉ 1
+        cấu hình duy nhất cho toàn hệ thống.
+      </div>
+
+      {/* Kích thước Sidebar */}
+      <div style={{marginBottom:16,paddingBottom:16,borderBottom:"1px dashed #e5e7eb"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#0b2545",marginBottom:8}}>📐 Bề rộng thanh Sidebar (px)</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+          <div>
+            <label style={lbl}>Điện thoại (&lt; 1024px)</label>
+            <input style={inp} type="number" min={60} max={400} value={form.sidebarWidthMobile} onChange={setNum("sidebarWidthMobile")}/>
+          </div>
+          <div>
+            <label style={lbl}>Máy tính (1024–1439px)</label>
+            <input style={inp} type="number" min={60} max={400} value={form.sidebarWidthDesktop} onChange={setNum("sidebarWidthDesktop")}/>
+          </div>
+          <div>
+            <label style={lbl}>Màn hình rộng (≥ 1440px)</label>
+            <input style={inp} type="number" min={60} max={400} value={form.sidebarWidthWide} onChange={setNum("sidebarWidthWide")}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Kích thước Header */}
+      <div style={{marginBottom:16,paddingBottom:16,borderBottom:"1px dashed #e5e7eb"}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#0b2545",marginBottom:8}}>📐 Chiều cao thanh Header (px)</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+          <div>
+            <label style={lbl}>Điện thoại (&lt; 1024px)</label>
+            <input style={inp} type="number" min={48} max={200} value={form.headerHeightMobile} onChange={setNum("headerHeightMobile")}/>
+          </div>
+          <div>
+            <label style={lbl}>Máy tính (≥ 1024px)</label>
+            <input style={inp} type="number" min={48} max={200} value={form.headerHeightDesktop} onChange={setNum("headerHeightDesktop")}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Ảnh nền Header */}
+      <div style={{marginBottom:16,paddingBottom:16,borderBottom:"1px dashed #e5e7eb"}}>
+        <label style={lbl}>Ảnh nền cho thanh Header (không bắt buộc — để trống dùng nền gradient xanh mặc định)</label>
+        <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
+          <input type="file" accept="image/*" onChange={onPickImage} disabled={imgBusy}/>
+          {form.headerBg && (
+            <div style={{position:"relative"}}>
+              <img src={form.headerBg} alt="" style={{width:160,height:60,objectFit:"cover",borderRadius:8,border:"1.5px solid #e5e7eb"}}/>
+              <button onClick={()=>setForm(f=>({...f,headerBg:""}))}
+                style={{position:"absolute",top:-8,right:-8,width:20,height:20,borderRadius:"50%",border:"none",
+                  background:"#dc2626",color:"#fff",fontSize:11,cursor:"pointer",lineHeight:"20px",padding:0}}>✕</button>
+            </div>
+          )}
+        </div>
+        {imgBusy && <div style={{fontSize:11,color:"#7c3aed",marginTop:4}}>⏳ Đang xử lý ảnh (nén/giảm kích thước)...</div>}
+      </div>
+
+      {/* Thứ tự tab trên Sidebar */}
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#0b2545",marginBottom:4}}>🔀 Thứ tự hiển thị tab trên Sidebar</div>
+        <div style={{fontSize:11,color:"#9ca3af",marginBottom:10}}>Dùng nút ▲ / ▼ để sắp xếp lại — áp dụng cho MỌI tài khoản đăng nhập (tab nào tài khoản đó chưa được cấp quyền vẫn hiện mờ theo đúng vị trí đã sắp xếp).</div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {form.tabOrder.map((k,idx)=>(
+            <div key={k} style={{display:"flex",alignItems:"center",gap:10,background:"#f8fafc",border:"1.5px solid #e5e7eb",borderRadius:8,padding:"8px 12px"}}>
+              <span style={{fontSize:11,fontWeight:800,color:"#9ca3af",width:20}}>{idx+1}</span>
+              <span style={{flex:1,fontSize:13,fontWeight:600,color:"#374151"}}>{ALL_TAB_LABELS_MAP[k]||k}</span>
+              <button onClick={()=>moveTab(idx,-1)} disabled={idx===0}
+                style={{...btn,padding:"4px 9px",background:"#fff",border:"1.5px solid #cbd5e1",color:"#374151",opacity:idx===0?.35:1}}>▲</button>
+              <button onClick={()=>moveTab(idx,1)} disabled={idx===form.tabOrder.length-1}
+                style={{...btn,padding:"4px 9px",background:"#fff",border:"1.5px solid #cbd5e1",color:"#374151",opacity:idx===form.tabOrder.length-1?.35:1}}>▼</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#374151",marginBottom:14,cursor:"pointer"}}>
+        <input type="checkbox" checked={form.an_hien} onChange={e=>setForm(f=>({...f,an_hien:e.target.checked}))}/>
+        Đang áp dụng (bật = dùng kích thước/ảnh nền/thứ tự tuỳ chỉnh ở trên; tắt = quay về mặc định gốc)
+      </label>
+
+      {ok&&<div style={{background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#065f46",marginBottom:12}}>{ok}</div>}
+
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={onSave} disabled={saving||imgBusy}
+          style={{...btn,background:"#0b2545",color:"#fff",opacity:(saving||imgBusy)?0.6:1}}>
+          {saving ? "Đang lưu..." : imgBusy ? "⏳ Đang xử lý ảnh..." : "💾 Lưu"}
+        </button>
+        <button onClick={onResetDefault} style={{...btn,background:"#f1f5f9",color:"#374151"}}>↺ Khôi phục mặc định</button>
+      </div>
+    </div>
+  );
+}
 
 function AccountAvatarManager({users, setUsers, dbUpsertUser}){
   const [busyId, setBusyId] = useState("");
@@ -4172,7 +4583,11 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
       {/* Form thêm/sửa — ẨN khi đang ở mục "📸 Ảnh đại diện Tài khoản" (dùng UI riêng: danh
           sách tài khoản thật + nút tải ảnh từng dòng), "🏷️ Nhãn / Tên cột" hoặc "🧩 Cột
           tùy biến" (mỗi mục dùng UI riêng) thay vì form chung dùng cho nội dung/banner. */}
-      {subTab==="tai_khoan" ? (
+      {subTab==="gate_intro" ? (
+        <GateIntroManager items={items} setItems={setItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms}/>
+      ) : subTab==="layout" ? (
+        <AppLayoutManager items={items} setItems={setItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms}/>
+      ) : subTab==="tai_khoan" ? (
         <AccountAvatarManager users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
       ) : subTab==="nhan" ? (
         <LabelManager labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
@@ -5153,6 +5568,13 @@ export default function App(){
   const headerBannerUrl = cmsItems
     .filter(it=>it.loai==="banner_header" && it.an_hien && it.anh)
     .sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0))[0]?.anh || "";
+  // 🚪 Khối "Chọn dòng xe" (5 dòng chữ + màu riêng + ảnh nền) — xem GATE_INTRO_* / readGateIntro
+  // gần khai báo CMS_LOAI. Tính lại mỗi khi cmsItems đổi (admin vừa lưu ở tab CMS).
+  const gateIntro = useMemo(()=>readGateIntro(cmsItems),[cmsItems]);
+  // 🧭 Kích thước Sidebar/Header + ảnh nền Header + thứ tự tab — lấy từ CMS (loai:"app_layout",
+  // xem AppLayoutManager / readAppLayout gần khai báo CMS_LOAI). Trả về mặc định gốc nếu
+  // admin chưa cấu hình/đang tắt, nên KHÔNG ảnh hưởng giao diện khi chưa dùng tính năng này.
+  const appLayout = useMemo(()=>readAppLayout(cmsItems),[cmsItems]);
   const [dbErr,    setDbErr]    = useState("");
   // 🚨 Cảnh báo khẩn cấp — danh sách các lượt "báo khẩn cấp" đã gửi (mã vật tư còn thiếu cần gấp)
   const [canhBaoKhan, setCanhBaoKhan] = useState([]);
@@ -8056,6 +8478,7 @@ Bạn có chắc chắn không?`;
         resume={backToGate && user ? {authedUser:user, userList:users, activeLine} : null}
         allUsers={users}
         headerBannerUrl={headerBannerUrl}
+        gateIntro={gateIntro}
         onLogout={handleLogoutScreenDocLap}
         onLogin={(u,us,opts)=>{setUser(u);if(us)setUsers(us);
         try{localStorage.setItem("loggedInUser",JSON.stringify(u));}catch{}
@@ -8755,6 +9178,18 @@ Bạn có chắc chắn không?`;
     if(!tabs.some(([k])=>k==="gopy")) tabs = [...tabs, ["gopy", "💬 Góp Ý Kiến - Cải Tiến PM"]];
     if(!tabs.some(([k])=>k==="huongdan")) tabs = [...tabs, ["huongdan", "📖 Hướng Dẫn Sử Dụng PM"]];
     if(!tabs.some(([k])=>k==="cms")) tabs = [...tabs, ["cms", "🖼️ Quản Trị CMS"]];
+    // 🧭 Sắp xếp lại theo thứ tự admin đã tuỳ chỉnh trong CMS → "Giao diện Sidebar & Header"
+    // (nếu có, xem AppLayoutManager) — tab nào không nằm trong danh sách tuỳ chỉnh (VD tab
+    // mới thêm sau này) sẽ tự động xếp cuối, không bị rơi mất/ẩn mất.
+    if(appLayout.tabOrder && appLayout.tabOrder.length){
+      const byKey = Object.fromEntries(tabs);
+      const seen = new Set();
+      const ordered = appLayout.tabOrder
+        .filter(k=>byKey[k]!==undefined && !seen.has(k) && seen.add(k))
+        .map(k=>[k, byKey[k]]);
+      const rest = tabs.filter(([k])=>!seen.has(k));
+      tabs = [...ordered, ...rest];
+    }
     return tabs;
   })();
   // ✅ Dòng xe mà tài khoản đang đăng nhập được PHÉP truy cập, dùng để giới hạn bộ chọn
@@ -8800,8 +9235,8 @@ Bạn có chắc chắn không?`;
           --shadow-card:0 8px 25px rgba(22,83,130,.10);
         }
         @media (min-width:1024px){
-          .kl-header-inner{ height:88px !important; }
-          .kl-sidebar-desktop{ width:117px !important; }
+          .kl-header-inner{ height:${appLayout.headerHeightDesktop}px !important; }
+          .kl-sidebar-desktop{ width:${appLayout.sidebarWidthDesktop}px !important; }
           .kl-main-desktop{ max-width:1400px; margin:0 auto; padding:0 20px; box-sizing:border-box; }
           /* Khối thao tác nhanh — trên máy tính luôn giữ đúng 4 cột đều nhau, không co lại 2 cột */
           .kl-quickcards{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:16px !important; }
@@ -8813,7 +9248,7 @@ Bạn có chắc chắn không?`;
           .kl-overview-grid > *:last-child{ flex:1 !important; }
         }
         @media (min-width:1440px){
-          .kl-sidebar-desktop{ width:225px !important; }
+          .kl-sidebar-desktop{ width:${appLayout.sidebarWidthWide}px !important; }
           .kl-main-desktop{ padding:0 32px; }
           .kl-quickcards{ gap:20px !important; }
         }
@@ -8827,9 +9262,16 @@ Bạn có chắc chắn không?`;
         .kl-tab-icon-active svg{ filter:drop-shadow(0 2px 5px rgba(0,0,0,.35)); }
       `}</style>
 
-      {/* HEADER — H≈88px (desktop), gradient navy→blue theo token Header (#06285F → #125BC0) */}
-      <div style={{background:"linear-gradient(110deg,#06285F,#125BC0)",borderBottom:"1px solid #06285F"}}>
-        <div className="kl-header-inner" style={{height:64,padding:"0 24px",display:"flex",alignItems:"center",gap:16,boxSizing:"border-box"}}>
+      {/* HEADER — H≈88px (desktop), gradient navy→blue theo token Header (#06285F → #125BC0).
+          ✅ Nếu admin đã chọn ảnh nền Header trong CMS → "🧭 Giao diện Sidebar & Header",
+          phủ 1 lớp gradient mờ lên trên ảnh để chữ/icon trắng vẫn luôn đọc rõ. */}
+      <div style={{
+        background: appLayout.headerBg
+          ? `linear-gradient(110deg,rgba(6,40,95,.82),rgba(18,91,192,.82)), url(${appLayout.headerBg})`
+          : "linear-gradient(110deg,#06285F,#125BC0)",
+        backgroundSize:"cover", backgroundPosition:"center",
+        borderBottom:"1px solid #06285F"}}>
+        <div className="kl-header-inner" style={{height:appLayout.headerHeightMobile,padding:"0 24px",display:"flex",alignItems:"center",gap:16,boxSizing:"border-box"}}>
 
           {/* Logo + tên hệ thống — logo ≈57×44px, brand title 16/700 màu trắng theo spec Typography */}
           <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0,minWidth:0}}>
@@ -9007,7 +9449,7 @@ Bạn có chắc chắn không?`;
             }
           };
           return(
-            <div className="kl-sidebar-desktop" style={{flexShrink:0,width:92,
+            <div className="kl-sidebar-desktop" style={{flexShrink:0,width:appLayout.sidebarWidthMobile,
               background:"linear-gradient(180deg,#062C67 0%,#031D46 100%)",zIndex:30,boxSizing:"border-box"}}>
               {/* Lớp DÍNH bên trong — chạy tự động theo chiều cao dữ liệu: khi cột nội dung bên
                   phải ngắn, lớp này cao 100vh bình thường; khi bảng dữ liệu dài hơn 1 màn hình,
