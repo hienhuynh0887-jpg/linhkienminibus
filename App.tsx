@@ -5903,10 +5903,23 @@ export default function App(){
         if(!r2.error){
           setProjs(projsData||[]);
           // ✅ Nhớ dự án đang xem qua localStorage — không luôn nhảy về dự án đầu tiên khi reload
+          // ⚠️ FIX LỖI "TỰ NHẢY DỰ ÁN": load() còn được gọi lại NGẦM mỗi 10 giây (xem
+          // pollTimer/setInterval bên dưới) để đồng bộ dữ liệu mới — trước đây MỖI LẦN poll
+          // đều ép setPid(...) lại từ localStorage/projsData[0], kể cả khi người dùng VỪA
+          // MỚI tự chọn 1 dự án khác (VD trong modal "CHỌN DỰ ÁN" ở tab Phiếu GN) ngay trước
+          // đó — khiến màn hình bị "nhảy ngược" về 1 dự án khác (thường là dự án đầu danh
+          // sách) chỉ vài giây sau khi chọn đúng. Nay CHỈ tính lại pid từ localStorage khi
+          // pid hiện tại KHÔNG còn hợp lệ (chưa từng chọn, hoặc dự án đang chọn đã bị xoá) —
+          // nếu pid hiện tại vẫn tồn tại trong danh sách dự án mới tải về thì GIỮ NGUYÊN,
+          // không ghi đè lựa chọn của người dùng.
           if(projsData?.length){
-            const savedPid=localStorage.getItem("lastPid");
-            const validPid=savedPid&&projsData.find(p=>p.id===savedPid)?savedPid:projsData[0].id;
-            setPid(validPid);
+            setPid(prevPid=>{
+              if(prevPid&&projsData.some(p=>p.id===prevPid))return prevPid; // vẫn hợp lệ — giữ nguyên
+              const savedPid=localStorage.getItem("lastPid");
+              const validPid=savedPid&&projsData.find(p=>p.id===savedPid)?savedPid:projsData[0].id;
+              try{localStorage.setItem("lastPid",validPid);}catch{}
+              return validPid;
+            });
           } else {
             setPid("");
           }
@@ -9802,9 +9815,14 @@ Bạn có chắc chắn không?`;
                   ...cfList.map(f=>f.label),
                   ...(!isKHTH?["Thao tác"]:[])];
                 return(
+                // ✅ Bảng cuộn CẢ 4 HƯỚNG (lên/xuống/trái/phải) thay vì hiện hết toàn bộ mã ra
+                // dài vô hạn: khung ngoài (overflowX) cho cuộn NGANG khi nhiều cột, khung trong
+                // (maxHeight+overflowY) cho cuộn DỌC khi nhiều dòng — tiêu đề cột "dính"
+                // (position:sticky, top:0) để luôn thấy tên cột dù cuộn xuống bao xa.
                 <div style={{overflowX:"auto"}}>
                 <div style={{minWidth:vtMinWidth}}>
-                  <div style={{display:"grid",gridTemplateColumns:vtCols,background:"#1d4ed8",color:"#fff",fontSize:10.5,fontWeight:800,textTransform:"uppercase"}}>
+                <div style={{maxHeight:"62vh",overflowY:"auto"}}>
+                  <div style={{display:"grid",gridTemplateColumns:vtCols,background:"#1d4ed8",color:"#fff",fontSize:10.5,fontWeight:800,textTransform:"uppercase",position:"sticky",top:0,zIndex:2}}>
                     {vtHeaders.map((h,hi)=>(
                       <div key={hi} style={{padding:"8px 8px",textAlign:(hi===2||hi===9)?"left":"center",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h}</div>
                     ))}
@@ -9846,6 +9864,7 @@ Bạn có chắc chắn không?`;
                       )}
                     </div>
                   ))}
+                </div>
                 </div>
                 </div>
                 );
@@ -10243,11 +10262,12 @@ Bạn có chắc chắn không?`;
                           </div>
                         </div>
                         <div style={{overflowX:"auto"}}>
+                          <div style={{maxHeight:"62vh",overflowY:"auto"}}>
                           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                             <thead>
                               <tr style={{background:"#1d4ed8"}}>
                                 {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoSoan"),t("thSLThucNhan"),t("thTrangThai"),t("thDuyet")].map(h=>(
-                                  <th key={h} style={{padding:"7px 10px",textAlign:[t("thSoSoan"),t("thSLThucNhan")].includes(h)?"center":"left",fontWeight:800,color:"#fff",fontSize:11}}>{h}</th>
+                                  <th key={h} style={{padding:"7px 10px",textAlign:[t("thSoSoan"),t("thSLThucNhan")].includes(h)?"center":"left",fontWeight:800,color:"#fff",fontSize:11,position:"sticky",top:0,zIndex:2,background:"#1d4ed8"}}>{h}</th>
                                 ))}
                               </tr>
                             </thead>
@@ -10297,6 +10317,7 @@ Bạn có chắc chắn không?`;
                               })}
                             </tbody>
                           </table>
+                          </div>
                         </div>
                       </div>
                     );
@@ -10558,7 +10579,8 @@ Bạn có chắc chắn không?`;
                   return(
                   <div style={{overflowX:"auto"}}>
                   <div style={{minWidth:914}}>
-                    <div style={{display:"grid",gridTemplateColumns:tlCols,background:"#1d4ed8",color:"#fff",fontSize:10.5,fontWeight:800,textTransform:"uppercase"}}>
+                  <div style={{maxHeight:"62vh",overflowY:"auto"}}>
+                    <div style={{display:"grid",gridTemplateColumns:tlCols,background:"#1d4ed8",color:"#fff",fontSize:10.5,fontWeight:800,textTransform:"uppercase",position:"sticky",top:0,zIndex:2}}>
                       {tlHeaders.map((h,hi)=>(
                         <div key={hi} style={{padding:"8px 8px",textAlign:hi===2?"left":"center",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h}</div>
                       ))}
@@ -10586,6 +10608,7 @@ Bạn có chắc chắn không?`;
                         </div>
                       );
                     })}
+                  </div>
                   </div>
                   </div>
                   );
@@ -10645,11 +10668,12 @@ Bạn có chắc chắn không?`;
                 // cuối để mở đúng màn hình báo cáo chi tiết (banner+thống kê+biểu đồ) như cũ.
                 <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.07)",overflow:"hidden"}}>
                   <div style={{overflowX:"auto"}}>
+                  <div style={{maxHeight:"62vh",overflowY:"auto"}}>
                     <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:720}}>
                       <thead><tr style={{background:"#f8fafc",borderBottom:"1px solid #e5e7eb"}}>
                         {["STT","Tên dự án","Dòng xe","Loại xe","SL xe","Ngày khởi tạo","Ngày hoàn thành vật tư",""].map((h,hi)=>(
                           <th key={hi} style={{padding:"9px 10px",textAlign:hi===1?"left":"center",fontWeight:700,color:"#6b7280",fontSize:10.5,whiteSpace:"nowrap",
-                            position:hi===0?"sticky":undefined,left:hi===0?0:undefined,zIndex:hi===0?2:undefined,background:"#f8fafc",
+                            position:"sticky",top:0,left:hi===0?0:undefined,zIndex:hi===0?3:2,background:"#f8fafc",
                             boxShadow:hi===0?"2px 0 4px -2px rgba(0,0,0,0.18)":undefined}}>{h}</th>
                         ))}
                       </tr></thead>
@@ -10678,6 +10702,7 @@ Bạn có chắc chắn không?`;
                         })}
                       </tbody>
                     </table>
+                  </div>
                   </div>
                 </div>
               )
@@ -11004,7 +11029,8 @@ Bạn có chắc chắn không?`;
                                   return(
                                   <div style={{overflowX:"auto"}}>
                                   <div style={{minWidth:574}}>
-                                    <div style={{display:"grid",gridTemplateColumns:gCols,background:"#1d4ed8",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                                  <div style={{maxHeight:"40vh",overflowY:"auto"}}>
+                                    <div style={{display:"grid",gridTemplateColumns:gCols,background:"#1d4ed8",color:"#fff",fontSize:9,fontWeight:800,textTransform:"uppercase",position:"sticky",top:0,zIndex:2}}>
                                       {gHeaders.map((h,hi)=>(
                                         <div key={hi} style={{padding:"6px 6px",textAlign:hi===2?"left":"center",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h}</div>
                                       ))}
@@ -11025,6 +11051,7 @@ Bạn có chắc chắn không?`;
                                         </div>
                                       </div>
                                     ))}
+                                  </div>
                                   </div>
                                   </div>
                                   );
@@ -11188,7 +11215,8 @@ Bạn có chắc chắn không?`;
                   return(
                   <div style={{overflowX:"auto"}}>
                   <div style={{minWidth:824}}>
-                    <div style={{display:"grid",gridTemplateColumns:bmCols,background:"#1d4ed8",color:"#fff",fontSize:10.5,fontWeight:800,textTransform:"uppercase"}}>
+                  <div style={{maxHeight:"62vh",overflowY:"auto"}}>
+                    <div style={{display:"grid",gridTemplateColumns:bmCols,background:"#1d4ed8",color:"#fff",fontSize:10.5,fontWeight:800,textTransform:"uppercase",position:"sticky",top:0,zIndex:2}}>
                       {bmHeaders.map((h,hi)=>(
                         <div key={hi} style={{padding:"8px 8px",textAlign:hi===2?"left":"center",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h}</div>
                       ))}
@@ -11214,6 +11242,7 @@ Bạn có chắc chắn không?`;
                         </div>
                       );
                     })}
+                  </div>
                   </div>
                   </div>
                   );
