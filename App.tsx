@@ -3633,19 +3633,26 @@ function readGateIntro(cmsItems){
 // Đọc 1 file ảnh do người dùng chọn → chuỗi base64 (data URL), TỰ ĐỘNG nén/giảm kích
 // thước qua canvas trước khi lưu — vì ảnh chụp thẳng từ điện thoại thường 3-8MB, base64
 // hoá xong còn nặng hơn nữa, dễ gây lưu thất bại/treo trên mạng di động yếu (đây là
-// nguyên nhân phổ biến nhất của lỗi "chọn ảnh xong bấm ÁP DỤNG mà không lưu được" —
-// trước đây chỉ CẢNH BÁO rồi vẫn gửi ảnh gốc nguyên size, giờ NÉN THẬT trước khi gửi).
-// Giới hạn cạnh dài nhất còn 1600px + nén JPEG chất lượng 0.85 — đủ nét hiển thị trên
-// mọi màn hình, giảm dung lượng thường xuống còn vài trăm KB.
-const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
+// nguyên nhân phổ biến nhất của lỗi "chọn ảnh xong bấm ÁP DỤNG/LƯU mà không lưu được").
+// ✅ NÉN LẶP LẠI THEO DUNG LƯỢNG THẬT: không chỉ nén 1 lần ở chất lượng cố định như trước —
+// giờ giảm dần chất lượng JPEG (rồi giảm tiếp kích thước nếu vẫn còn quá nặng) cho đến khi
+// dung lượng base64 thực tế nằm dưới ngưỡng an toàn truyền lên Supabase (mặc định ~700KB,
+// có thể tuỳ chỉnh riêng cho từng chỗ upload qua tham số opts — VD banner Header nên siết
+// chặt hơn vì ảnh này tải lại ở MỌI trang, MỌI tài khoản).
+// opts: {maxDim, maxBytes, minQuality} — đều có giá trị mặc định hợp lý nếu bỏ qua.
+const readImageAsBase64 = (file, opts) => new Promise((resolve, reject) => {
   if(!file) return resolve("");
-  const MAX_DIM = 1600;
+  const MAX_DIM     = (opts&&opts.maxDim)      || 1600;
+  const MAX_BYTES   = (opts&&opts.maxBytes)    || 700*1024; // ~700KB — đủ nhẹ để lưu ổn định
+  const MIN_QUALITY = (opts&&opts.minQuality)  || 0.45;
   const readRaw = () => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   };
+  // Ước lượng dung lượng byte THẬT từ độ dài chuỗi base64 (bỏ phần header "data:...;base64,")
+  const estBytes = (dataUrl) => Math.ceil((dataUrl.length - dataUrl.indexOf(",") - 1) * 0.75);
   try{
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -3661,13 +3668,40 @@ const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
+        // Bước 1 — giảm dần CHẤT LƯỢNG JPEG (85% → 45%, mỗi bước -10%) cho tới khi đạt
+        // ngưỡng dung lượng mong muốn hoặc chạm mức chất lượng sàn.
+        let quality = 0.85;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while(estBytes(dataUrl) > MAX_BYTES && quality > MIN_QUALITY){
+          quality = Math.round((quality-0.1)*100)/100;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+        // Bước 2 — nếu ảnh gốc quá lớn/quá chi tiết, giảm quality sàn vẫn còn nặng, thu nhỏ
+        // tiếp kích thước (còn 75%) rồi nén lại 1 lần cuối ở chất lượng vừa phải (0.6).
+        if(estBytes(dataUrl) > MAX_BYTES){
+          const canvas2 = document.createElement("canvas");
+          canvas2.width = Math.max(1,Math.round(width*0.75));
+          canvas2.height = Math.max(1,Math.round(height*0.75));
+          const ctx2 = canvas2.getContext("2d");
+          ctx2.drawImage(canvas, 0, 0, canvas2.width, canvas2.height);
+          dataUrl = canvas2.toDataURL("image/jpeg", 0.6);
+        }
+        resolve(dataUrl);
       }catch(e){ readRaw(); } // canvas lỗi (hiếm) → rơi về đọc ảnh gốc, không chặn người dùng
     };
     img.onerror = () => { URL.revokeObjectURL(url); readRaw(); };
     img.src = url;
   }catch(e){ readRaw(); }
 });
+// Ước lượng dung lượng hiển thị (KB) từ 1 chuỗi base64 data URL — dùng để báo cho admin
+// biết ảnh đã nén còn bao nhiêu KB sau khi chọn, ở những chỗ upload cần minh bạch dung lượng
+// (VD banner Header — ảnh tải lại ở mọi trang nên cần kiểm soát kỹ).
+function estimateBase64KB(dataUrl){
+  if(!dataUrl) return 0;
+  const idx = dataUrl.indexOf(",");
+  const raw = idx>=0 ? dataUrl.slice(idx+1) : dataUrl;
+  return Math.round((raw.length*0.75)/1024);
+}
 
 // 🚪 UI quản trị khối "Chọn dòng xe" (xem GATE_INTRO_* ở trên) — dùng readImageAsBase64 (đã
 // khai báo phía trên, tự nén ảnh) cho ảnh nền, form riêng 5 dòng chữ + 5 ô chọn màu, LƯU
@@ -3859,7 +3893,10 @@ function AppLayoutManager({items, setItems, dbUpsertCms, dbDeleteCms}){
     if(!file) return;
     setImgBusy(true);
     try{
-      const b64 = await readImageAsBase64(file);
+      // ✅ Ảnh nền Header tải lại ở MỌI trang cho MỌI tài khoản → siết ngưỡng dung lượng
+      // chặt hơn mặc định (còn ~450KB thay vì ~700KB) để trang tải nhanh, đỡ hao dữ liệu di
+      // động, đồng thời tránh lưu thất bại do payload quá nặng lên Supabase.
+      const b64 = await readImageAsBase64(file, {maxBytes:450*1024});
       setForm(f=>({...f, headerBg:b64}));
     }catch(err){
       alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
@@ -3966,10 +4003,11 @@ function AppLayoutManager({items, setItems, dbUpsertCms, dbDeleteCms}){
               <button onClick={()=>setForm(f=>({...f,headerBg:""}))}
                 style={{position:"absolute",top:-8,right:-8,width:20,height:20,borderRadius:"50%",border:"none",
                   background:"#dc2626",color:"#fff",fontSize:11,cursor:"pointer",lineHeight:"20px",padding:0}}>✕</button>
+              <div style={{fontSize:10,color:"#16a34a",marginTop:4,textAlign:"center"}}>✅ Đã nén còn ~{estimateBase64KB(form.headerBg)}KB</div>
             </div>
           )}
         </div>
-        {imgBusy && <div style={{fontSize:11,color:"#7c3aed",marginTop:4}}>⏳ Đang xử lý ảnh (nén/giảm kích thước)...</div>}
+        {imgBusy && <div style={{fontSize:11,color:"#7c3aed",marginTop:4}}>⏳ Đang nén ảnh (giảm kích thước/chất lượng)...</div>}
       </div>
 
       {/* Thứ tự tab trên Sidebar */}
@@ -9267,7 +9305,7 @@ Bạn có chắc chắn không?`;
           phủ 1 lớp gradient mờ lên trên ảnh để chữ/icon trắng vẫn luôn đọc rõ. */}
       <div style={{
         background: appLayout.headerBg
-          ? `linear-gradient(110deg,rgba(6,40,95,.82),rgba(18,91,192,.82)), url(${appLayout.headerBg})`
+          ? `linear-gradient(110deg,rgba(6,40,95,.82),rgba(18,91,192,.82)), url("${appLayout.headerBg}")`
           : "linear-gradient(110deg,#06285F,#125BC0)",
         backgroundSize:"cover", backgroundPosition:"center",
         borderBottom:"1px solid #06285F"}}>
