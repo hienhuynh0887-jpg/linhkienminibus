@@ -3547,6 +3547,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 // ═══════════════════════════════════════════════════════════════
 const CMS_LOAI = [
   {v:"noi_dung", l:"📝 Nội dung",     mo:"Khối văn bản (tiêu đề + mô tả) hiển thị trong app."},
+  {v:"huong_dan", l:"📖 Hướng Dẫn Sử Dụng PM", mo:"Nội dung hướng dẫn sử dụng các chức năng trong phần mềm — hiển thị cho MỌI tài khoản ở tab \"📖 Hướng Dẫn Sử Dụng PM\". Lưu riêng ở bảng \"huong_dan_pm\" trên Supabase (xem SQL ở comment cạnh khai báo state huongDanList)."},
   {v:"banner",   l:"🖼️ Banner",       mo:"Ảnh banner kèm tiêu đề, có thể gắn liên kết."},
   {v:"banner_header", l:"🏭 Banner đầu trang", mo:"Ảnh banner hiển thị ở đầu trang chọn dòng xe (đăng nhập) — thay cho ảnh mặc định. Chỉ cần bật \"Đang áp dụng\" và chọn ảnh, KHÔNG cần sửa code. Nếu có nhiều mục đang áp dụng, mục có \"Thứ tự hiển thị\" nhỏ nhất sẽ được dùng."},
   {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
@@ -3989,11 +3990,12 @@ function GopYForm({user, activeLine, dbInsertGopY, setGopYList}){
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  📖 HuongDanView — MỌI tài khoản xem được. Hiển thị các mục CMS loại "noi_dung" đang
-//  áp dụng (an_hien), sắp theo thứ tự hiển thị — admin soạn nội dung ở CMS → 📝 Nội dung.
+//  📖 HuongDanView — MỌI tài khoản xem được. Hiển thị các mục đang áp dụng (an_hien) từ
+//  bảng riêng "huong_dan_pm" trên Supabase, sắp theo thứ tự hiển thị — admin soạn nội
+//  dung ở CMS → 📖 Hướng Dẫn Sử Dụng PM (xem SQL cạnh khai báo state huongDanList).
 // ═══════════════════════════════════════════════════════════════
-function HuongDanView({cmsItems}){
-  const list = (cmsItems||[]).filter(it=>it.loai==="noi_dung" && it.an_hien)
+function HuongDanView({huongDanList}){
+  const list = (huongDanList||[]).filter(it=>it.an_hien)
     .sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0));
   return (
     <div style={{padding:"16px 4px",maxWidth:720}}>
@@ -4057,8 +4059,16 @@ function FeedbackManager({gopYList, setGopYList, dbMarkGopYRead}){
   );
 }
 
-function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine, customFieldDefs, setCustomFieldDefs, dbUpsertCustomField, gopYList, setGopYList, dbMarkGopYRead}){
+function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine, customFieldDefs, setCustomFieldDefs, dbUpsertCustomField, gopYList, setGopYList, dbMarkGopYRead, huongDanList, setHuongDanList, dbUpsertHuongDan, dbDeleteHuongDan}){
   const [subTab, setSubTab] = useState("noi_dung");
+  // 📖 "Hướng Dẫn Sử Dụng PM" dùng RIÊNG bảng "huong_dan_pm" (không chung với cms_content)
+  // để tách biệt hẳn với các loại nội dung CMS khác — dùng lại 100% UI form/danh sách bên
+  // dưới (tiêu đề/mô tả/ảnh/thứ tự/ẩn-hiện) chỉ khác nguồn dữ liệu + hàm lưu/xoá.
+  const isHD = subTab==="huong_dan";
+  const dataArr = isHD ? (huongDanList||[]) : items;
+  const setDataArr = isHD ? setHuongDanList : setItems;
+  const dbUpsertRow = isHD ? dbUpsertHuongDan : dbUpsertCms;
+  const dbDeleteRow = isHD ? dbDeleteHuongDan : dbDeleteCms;
   const [form, setForm] = useState(CMS_E0);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -4073,7 +4083,7 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
   const lbl={display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:4};
   const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"8px 16px"};
 
-  const listOfType = items.filter(it=>it.loai===subTab).sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0));
+  const listOfType = dataArr.filter(it=>it.loai===subTab).sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0));
 
   const resetForm = () => { setForm({...CMS_E0, loai:subTab}); setEditing(false); };
 
@@ -4101,7 +4111,7 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
     setSaving(true);
     const id = form.id || (subTab+"_"+Date.now());
     const row = {...form, id, loai:subTab, updated_at:new Date().toISOString()};
-    const ok = await dbUpsertCms(row);
+    const ok = await dbUpsertRow(row);
     if(!ok){ setSaving(false); return; }
     // ✅ Banner đầu trang: mỗi lúc chỉ nên tồn tại 1 banner để đỡ phình bảng cms_content
     // (ảnh lưu base64 khá nặng) — mỗi khi ÁP DỤNG banner MỚI (không phải đang sửa banner cũ),
@@ -4112,7 +4122,7 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
       for(const oldId of oldIdsToRemove){ await dbDeleteCms(oldId); }
     }
     setSaving(false);
-    setItems(list=>{
+    setDataArr(list=>{
       const exist = list.some(x=>x.id===id);
       const merged = exist ? list.map(x=>x.id===id?row:x) : [...list, row];
       return merged.filter(x=>!oldIdsToRemove.includes(x.id));
@@ -4123,9 +4133,9 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
   const onEdit = (it)=>{ setForm(it); setEditing(true); };
 
   const onDelete = async(id)=>{
-    const ok = await dbDeleteCms(id);
+    const ok = await dbDeleteRow(id);
     if(!ok) return;
-    setItems(list=>list.filter(x=>x.id!==id));
+    setDataArr(list=>list.filter(x=>x.id!==id));
     setDelConfirm(null);
     if(form.id===id) resetForm();
   };
@@ -5124,6 +5134,18 @@ export default function App(){
   //     thu_tu integer default 0, an_hien boolean default true, updated_at timestamptz default now()
   //   );
   const [cmsItems, setCmsItems] = useState([]);
+  // 📖 Hướng Dẫn Sử Dụng PM — nội dung do admin soạn trong CMS, MỌI tài khoản xem được ở
+  // tab "huongdan" (xem HuongDanView). Lưu ở bảng RIÊNG "huong_dan_pm" (không chung với
+  // cms_content) để tách biệt hẳn với banner/avatar/nội dung khác. Chạy SQL sau trên
+  // Supabase (SQL Editor) trước khi dùng — nếu chưa tạo, tab CMS liên quan vẫn hoạt động
+  // bình thường để soạn nhưng sẽ báo lỗi khi bấm Lưu:
+  //   create table huong_dan_pm (
+  //     id text primary key, loai text not null default 'huong_dan',
+  //     tieu_de text, mo_ta text, anh text, lien_ket text,
+  //     thu_tu integer default 0, an_hien boolean default true,
+  //     updated_at timestamptz default now()
+  //   );
+  const [huongDanList, setHuongDanList] = useState([]);
   // ✅ Banner đầu trang chọn dòng xe (đăng nhập) — lấy từ CMS (loai:"banner_header", đang áp
   // dụng, "Thứ tự hiển thị" nhỏ nhất). Rỗng ("") nếu admin chưa cấu hình → LoginScreen sẽ tự
   // hiện placeholder gradient nhẹ (không còn ảnh mặc định nhúng cứng trong code). Nhờ vậy đổi
@@ -5364,7 +5386,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14,r15,r16]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14,r15,r16,r17]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -5389,6 +5411,8 @@ export default function App(){
           supabase.from("bom_custom_fields").select("*").range(0, 9999),
           // 💬 Góp ý người dùng — mới nhất trước
           supabase.from("gop_y_kien").select("*").order("thoi_gian",{ascending:false}).range(0, 9999),
+          // 📖 Hướng Dẫn Sử Dụng PM — bảng riêng "huong_dan_pm" (xem SQL cạnh khai báo state huongDanList)
+          supabase.from("huong_dan_pm").select("*").order("thu_tu").range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -5522,6 +5546,13 @@ export default function App(){
           console.warn("Chưa đọc được bảng gop_y_kien (có thể chưa tạo bảng):",r16.error.message);
         } else {
           setGopYList(r16.data||[]);
+        }
+        // 📖 Hướng Dẫn Sử Dụng PM — nếu bảng "huong_dan_pm" chưa tạo, im lặng bỏ qua (tab
+        // vẫn hiển thị bình thường với thông báo "chưa có nội dung", không ảnh hưởng phần còn lại).
+        if(r17.error){
+          console.warn("Chưa đọc được bảng huong_dan_pm (có thể chưa tạo bảng):",r17.error.message);
+        } else {
+          setHuongDanList(r17.data||[]);
         }
       }catch(e){
         console.error("Supabase load error:",e);
@@ -6098,6 +6129,37 @@ export default function App(){
       return true;
     }catch(e){
       console.error("dbDeleteCms:",e);
+      return false;
+    }
+  };
+  // 📖 Lưu/xóa 1 mục "Hướng Dẫn Sử Dụng PM" — bảng RIÊNG "huong_dan_pm" (xem SQL ở comment
+  // cạnh khai báo state huongDanList).
+  const dbUpsertHuongDan=async(item)=>{
+    try{
+      const {error}=await supabase.from("huong_dan_pm").upsert(item,{onConflict:"id"});
+      if(error){
+        console.error("dbUpsertHuongDan:",error);
+        alert("⚠️ Lưu thất bại: "+error.message+"\n(Có thể bảng huong_dan_pm chưa được tạo trên Supabase — xem hướng dẫn SQL ở comment gần khai báo state huongDanList trong code.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbUpsertHuongDan:",e);
+      alert("⚠️ Lưu thất bại: "+(e.message||"lỗi không xác định"));
+      return false;
+    }
+  };
+  const dbDeleteHuongDan=async(id)=>{
+    try{
+      const {error}=await supabase.from("huong_dan_pm").delete().eq("id",id);
+      if(error){
+        console.error("dbDeleteHuongDan:",error);
+        alert("⚠️ Xóa thất bại: "+error.message);
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbDeleteHuongDan:",e);
       return false;
     }
   };
@@ -7836,16 +7898,27 @@ Bạn có chắc chắn không?`;
   // hễ đủ điều kiện hoàn thành thì phải chuyển hẳn, không được phép "kẹt" ở Đang thực hiện.
   // Cờ "manual" (bcNav) chỉ còn tác dụng cho dự án CHƯA đủ điều kiện hoàn thành (cho phép xem
   // trước danh sách "Đã hoàn thành" trong lúc dự án vẫn đang làm dở).
+  //
+  // ⚠️ FIX "TỰ ĐỘNG NHẢY TRANG": trước đây dependency array dùng NGUYÊN mảng "projs" — mảng
+  // này được GÁN LẠI (tham chiếu MỚI) mỗi lần "load()" chạy nền (poll mỗi 10s, xem effect gần
+  // "pollTimer"), NGAY CẢ KHI nội dung dữ liệu không đổi. Do useEffect so sánh theo tham chiếu,
+  // mỗi lần poll effect này CHẠY LẠI TOÀN BỘ dù không có gì thay đổi cho dự án đang xem — nếu
+  // đúng lúc đó dữ liệu nền (bomDB/phDB) đang tải dở dang khiến "duAll" tạm thời tính SAI (VD
+  // bom.length tạm thời =0 giữa 2 lần cập nhật), trang con "Báo cáo" sẽ bị NHÁY/NHẢY qua lại
+  // giữa "🚧 Đang thực hiện" và "✅ Đã hoàn thành" dù người dùng không hề bấm gì. Nay đổi sang
+  // chỉ phụ thuộc "trang_thai" (chuỗi nguyên thuỷ) của ĐÚNG dự án đang xem — effect CHỈ chạy
+  // lại khi trạng thái THẬT SỰ đổi cho dự án đó, không còn bị kích hoạt bởi tham chiếu mới của
+  // "projs" mỗi lần poll nền.
+  const pidTrangThai = proj?.id===pid ? proj.trang_thai : undefined;
   useEffect(()=>{
     if(!pid) return;
-    const p=projs.find(x=>x.id===pid);
-    if(!p) return;
-    const daHoanThanh = p.trang_thai==="hoan_thanh"||duAll;
+    if(proj?.id!==pid) return; // dữ liệu dự án chưa khớp đúng pid đang chọn (đang tải dở) — chờ lần render kế
+    const daHoanThanh = pidTrangThai==="hoan_thanh"||duAll;
     if(daHoanThanh){ setBcSubTab("done"); return; }
     if(bcNav.isManual(pid)) return; // dự án CHƯA hoàn thành: vẫn tôn trọng lựa chọn tay của người dùng
     setBcSubTab("dang");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[pid,duAll,projs]);
+  },[pid,duAll,pidTrangThai]);
 
   // ✅ Danh sách dự án ĐÃ HOÀN THÀNH của dòng xe hiện tại (dùng cho tab "Báo cáo" · trang con
   // "done") — gồm dự án đã bấm "Hoàn thành" thủ công (trang_thai==="hoan_thanh") HOẶC đã nhận
@@ -8448,6 +8521,12 @@ Bạn có chắc chắn không?`;
         {(()=>{
           // ✅ Dự án bấm "Hoàn thành" GẦN NHẤT luôn ở STT 1 (sắp theo hoan_thanh_ts giảm dần,
           // dự phòng theo ngay_hoan_thanh rồi id nếu thiếu hoan_thanh_ts — dữ liệu cũ).
+          // ⚠️ Màn hình ĐỘC LẬP này CHỈ xét trang_thai==="hoan_thanh" (đã bấm tay nút "Hoàn
+          // thành"), KHÔNG tự động gồm cả dự án đã nhận đủ 100% vật tư nhưng chưa bấm nút —
+          // khác với "bcDoneList" trong tab Báo Cáo ở hệ thống chính (nơi ĐÓ mới tự động
+          // chuyển "Đang thực hiện" → "Đã hoàn thành" ngay khi Xưởng Hàn duyệt đủ vật tư).
+          // Theo đúng yêu cầu: việc tự chuyển trạng thái theo vật tư CHỈ áp dụng trong hệ
+          // thống chính; màn "GIAI ĐOẠN 03 — ĐÃ THỰC HIỆN" giữ nguyên hành vi ban đầu.
           const doneList=[...projs].filter(p=>p.trang_thai==="hoan_thanh").sort((a,b)=>{
             const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
             const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
@@ -8815,12 +8894,17 @@ Bạn có chắc chắn không?`;
           hoàn thành (khớp đúng ngữ cảnh đang xem, tránh nhảy nhầm sang dự án đang làm). */}
       {projPickerOpen&&(()=>{
         const dangLocDaXong = tab==="bc" && bcSubTab==="done";
-        // ⚠️ FIX: khi đang ở trang con "🚧 Đang thực hiện" của tab "Báo cáo", dropdown PHẢI
-        // dùng "bcDangList" (đã loại trừ các dự án đã tính là "Đã hoàn thành" — bấm nút HOẶC
-        // đã nhận đủ 100% vật tư) thay vì "projs" thô, để 1 dự án đã xong không còn bị liệt kê
-        // nhầm ở đây nữa — nó CHỈ còn xuất hiện đúng 1 nơi duy nhất: danh sách "Đã hoàn thành".
-        const dangLocDangLam = tab==="bc" && bcSubTab==="dang";
-        const projPickerList = dangLocDaXong ? bcDoneList : (dangLocDangLam ? bcDangList : projs);
+        // ✅ Mặc định (mọi tab khác, và cả trang con "🚧 Đang thực hiện" của Báo Cáo) đều
+        // dùng danh sách "Đang thực hiện" — chỉ trang con "✅ Đã hoàn thành" của Báo Cáo mới
+        // hiện ngược lại danh sách đã hoàn thành.
+        const dangLocDangLam = !dangLocDaXong;
+        // ✅ Theo yêu cầu: DỰ ÁN ĐÃ GIAO ĐỦ VẬT TƯ (100%) hoặc đã bấm "Hoàn thành" KHÔNG còn
+        // hiện trong "CHỌN DỰ ÁN" ở BẤT KỲ tab nào (Vật Tư/Soạn Hàng/Kiểm Tra Xác Nhận/Phiếu
+        // GN/...) — áp dụng cho TOÀN HỆ THỐNG, không chỉ riêng tab "Báo Cáo". Dùng CHUNG
+        // "bcDangList" (đã loại trừ đúng các dự án thuộc bcDoneList) làm danh sách mặc định;
+        // CHỈ khi đang xem trang con "✅ Đã hoàn thành" của tab Báo Cáo mới hiện ngược lại
+        // đúng danh sách đã hoàn thành (bcDoneList) để người dùng vẫn tra cứu lại được.
+        const projPickerList = dangLocDaXong ? bcDoneList : bcDangList;
         return(
         <>
           <div onClick={()=>setProjPickerOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
@@ -9033,10 +9117,10 @@ Bạn có chắc chắn không?`;
                 1 dải để tận dụng chiều rộng màn hình, không còn bị dồn hẹp như trên di động. ── */}
             <div className="kl-overview-grid" style={{display:"flex",flexDirection:"column",gap:0}}>
             {/* ╔════ Dòng xe / Dự án — ngang hàng với hình ảnh ════╗
-                ✅ ẨN HẲN khi đang ở tab "🖼️ Quản Trị CMS" theo yêu cầu — CMS quản lý nội dung
-                chung của toàn hệ thống, không gắn với 1 dòng xe/dự án cụ thể nào, nên 2 ô chọn
-                này không có ý nghĩa và dễ gây hiểu nhầm khi hiển thị ở màn CMS. */}
-            {tab!=="cms"&&(
+                ✅ ẨN HẲN khi đang ở tab "🖼️ Quản Trị CMS", "💬 Góp Ý Kiến - Cải Tiến PM" hoặc
+                "📖 Hướng Dẫn Sử Dụng PM" theo yêu cầu — các tab này không gắn với 1 dòng xe/dự
+                án cụ thể nào, nên 2 ô chọn này không có ý nghĩa và dễ gây hiểu nhầm khi hiển thị. */}
+            {tab!=="cms"&&tab!=="gopy"&&tab!=="huongdan"&&(
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               {/* DÒNG XE */}
               <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e5e7eb",borderLeft:"3px solid #ec4899",borderRadius:12,padding:"12px",cursor:linesPickable.length>1?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:10}}>
@@ -9066,9 +9150,10 @@ Bạn có chắc chắn không?`;
             )}
 
             {/* ╔════ Tiến độ dự án — 1 khối duy nhất: icon lá + tiêu đề + vòng tròn % (giống mẫu) ════╗
-                ✅ Cũng bỏ hẳn khi ở tab "🖼️ Quản Trị CMS" theo yêu cầu — không chỉ ẩn mà loại
-                khỏi cây hiển thị luôn, vì CMS không liên quan tới tiến độ giao xe của dự án. */}
-            {tab!=="cms"&&(
+                ✅ Cũng bỏ hẳn khi ở tab "🖼️ Quản Trị CMS", "💬 Góp Ý Kiến - Cải Tiến PM" hoặc
+                "📖 Hướng Dẫn Sử Dụng PM" theo yêu cầu — không chỉ ẩn mà loại khỏi cây hiển thị
+                luôn, vì các tab này không liên quan tới tiến độ giao xe của dự án. */}
+            {tab!=="cms"&&tab!=="gopy"&&tab!=="huongdan"&&(
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12,background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
               {/* Icon dòng xe — hiển thị đúng ảnh/icon theo dòng xe đang chọn (12M / City Bus / Mini Bus) */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:54,height:54,borderRadius:14,overflow:"hidden",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,0.12)",background:(activeLine==="minibus"||activeLine==="12m")?"transparent":(nhanDongXe(activeLine).nen||"#f3f4f6")}}>
@@ -10822,7 +10907,8 @@ Bạn có chắc chắn không?`;
           <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}
             labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}
             customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField}
-            gopYList={gopYList} setGopYList={setGopYList} dbMarkGopYRead={dbMarkGopYRead}/>
+            gopYList={gopYList} setGopYList={setGopYList} dbMarkGopYRead={dbMarkGopYRead}
+            huongDanList={huongDanList} setHuongDanList={setHuongDanList} dbUpsertHuongDan={dbUpsertHuongDan} dbDeleteHuongDan={dbDeleteHuongDan}/>
         )}
 
         {/* 💬 GÓP Ý KIẾN - CẢI TIẾN PM — MỌI tài khoản đều thấy & gửi được */}
@@ -10830,11 +10916,12 @@ Bạn có chắc chắn không?`;
           <GopYForm user={user} activeLine={activeLine} dbInsertGopY={dbInsertGopY} setGopYList={setGopYList}/>
         )}
 
-        {/* 📖 HƯỚNG DẪN SỬ DỤNG PM — MỌI tài khoản đều xem được. Nội dung do admin viết
-            sẵn trong CMS → 📝 Nội dung (loai:"noi_dung") — tái dùng 100% cơ chế đã có,
-            KHÔNG cần thêm màn soạn thảo riêng. */}
+        {/* 📖 HƯỚNG DẪN SỬ DỤNG PM — MỌI tài khoản đều xem được. Nội dung do admin soạn
+            sẵn trong CMS → 📖 Hướng Dẫn Sử Dụng PM (bảng riêng "huong_dan_pm" trên
+            Supabase) — tái dùng 100% form/danh sách CMS đã có, KHÔNG cần thêm màn soạn
+            thảo riêng. */}
         {tab==="huongdan"&&(
-          <HuongDanView cmsItems={cmsItems}/>
+          <HuongDanView huongDanList={huongDanList}/>
         )}
 
       </div>
