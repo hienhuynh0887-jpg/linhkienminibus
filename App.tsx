@@ -4008,6 +4008,21 @@ function AppLayoutManager({items, setItems, dbUpsertCms, dbDeleteCms}){
           )}
         </div>
         {imgBusy && <div style={{fontSize:11,color:"#7c3aed",marginTop:4}}>⏳ Đang nén ảnh (giảm kích thước/chất lượng)...</div>}
+        {/* 🔍 Xem trước Header THẬT — dùng ĐÚNG công thức phủ gradient như Header thật đang
+            render (xem đoạn "background: appLayout.headerBg ? ..." trong App) để admin thấy
+            ngay ảnh sẽ hiển thị ra sao SAU KHI LƯU, không cần thoát ra kiểm tra thanh Header. */}
+        <div style={{marginTop:12}}>
+          <label style={lbl}>Xem trước (giống hệt thanh Header thật)</label>
+          <div style={{
+            height:56,borderRadius:8,overflow:"hidden",display:"flex",alignItems:"center",gap:10,padding:"0 14px",
+            background: form.headerBg
+              ? `url("${form.headerBg}")`
+              : "linear-gradient(110deg,#06285F,#125BC0)",
+            backgroundSize:"cover", backgroundPosition:"center"}}>
+            <div style={{width:30,height:24,borderRadius:6,background:"#fff"}}/>
+            <span style={{color:"#fff",fontWeight:700,fontSize:13}}>Quản Lý Vật Tư BOM</span>
+          </div>
+        </div>
       </div>
 
       {/* Thứ tự tab trên Sidebar */}
@@ -9302,10 +9317,11 @@ Bạn có chắc chắn không?`;
 
       {/* HEADER — H≈88px (desktop), gradient navy→blue theo token Header (#06285F → #125BC0).
           ✅ Nếu admin đã chọn ảnh nền Header trong CMS → "🧭 Giao diện Sidebar & Header",
-          phủ 1 lớp gradient mờ lên trên ảnh để chữ/icon trắng vẫn luôn đọc rõ. */}
+          hiển thị THẲNG ảnh đó (không phủ gradient) — có banner thì dùng banner, không có
+          banner thì mới dùng gradient mặc định. */}
       <div style={{
         background: appLayout.headerBg
-          ? `linear-gradient(110deg,rgba(6,40,95,.82),rgba(18,91,192,.82)), url("${appLayout.headerBg}")`
+          ? `url("${appLayout.headerBg}")`
           : "linear-gradient(110deg,#06285F,#125BC0)",
         backgroundSize:"cover", backgroundPosition:"center",
         borderBottom:"1px solid #06285F"}}>
