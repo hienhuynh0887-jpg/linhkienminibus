@@ -414,6 +414,54 @@ function IconImageCms3D({size=30}){ // 🖼️ QUẢN TRỊ CMS
   );
 }
 
+function IconChatHeart3D({size=30}){ // 💬 GÓP Ý KIẾN - CẢI TIẾN PM
+  const id="ch"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#0e4f4f"/><stop offset="100%" stopColor="#052222"/>
+        </radialGradient>
+        <linearGradient id={id+"bb"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5eead4"/><stop offset="100%" stopColor="#0d9488"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M14 18 h36 a4 4 0 0 1 4 4 v16 a4 4 0 0 1 -4 4 H30 l-9 8 v-8 h-7 a4 4 0 0 1 -4 -4 V22 a4 4 0 0 1 4 -4 Z" fill={`url(#${id}bb)`} stroke="#052222" strokeWidth="1"/>
+      <path d="M32 34 c-5 -6 -13 -3 -13 3.5 0 4.5 8 8.5 13 12 5 -3.5 13 -7.5 13 -12 0 -6.5 -8 -9.5 -13 -3.5Z" fill="#fecdd3" transform="translate(0,-6) scale(0.72)" transformOrigin="32 32"/>
+      <path d="M22 27 c3.4 -4.2 8.8 -2 8.8 2.3 0 3 -5.4 5.7 -8.8 8 -3.4 -2.3 -8.8 -5 -8.8 -8 0 -4.3 5.4 -6.5 8.8 -2.3Z" fill="#fb7185"/>
+      <circle cx="47" cy="16" r="1.6" fill="#99f6e4"/>
+    </svg>
+  );
+}
+
+function IconBookGuide3D({size=30}){ // 📖 HƯỚNG DẪN SỬ DỤNG PM
+  const id="bg"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#1e3a8a"/><stop offset="100%" stopColor="#050b26"/>
+        </radialGradient>
+        <linearGradient id={id+"pl"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#bfdbfe"/><stop offset="100%" stopColor="#60a5fa"/>
+        </linearGradient>
+        <linearGradient id={id+"pr"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fef9c3"/><stop offset="100%" stopColor="#fde68a"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M32 20 C27 16 19 15 14 17 V42 C19 40 27 41 32 45 Z" fill={`url(#${id}pl)`} stroke="#1e3a8a" strokeWidth="1"/>
+      <path d="M32 20 C37 16 45 15 50 17 V42 C45 40 37 41 32 45 Z" fill={`url(#${id}pr)`} stroke="#92400e" strokeWidth="1"/>
+      <line x1="19" y1="24" x2="27" y2="23" stroke="#1e3a8a" strokeWidth="1.6" opacity=".6" strokeLinecap="round"/>
+      <line x1="19" y1="30" x2="27" y2="29" stroke="#1e3a8a" strokeWidth="1.6" opacity=".6" strokeLinecap="round"/>
+      <line x1="37" y1="23" x2="45" y2="24" stroke="#92400e" strokeWidth="1.6" opacity=".6" strokeLinecap="round"/>
+      <line x1="37" y1="29" x2="45" y2="30" stroke="#92400e" strokeWidth="1.6" opacity=".6" strokeLinecap="round"/>
+      <circle cx="47" cy="16" r="1.6" fill="#dbeafe"/>
+    </svg>
+  );
+}
+
 // Nhận diện avatar là ẢNH THẬT (data URL đã upload / URL http) hay chỉ là 1 EMOJI mặc định
 // (🏭📦👤...) — dùng ở mọi nơi hiển thị avatar (header, bảng Phân quyền, CMS...) để quyết
 // định render <img> hay render text emoji.
@@ -766,6 +814,14 @@ const IMPORT_FIELD_LABEL_KEYS = {
 // ═══════════════════════════════════════════════════════════════
 const SPARE_FIELD_SLOTS = ["o1","o2","o3","o4","o5"];
 
+// 🧭 Nhãn menu sidebar (Vật tư, Soạn hàng, Kiểm tra xác nhận, Phiếu GN, Báo cáo,
+// Dự án đã hoàn thành vật tư, Tạo BOM mẫu, Phân quyền sử dụng, Quản trị CMS) — CHỈ ảnh
+// hưởng ĐÚNG chữ hiển thị trên nút sidebar (xem dòng dùng "tab_${k}" trong sidebar),
+// KHÔNG ảnh hưởng tiêu đề/nội dung bên trong từng trang. Áp dụng cho MỌI vai trò đăng
+// nhập (Xưởng Hàn, Kho, KHTH...) vì đều đọc chung 1 nguồn nhãn này qua t(). Cũng như
+// mọi nhãn khác, được lưu RIÊNG theo từng dòng xe (xem LabelManager).
+const SIDEBAR_LABEL_KEYS = ["tab_ds","tab_soan","tab_duyet","tab_pgn","tab_bc","tab_hoanthanh","tab_bom_mau","tab_users","tab_cms","tab_gopy","tab_huongdan"];
+
 // ─── Từ điển đa ngôn ngữ TOÀN APP (dùng qua LangCtx) ────────────────
 const APP_I18N = {
   // Tabs
@@ -778,6 +834,8 @@ const APP_I18N = {
   tab_bom_mau:   {vi:"🗂️ Tạo BOM Mẫu",        zh:"🗂️ 创建BOM模板"},
   tab_users:     {vi:"👥 Phân Quyền Sử Dụng",  zh:"👥 权限分配"},
   tab_cms:       {vi:"🖼️ Quản Trị CMS",       zh:"🖼️ CMS管理"},
+  tab_gopy:      {vi:"💬 Góp Ý Kiến - Cải Tiến PM", zh:"💬 反馈-改进建议"},
+  tab_huongdan:  {vi:"📖 Hướng Dẫn Sử Dụng PM", zh:"📖 使用指南"},
   // Header brand / role
   brandTitle:  {vi:"Quản Lý Vật Tư BOM", zh:"BOM 物料管理系统"},
   roleTHCK:    {vi:"NHÀ MÁY THCK",     zh:"THCK 工厂"},
@@ -3495,20 +3553,47 @@ const CMS_LOAI = [
   {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
   {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
   {v:"cot_tuy_bien", l:"🧩 Cột tùy biến", mo:"Thêm TỐI ĐA 5 cột mới vào bảng vật tư (BOM) mà KHÔNG cần sửa code hay chạy SQL — chỉ cần đặt tên, chọn kiểu (chữ/số) và bật hiển thị. Áp dụng riêng theo từng dòng xe. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo."},
+  {v:"gop_y", l:"📬 Góp ý người dùng", mo:"Xem toàn bộ góp ý/phản hồi mà người dùng đã gửi từ tab \"💬 Góp Ý Kiến - Cải Tiến PM\"."},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
 
-// Đọc 1 file ảnh do người dùng chọn → chuỗi base64 (data URL), kèm giới hạn dung lượng
-// nhẹ (~800KB sau mã hoá) để tránh làm phình bảng cms_content trên Supabase.
+// Đọc 1 file ảnh do người dùng chọn → chuỗi base64 (data URL), TỰ ĐỘNG nén/giảm kích
+// thước qua canvas trước khi lưu — vì ảnh chụp thẳng từ điện thoại thường 3-8MB, base64
+// hoá xong còn nặng hơn nữa, dễ gây lưu thất bại/treo trên mạng di động yếu (đây là
+// nguyên nhân phổ biến nhất của lỗi "chọn ảnh xong bấm ÁP DỤNG mà không lưu được" —
+// trước đây chỉ CẢNH BÁO rồi vẫn gửi ảnh gốc nguyên size, giờ NÉN THẬT trước khi gửi).
+// Giới hạn cạnh dài nhất còn 1600px + nén JPEG chất lượng 0.85 — đủ nét hiển thị trên
+// mọi màn hình, giảm dung lượng thường xuống còn vài trăm KB.
 const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
   if(!file) return resolve("");
-  if(file.size > 1_200_000){
-    alert("⚠️ Ảnh khá nặng (>1.2MB) — nên chọn ảnh nhẹ hơn (nén/giảm kích thước trước) để tránh app tải chậm.");
-  }
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result);
-  reader.onerror = reject;
-  reader.readAsDataURL(file);
+  const MAX_DIM = 1600;
+  const readRaw = () => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  };
+  try{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let {width, height} = img;
+      if(width>MAX_DIM || height>MAX_DIM){
+        const scale = MAX_DIM/Math.max(width,height);
+        width = Math.round(width*scale); height = Math.round(height*scale);
+      }
+      try{
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      }catch(e){ readRaw(); } // canvas lỗi (hiếm) → rơi về đọc ảnh gốc, không chặn người dùng
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); readRaw(); };
+    img.src = url;
+  }catch(e){ readRaw(); }
 });
 
 function AccountAvatarManager({users, setUsers, dbUpsertUser}){
@@ -3606,7 +3691,11 @@ function LabelManager({labelOverrides, setLabelOverrides, dbUpsertLabel, dbDelet
 
   // Danh sách "cột BOM" ưu tiên hiện lên đầu — lấy trực tiếp từ IMPORT_FIELD_LABEL_KEYS
   // để LUÔN đồng bộ với danh sách field mà hàm Import Excel đang nhận diện theo nhãn.
-  const priorityKeys = [...new Set(Object.values(IMPORT_FIELD_LABEL_KEYS).flat())];
+  const bomKeys = [...new Set(Object.values(IMPORT_FIELD_LABEL_KEYS).flat())];
+  // Danh sách nhãn menu sidebar — hiện ưu tiên nhóm riêng, dễ tìm hơn là gộp vào 200+
+  // nhãn khác. Xem SIDEBAR_LABEL_KEYS để biết phạm vi ảnh hưởng chính xác của nhóm này.
+  const sidebarKeys = SIDEBAR_LABEL_KEYS;
+  const priorityKeys = [...new Set([...bomKeys, ...sidebarKeys])];
   const allKeys = Object.keys(APP_I18N);
   const otherKeys = allKeys.filter(k=>!priorityKeys.includes(k));
 
@@ -3702,10 +3791,17 @@ function LabelManager({labelOverrides, setLabelOverrides, dbUpsertLabel, dbDelet
       <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔎 Tìm theo tên nhãn hoặc chữ hiển thị..."
         style={{width:"100%",padding:"9px 12px",border:"1.5px solid #c7d2fe",borderRadius:8,fontSize:13,marginBottom:16,boxSizing:"border-box",outline:"none",fontFamily:"inherit"}}/>
 
+      <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:4}}>🧭 Nhãn Menu / Sidebar — dòng xe {nhanDongXe(editLine).text}</div>
+      <div style={{fontSize:11,color:"#9ca3af",marginBottom:8}}>Chỉ ảnh hưởng ĐÚNG chữ hiển thị trên nút sidebar (Vật tư, Soạn hàng...) — không ảnh hưởng tiêu đề/nội dung bên trong từng trang. Áp dụng cho mọi vai trò đăng nhập.</div>
+      <div style={{marginBottom:20}}>
+        {sidebarKeys.filter(matchQ).map(Row)}
+        {sidebarKeys.filter(matchQ).length===0 && <div style={{color:"#9ca3af",fontSize:12,padding:8}}>Không có kết quả.</div>}
+      </div>
+
       <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:8}}>🎯 Nhãn cột BOM — dòng xe {nhanDongXe(editLine).text} (ưu tiên — Import Excel tự nhận diện theo đây)</div>
       <div style={{marginBottom:20}}>
-        {priorityKeys.filter(matchQ).map(Row)}
-        {priorityKeys.filter(matchQ).length===0 && <div style={{color:"#9ca3af",fontSize:12,padding:8}}>Không có kết quả.</div>}
+        {bomKeys.filter(matchQ).map(Row)}
+        {bomKeys.filter(matchQ).length===0 && <div style={{color:"#9ca3af",fontSize:12,padding:8}}>Không có kết quả.</div>}
       </div>
 
       <div style={{fontSize:13,fontWeight:800,color:"#0b2545",marginBottom:8}}>📋 Các nhãn khác trong app — dòng xe {nhanDongXe(editLine).text}</div>
@@ -3830,11 +3926,147 @@ function CustomFieldManager({customFieldDefs, setCustomFieldDefs, dbUpsertCustom
   );
 }
 
-function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine, customFieldDefs, setCustomFieldDefs, dbUpsertCustomField}){
+// ═══════════════════════════════════════════════════════════════
+//  💬 GopYForm — MỌI tài khoản đều thấy & gửi được. 1 ô nhập nội dung + nút Gửi ý kiến,
+//  gửi xong hiện "Xin cảm ơn vì đóng góp của bạn", nội dung lưu vào bảng "gop_y_kien"
+//  để admin xem trong CMS → 📬 Góp ý người dùng.
+// ═══════════════════════════════════════════════════════════════
+function GopYForm({user, activeLine, dbInsertGopY, setGopYList}){
+  const [noiDung, setNoiDung] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const onSend = async()=>{
+    if(!noiDung.trim()){ alert("⚠️ Vui lòng nhập nội dung góp ý trước khi gửi."); return; }
+    setSending(true);
+    const row = {
+      id: "gy_"+Date.now(),
+      noi_dung: noiDung.trim(),
+      nguoi_gui: user?.ten || user?.id || "",
+      don_vi: user?.don_vi || "",
+      dong_xe: activeLine || "",
+      thoi_gian: new Date().toISOString(),
+      da_xem: false,
+    };
+    const ok = await dbInsertGopY(row);
+    setSending(false);
+    if(!ok) return;
+    setGopYList(list=>[row, ...list]);
+    setNoiDung("");
+    setSent(true);
+  };
+
+  if(sent){
+    return (
+      <div style={{padding:"48px 16px",textAlign:"center"}}>
+        <div style={{fontSize:52,marginBottom:14}}>🙏</div>
+        <div style={{fontSize:19,fontWeight:800,color:"#0b2545",marginBottom:8}}>Xin cảm ơn vì đóng góp của bạn!</div>
+        <div style={{fontSize:13,color:"#6b7280",marginBottom:22}}>Ý kiến của bạn đã được gửi đến quản trị viên để xem xét cải tiến phần mềm.</div>
+        <button onClick={()=>setSent(false)}
+          style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,padding:"9px 20px",background:"#0d9488",color:"#fff"}}>
+          ✍️ Gửi thêm góp ý khác
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{padding:"16px 4px",maxWidth:620}}>
+      <div style={{fontSize:18,fontWeight:800,color:"#0b2545",marginBottom:4}}>💬 Góp Ý Kiến - Cải Tiến PM</div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Bạn có góp ý gì để phần mềm tốt hơn? Mọi ý kiến (lỗi gặp phải, tính năng mong muốn, điều chưa thuận tiện...) đều được quản trị viên xem xét.</div>
+      <textarea value={noiDung} onChange={e=>setNoiDung(e.target.value)} rows={7}
+        placeholder="Nhập nội dung góp ý của bạn tại đây..."
+        style={{width:"100%",padding:"12px 14px",border:"1.5px solid #c7d2fe",borderRadius:10,fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit",resize:"vertical",background:"#f8fafc"}}/>
+      <div style={{marginTop:12,textAlign:"right"}}>
+        <button onClick={onSend} disabled={sending}
+          style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,padding:"10px 22px",
+            background:"#0d9488",color:"#fff",opacity:sending?0.6:1}}>
+          {sending?"Đang gửi...":"📨 Gửi ý kiến"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  📖 HuongDanView — MỌI tài khoản xem được. Hiển thị các mục CMS loại "noi_dung" đang
+//  áp dụng (an_hien), sắp theo thứ tự hiển thị — admin soạn nội dung ở CMS → 📝 Nội dung.
+// ═══════════════════════════════════════════════════════════════
+function HuongDanView({cmsItems}){
+  const list = (cmsItems||[]).filter(it=>it.loai==="noi_dung" && it.an_hien)
+    .sort((a,b)=>(a.thu_tu||0)-(b.thu_tu||0));
+  return (
+    <div style={{padding:"16px 4px",maxWidth:720}}>
+      <div style={{fontSize:18,fontWeight:800,color:"#0b2545",marginBottom:4}}>📖 Hướng Dẫn Sử Dụng PM</div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:18}}>Tổng hợp hướng dẫn sử dụng các chức năng trong phần mềm.</div>
+      {list.length===0 ? (
+        <div style={{textAlign:"center",color:"#9ca3af",fontSize:13,padding:32}}>Quản trị viên chưa đăng nội dung hướng dẫn nào.</div>
+      ) : list.map(it=>(
+        <div key={it.id} style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:14}}>
+          <div style={{fontSize:15,fontWeight:800,color:"#0b2545",marginBottom:8}}>{it.tieu_de}</div>
+          {it.anh && <img src={it.anh} alt="" style={{width:"100%",maxHeight:280,objectFit:"contain",borderRadius:8,marginBottom:10,background:"#f8fafc"}}/>}
+          <div style={{fontSize:13.5,color:"#374151",whiteSpace:"pre-wrap",lineHeight:1.6}}>{it.mo_ta}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  📬 FeedbackManager — admin xem toàn bộ góp ý người dùng đã gửi (mới nhất trước), tự
+//  đánh dấu ĐÃ XEM khi mở màn này (dùng để tính số CHƯA XEM hiển thị như thông báo cạnh
+//  icon sidebar 🖼️ CMS).
+// ═══════════════════════════════════════════════════════════════
+function FeedbackManager({gopYList, setGopYList, dbMarkGopYRead}){
+  const marked = useRef(false);
+  useEffect(()=>{
+    if(marked.current) return;
+    marked.current = true;
+    const unreadIds = (gopYList||[]).filter(g=>!g.da_xem).map(g=>g.id);
+    if(unreadIds.length){
+      dbMarkGopYRead(unreadIds).then(ok=>{
+        if(ok) setGopYList(list=>list.map(g=>unreadIds.includes(g.id)?{...g,da_xem:true}:g));
+      });
+    }
+  },[]);
+
+  const fmtTime = (iso)=>{
+    try{ const d=new Date(iso); return d.toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",year:"numeric"}); }
+    catch{ return iso||""; }
+  };
+
+  return (
+    <div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:14}}>
+        Toàn bộ góp ý người dùng đã gửi từ tab "💬 Góp Ý Kiến - Cải Tiến PM", mới nhất hiện trước.
+      </div>
+      {(!gopYList || gopYList.length===0) ? (
+        <div style={{textAlign:"center",color:"#9ca3af",fontSize:13,padding:32}}>Chưa có góp ý nào.</div>
+      ) : gopYList.map(g=>(
+        <div key={g.id} style={{background:"#fff",border:"1.5px solid "+(g.da_xem?"#e5e7eb":"#93c5fd"),borderRadius:10,padding:14,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,marginBottom:8}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#0b2545"}}>
+              {g.nguoi_gui||"Ẩn danh"}{g.don_vi?` · ${g.don_vi}`:""}{g.dong_xe?` · ${nhanDongXe(g.dong_xe).text}`:""}
+            </div>
+            <div style={{fontSize:11,color:"#9ca3af"}}>{fmtTime(g.thoi_gian)}</div>
+          </div>
+          <div style={{fontSize:13.5,color:"#374151",whiteSpace:"pre-wrap",lineHeight:1.6}}>{g.noi_dung}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine, customFieldDefs, setCustomFieldDefs, dbUpsertCustomField, gopYList, setGopYList, dbMarkGopYRead}){
   const [subTab, setSubTab] = useState("noi_dung");
   const [form, setForm] = useState(CMS_E0);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  // 🖼️ FIX lỗi "chọn ảnh xong bấm ÁP DỤNG mà không lưu được": trước đây không có cờ báo
+  // đang xử lý ảnh — nếu người dùng bấm ÁP DỤNG ngay sau khi chọn ảnh (trước khi đọc/nén
+  // xong), form.anh vẫn rỗng → bị chặn bởi kiểm tra "chưa chọn ảnh" dù CẢM GIÁC như đã
+  // chọn rồi. Giờ khoá nút Lưu/Áp dụng lại trong lúc đang xử lý ảnh để tránh nhầm lẫn này.
+  const [imgBusy, setImgBusy] = useState(false);
   const [delConfirm, setDelConfirm] = useState(null);
 
   const inp={width:"100%",padding:"8px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#f8fafc"};
@@ -3848,11 +4080,14 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
   const onPickImage = async(e)=>{
     const file = e.target.files?.[0];
     if(!file) return;
+    setImgBusy(true);
     try{
       const b64 = await readImageAsBase64(file);
       setForm(f=>({...f, anh:b64}));
     }catch(err){
       alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+    }finally{
+      setImgBusy(false);
     }
   };
 
@@ -3902,14 +4137,23 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
 
       {/* Chọn loại nội dung */}
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-        {CMS_LOAI.map(o=>(
+        {CMS_LOAI.map(o=>{
+          const soChuaXem = o.v==="gop_y" ? (gopYList||[]).filter(g=>!g.da_xem).length : 0;
+          return (
           <div key={o.v} onClick={()=>{setSubTab(o.v); setForm({...CMS_E0, loai:o.v}); setEditing(false);}}
-            style={{padding:"9px 16px",borderRadius:9,cursor:"pointer",fontWeight:700,fontSize:13,
+            style={{position:"relative",padding:"9px 16px",borderRadius:9,cursor:"pointer",fontWeight:700,fontSize:13,
               background:subTab===o.v?"#0b2545":"#f1f5f9", color:subTab===o.v?"#fff":"#374151",
               border:subTab===o.v?"2px solid #0b2545":"2px solid transparent"}}>
             {o.l}
+            {soChuaXem>0 && (
+              <span style={{position:"absolute",top:-7,right:-7,minWidth:18,height:18,borderRadius:9,background:"#dc2626",color:"#fff",
+                fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}>
+                {soChuaXem>99?"99+":soChuaXem}
+              </span>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
       <div style={{fontSize:12,color:"#9ca3af",marginBottom:16,marginTop:-8}}>
         {CMS_LOAI.find(o=>o.v===subTab)?.mo}
@@ -3924,6 +4168,8 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
         <LabelManager labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
       ) : subTab==="cot_tuy_bien" ? (
         <CustomFieldManager customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField} activeLine={activeLine}/>
+      ) : subTab==="gop_y" ? (
+        <FeedbackManager gopYList={gopYList} setGopYList={setGopYList} dbMarkGopYRead={dbMarkGopYRead}/>
       ) : (<>
 
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
@@ -3958,7 +4204,8 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
         <div style={{display:"flex",gap:16,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
           <div>
             <label style={lbl}>{subTab==="avatar" ? "Ảnh đại diện" : subTab==="banner" ? "Ảnh banner" : subTab==="banner_header" ? "Ảnh banner đầu trang (bắt buộc)" : "Ảnh minh hoạ (không bắt buộc)"}</label>
-            <input type="file" accept="image/*" onChange={onPickImage}/>
+            <input type="file" accept="image/*" onChange={onPickImage} disabled={imgBusy}/>
+            {imgBusy && <div style={{fontSize:11,color:"#7c3aed",marginTop:4}}>⏳ Đang xử lý ảnh (nén/giảm kích thước)...</div>}
           </div>
           {form.anh && (
             <div style={{position:"relative"}}>
@@ -3975,12 +4222,12 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
           Đang áp dụng (hiển thị)
         </label>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={onSave} disabled={saving}
+          <button onClick={onSave} disabled={saving||imgBusy}
             style={{...btn,
               background: (subTab==="banner_header"&&!editing) ? "#8BC34A" : "#0b2545",
               color: (subTab==="banner_header"&&!editing) ? "#1a2e05" : "#fff",
-              opacity:saving?0.6:1}}>
-            {saving ? "Đang lưu..." : (editing ? "💾 Lưu thay đổi" : (subTab==="banner_header" ? "✅ ÁP DỤNG" : "➕ Thêm mới"))}
+              opacity:(saving||imgBusy)?0.6:1}}>
+            {saving ? "Đang lưu..." : imgBusy ? "⏳ Đang xử lý ảnh..." : (editing ? "💾 Lưu thay đổi" : (subTab==="banner_header" ? "✅ ÁP DỤNG" : "➕ Thêm mới"))}
           </button>
           {editing && (
             <button onClick={resetForm} style={{...btn,background:"#f1f5f9",color:"#374151"}}>Huỷ</button>
@@ -4780,6 +5027,9 @@ export default function App(){
   // 🧩 GIAI ĐOẠN 2 — cấu hình 5 "cột dự phòng" (o1..o5), RIÊNG theo từng dòng xe.
   // Cấu trúc: {dong_xe: {slot: {nhan_vi,nhan_zh,kieu,an_hien,thu_tu}}}
   const [customFieldDefs, setCustomFieldDefs] = useState({});
+  // 💬 GÓP Ý KIẾN - CẢI TIẾN PM — mọi tài khoản gửi được, admin xem trong CMS (📬 Góp ý
+  // người dùng) kèm số lượng CHƯA XEM để làm thông báo. Xem SQL cạnh dbInsertGopY.
+  const [gopYList, setGopYList] = useState([]);
   // Trả về danh sách slot ĐANG BẬT cho dòng xe hiện tại, đã sắp theo thứ tự hiển thị,
   // kèm nhãn đúng ngôn ngữ đang chọn — dùng cho Modal Thêm/Sửa, bảng danh sách, Export.
   const getEnabledCustomFields = (dongXe = activeLine) => {
@@ -5114,7 +5364,7 @@ export default function App(){
         setDbErr("THIẾU BIẾN MÔI TRƯỜNG SUPABASE (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — app đang hiển thị DỮ LIỆU MẪU, KHÔNG PHẢI dữ liệu thật. Vào Vercel → Settings → Environment Variables để kiểm tra.");
       }
       try{
-        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14,r15]=await Promise.all([
+        const [r1,r2,r3,r4,r5,r6,r7,r8,r10,r11,r12,r13,r14,r15,r16]=await Promise.all([
           // ✅ FIX: thêm .range(0,9999) tường minh cho MỌI bảng. Trước đây chỉ "bom_items"
           // có .range(), các bảng còn lại gọi .select("*") KHÔNG giới hạn tường minh — mà
           // Supabase/PostgREST mặc định chỉ trả tối đa ~1000 dòng và ÂM THẦM cắt bớt phần
@@ -5137,6 +5387,8 @@ export default function App(){
           supabase.from("app_labels").select("*").range(0, 9999),
           // 🧩 GIAI ĐOẠN 2 — cấu hình 5 "cột dự phòng" theo từng dòng xe
           supabase.from("bom_custom_fields").select("*").range(0, 9999),
+          // 💬 Góp ý người dùng — mới nhất trước
+          supabase.from("gop_y_kien").select("*").order("thoi_gian",{ascending:false}).range(0, 9999),
         ]);
         const errs=[r1,r2,r3,r4,r5,r6].filter(r=>r.error).map(r=>r.error.message);
         if(errs.length){
@@ -5263,6 +5515,13 @@ export default function App(){
             cf[row.dong_xe][row.slot]={nhan_vi:row.nhan_vi,nhan_zh:row.nhan_zh,kieu:row.kieu,an_hien:row.an_hien,thu_tu:row.thu_tu};
           });
           setCustomFieldDefs(cf);
+        }
+        // 💬 GÓP Ý KIẾN — nếu bảng "gop_y_kien" chưa tạo, im lặng bỏ qua (tab vẫn hoạt
+        // động bình thường để gõ, chỉ là admin sẽ không thấy danh sách cho đến khi tạo bảng).
+        if(r16.error){
+          console.warn("Chưa đọc được bảng gop_y_kien (có thể chưa tạo bảng):",r16.error.message);
+        } else {
+          setGopYList(r16.data||[]);
         }
       }catch(e){
         console.error("Supabase load error:",e);
@@ -5890,6 +6149,38 @@ export default function App(){
       alert("⚠️ Lưu cột tùy biến thất bại: "+(e.message||"lỗi không xác định"));
       return false;
     }
+  };
+  // 💬 GÓP Ý KIẾN - CẢI TIẾN PM — bất kỳ tài khoản nào cũng gửi được (không cần quyền
+  // admin), lưu vào bảng "gop_y_kien":
+  //   create table gop_y_kien (
+  //     id text primary key, noi_dung text not null,
+  //     nguoi_gui text, don_vi text, dong_xe text,
+  //     thoi_gian timestamptz default now(), da_xem boolean not null default false
+  //   );
+  const dbInsertGopY=async(row)=>{
+    try{
+      const {error}=await supabase.from("gop_y_kien").insert(row);
+      if(error){
+        console.error("dbInsertGopY:",error);
+        alert("⚠️ Gửi ý kiến thất bại: "+error.message+"\n(Có thể bảng gop_y_kien chưa được tạo trên Supabase.)");
+        return false;
+      }
+      return true;
+    }catch(e){
+      console.error("dbInsertGopY:",e);
+      alert("⚠️ Gửi ý kiến thất bại: "+(e.message||"lỗi không xác định"));
+      return false;
+    }
+  };
+  // Đánh dấu ĐÃ XEM 1 loạt góp ý (dùng khi admin mở tab 📬 Góp ý người dùng trong CMS) —
+  // để tính số lượng CHƯA XEM hiển thị như thông báo (badge) cạnh icon sidebar 🖼️ CMS.
+  const dbMarkGopYRead=async(ids)=>{
+    if(!ids.length) return true;
+    try{
+      const {error}=await supabase.from("gop_y_kien").update({da_xem:true}).in("id",ids);
+      if(error){ console.error("dbMarkGopYRead:",error); return false; }
+      return true;
+    }catch(e){ console.error("dbMarkGopYRead:",e); return false; }
   };
   // được chọn nhận nhìn thấy trong app (🔔), song song vẫn trả về true/false để caller
   // tiếp tục gọi Web Share API (Zalo/SMS/Email) ngay sau khi lưu thành công.
@@ -8364,6 +8655,11 @@ Bạn có chắc chắn không?`;
       // quyền chức năng theo đơn vị vì không đơn vị nào khác được cấp quyền này.
       tabs = [...tabs, ["cms", "🖼️ Quản Trị CMS"]];
     }
+    // ✅ "💬 Góp Ý Kiến - Cải Tiến PM" và "📖 Hướng Dẫn Sử Dụng PM" — LUÔN cấp quyền cho
+    // MỌI tài khoản không phân biệt đơn vị/vai trò, KHÔNG đi qua bảng "Phân quyền chức
+    // năng theo đơn vị" (admin không thể lỡ ẩn 2 tab này khi cấu hình quyền cho đơn vị).
+    if(!tabs.some(([k])=>k==="gopy")) tabs = [...tabs, ["gopy", "💬 Góp Ý Kiến - Cải Tiến PM"]];
+    if(!tabs.some(([k])=>k==="huongdan")) tabs = [...tabs, ["huongdan", "📖 Hướng Dẫn Sử Dụng PM"]];
     // An toàn: nếu 1 đơn vị lỡ bị cấu hình 0 chức năng, vẫn giữ lại tối thiểu "📦 Vật tư"
     // để tài khoản không rơi vào màn trắng không điều hướng được.
     if(!tabs.length) tabs = TABS_ALL.filter(([k])=>k==="ds");
@@ -8377,6 +8673,8 @@ Bạn có chắc chắn không?`;
   // dưới), thay vì bị ẩn hẳn như trước đây.
   const TABS_DISPLAY = (()=>{
     let tabs = [...TABS_ALL];
+    if(!tabs.some(([k])=>k==="gopy")) tabs = [...tabs, ["gopy", "💬 Góp Ý Kiến - Cải Tiến PM"]];
+    if(!tabs.some(([k])=>k==="huongdan")) tabs = [...tabs, ["huongdan", "📖 Hướng Dẫn Sử Dụng PM"]];
     if(!tabs.some(([k])=>k==="cms")) tabs = [...tabs, ["cms", "🖼️ Quản Trị CMS"]];
     return tabs;
   })();
@@ -8597,8 +8895,13 @@ Bạn có chắc chắn không?`;
             thời có maxHeight:"100vh"+overflowY:"auto" để tự cuộn nội bộ, đảm bảo KHÔNG BAO GIỜ bị
             thiếu/cắt tab nào dù màn hình thấp hay danh sách tab dài tới đâu. */}
         {(()=>{
-          const TAB_ICON_CMP = {ds:IconBox3D, soan:IconClipboardCheck3D, duyet:IconShieldCheck3D, pgn:IconReceipt3D, bc:IconChartBar3D, hoanthanh:IconFlagFinish3D, bom_mau:IconFolderGear3D, users:IconUsersLock3D, cms:IconImageCms3D};
-          const TAB_LABEL_XH = {ds:"Vật tư", soan:"Soạn hàng", duyet:"Kiểm tra xác nhận", bom_mau:"Tạo BOM mẫu", pgn:"Phiếu GN", bc:"Báo cáo", hoanthanh:"Dự án đã hoàn thành vật tư", users:"Phân quyền sử dụng", cms:"Quản trị CMS"};
+          const TAB_ICON_CMP = {ds:IconBox3D, soan:IconClipboardCheck3D, duyet:IconShieldCheck3D, pgn:IconReceipt3D, bc:IconChartBar3D, hoanthanh:IconFlagFinish3D, bom_mau:IconFolderGear3D, users:IconUsersLock3D, cms:IconImageCms3D, gopy:IconChatHeart3D, huongdan:IconBookGuide3D};
+          // 🏷️ GIAI ĐOẠN 1 — nhãn sidebar (cả vai trò Xưởng Hàn lẫn các vai trò khác) giờ
+          // ĐỀU lấy từ CÙNG 1 nguồn duy nhất: key "tab_ds","tab_soan"... trong APP_I18N —
+          // đúng những key admin sửa được trong CMS → 🏷️ Nhãn / Tên cột → mục "🧭 Nhãn Menu
+          // / Sidebar". Đổi 1 lần, áp dụng cho MỌI vai trò đăng nhập, không cần sửa code.
+          // (Trước đây vai trò Xưởng Hàn dùng 1 bộ chữ viết cứng riêng TAB_LABEL_XH — đã bỏ
+          // để tránh 2 nguồn nhãn lệch nhau khi đổi qua CMS.)
           // ✅ Tab "🏁 Các Dự Án Đã Hoàn Thành" là 1 LỐI VÀO NHANH tới đúng nội dung "✅ Đã hoàn
           // thành" đã có sẵn bên trong tab "📈 Báo Cáo" (bcSubTab==="done") — không tạo lại UI,
           // chỉ điều hướng state hiện có (tab="bc" + bcSubTab="done") để tái dùng 100% logic cũ.
@@ -8635,7 +8938,7 @@ Bạn có chắc chắn không?`;
                       : k==="bc" ? (tab==="bc"&&bcSubTab!=="done")
                       : tab===k;
                     const allowed = allowedTabKeySet.has(k);
-                    const label=isXH?(TAB_LABEL_XH[k]||t(`tab_${k}`)):t(`tab_${k}`).replace(/^\S+\s*/,"");
+                    const label=t(`tab_${k}`).replace(/^\S+\s*/,"");
                     const IconCmp = TAB_ICON_CMP[k];
                     return(
                       <button key={k} onClick={()=>goToTab(k)}
@@ -8652,6 +8955,13 @@ Bạn có chắc chắn không?`;
                             {IconCmp?<IconCmp size={30}/>:<span style={{fontSize:19,color:"#a9c3ec"}}>•</span>}
                           </span>
                           {!allowed&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:11,background:"#0B326D",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>🔒</span>}
+                          {/* 🔔 Thông báo góp ý CHƯA XEM — chỉ tài khoản admin thấy, ngay trên icon 🖼️ Quản Trị CMS */}
+                          {k==="cms"&&isAdminAccount(user)&&gopYList.filter(g=>!g.da_xem).length>0&&(
+                            <span style={{position:"absolute",top:-4,right:-4,minWidth:16,height:16,borderRadius:8,background:"#dc2626",color:"#fff",
+                              fontSize:9.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",boxShadow:"0 1px 4px rgba(0,0,0,.35)"}}>
+                              {gopYList.filter(g=>!g.da_xem).length>99?"99+":gopYList.filter(g=>!g.da_xem).length}
+                            </span>
+                          )}
                         </span>
                         <span style={{fontSize:10.5,fontWeight:active?800:600,color:active?"#ffffff":"#a9c3ec",lineHeight:1.15,whiteSpace:"normal",textTransform:"uppercase"}}>{label}</span>
                       </button>
@@ -10511,7 +10821,20 @@ Bạn có chắc chắn không?`;
         {tab==="cms"&&isAdminAccount(user)&&(
           <CmsPanel items={cmsItems} setItems={setCmsItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms} users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}
             labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}
-            customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField}/>
+            customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField}
+            gopYList={gopYList} setGopYList={setGopYList} dbMarkGopYRead={dbMarkGopYRead}/>
+        )}
+
+        {/* 💬 GÓP Ý KIẾN - CẢI TIẾN PM — MỌI tài khoản đều thấy & gửi được */}
+        {tab==="gopy"&&(
+          <GopYForm user={user} activeLine={activeLine} dbInsertGopY={dbInsertGopY} setGopYList={setGopYList}/>
+        )}
+
+        {/* 📖 HƯỚNG DẪN SỬ DỤNG PM — MỌI tài khoản đều xem được. Nội dung do admin viết
+            sẵn trong CMS → 📝 Nội dung (loai:"noi_dung") — tái dùng 100% cơ chế đã có,
+            KHÔNG cần thêm màn soạn thảo riêng. */}
+        {tab==="huongdan"&&(
+          <HuongDanView cmsItems={cmsItems}/>
         )}
 
       </div>
