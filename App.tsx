@@ -8248,10 +8248,17 @@ Bạn có chắc chắn không?`;
   // đủ 100% vật tư. Với dự án ĐANG ĐƯỢC CHỌN (p.id===pid) dùng thẳng biến "duAll" ở trên (đúng
   // với banner "Đã nhận đủ vật tư toàn bộ!" đang hiển thị); các dự án khác tự tính qua
   // projFullyReceived(p).
+  // ✅ Sắp xếp: dự án nào HOÀN THÀNH SAU (mới nhất) luôn lên ĐẦU danh sách. "Hoàn thành" ở
+  // đây tính theo mốc thời gian THẬT SỰ gần nhất giữa 2 khả năng — (a) bấm tay nút "Hoàn
+  // thành" (hoan_thanh_ts) hoặc (b) tự động đủ 100% vật tư (du_vt_ts, đúng với cột "Ngày
+  // hoàn thành vật tư" đang hiển thị trong bảng) — lấy mốc nào MUỘN HƠN làm giờ hoàn thành
+  // thật của dự án đó. Trước đây chỉ ưu tiên hoan_thanh_ts/ngay_hoan_thanh nên các dự án
+  // CHỈ đủ vật tư (chưa từng bấm tay) đều có key rỗng như nhau → bị xếp lộn xộn theo ID
+  // thay vì theo đúng ngày hoàn thành vật tư thực tế. Nay luôn lấy mốc mới nhất còn lại.
   const bcDoneList=useMemo(()=>[...projs].filter(p=>p.trang_thai==="hoan_thanh"||(p.id===pid?duAll:projFullyReceived(p))).sort((a,b)=>{
-    const ka=a.hoan_thanh_ts||a.ngay_hoan_thanh||"";
-    const kb=b.hoan_thanh_ts||b.ngay_hoan_thanh||"";
-    if(ka!==kb) return String(kb).localeCompare(String(ka));
+    const tsA=[a.hoan_thanh_ts,a.du_vt_ts,a.ngay_hoan_thanh,a.ngay_du_vt].filter(Boolean).sort().pop()||"";
+    const tsB=[b.hoan_thanh_ts,b.du_vt_ts,b.ngay_hoan_thanh,b.ngay_du_vt].filter(Boolean).sort().pop()||"";
+    if(tsA!==tsB) return String(tsB).localeCompare(String(tsA));
     return String(b.id||"").localeCompare(String(a.id||""));
   }),[projs,projFullyReceived,pid,duAll]);
 
@@ -8966,11 +8973,11 @@ Bạn có chắc chắn không?`;
               </div>
             </div>
 
-            {/* ── Bảng chi tiết — hiện ra khi bấm vào ô SL xe / Đã giao / Đã nhận ── */}
-            {dt&&dtProj&&(()=>{
+            {/* ── Bảng chi tiết "SL xe" / "Đã giao" — vẫn hiện dạng thẻ gắn liền bên dưới bảng như cũ ── */}
+            {dt&&dtProj&&dt.kind!=="nhan"&&(()=>{
               const tieuDe=dt.kind==="xe"
                 ?`🚌 Chi tiết giao xe — ${dtProj.ten}`
-                :`📦 Chi tiết ${dt.kind==="giao"?"đã giao":"đã nhận"} ${dt.nguon} — ${dtProj.ten}`;
+                :`📦 Chi tiết đã giao ${dt.nguon} — ${dtProj.ten}`;
               return(
               <div style={{background:"#fff",borderRadius:12,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",overflow:"hidden",border:"1.5px solid #bae6fd"}}>
                 <div style={{padding:"8px 14px",background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
@@ -8998,7 +9005,7 @@ Bạn có chắc chắn không?`;
                   </div>
                   );
                 })():(()=>{
-                  const items=vatTuItems(dtProj).filter(v=>(v.ng||"").trim().toUpperCase()===dt.nguon&&(dt.kind==="giao"?v.doneGui:v.done));
+                  const items=vatTuItems(dtProj).filter(v=>(v.ng||"").trim().toUpperCase()===dt.nguon&&v.doneGui);
                   return(
                   <div style={{overflowX:"auto"}}>
                     <div style={{minWidth:420}}>
@@ -9012,7 +9019,7 @@ Bạn có chắc chắn không?`;
                           <div key={v.id||v.ma} style={{display:"grid",gridTemplateColumns:vtCols,gap:6,padding:"7px 10px",borderTop:"1px solid #f1f5f9",background:i%2?"#f9fafb":"#fff",alignItems:"center"}}>
                             <span style={{fontSize:10,fontWeight:700,color:"#94a3b8",letterSpacing:.3,wordBreak:"break-word"}}>{v.ma}</span>
                             <span style={{fontSize:12,color:"#1f2937",fontWeight:600,lineHeight:1.3,wordBreak:"break-word"}}>{v.ten}</span>
-                            <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(dt.kind==="giao"?v.dnGui:v.dnXN)}</span>
+                            <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.dnGui)}</span>
                           </div>
                         ))}
                       </div>
@@ -9020,6 +9027,68 @@ Bạn có chắc chắn không?`;
                   </div>
                   );
                 })()}
+              </div>
+              );
+            })()}
+
+            {/* ── "Chi tiết đã nhận" — mở RIÊNG thành màn hình/modal toàn màn hình (kiểu hộp văn bản),
+                hiện đầy đủ nội dung, không bị giới hạn chiều cao 296px như bảng gắn liền phía trên ── */}
+            {dt&&dtProj&&dt.kind==="nhan"&&(()=>{
+              const items=vatTuItems(dtProj).filter(v=>(v.ng||"").trim().toUpperCase()===dt.nguon&&v.done);
+              const closeIt=()=>setDtOpenDaTH(null);
+              return(
+              <div
+                style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16}}
+                onClick={e=>{if(e.target===e.currentTarget) closeIt();}}
+              >
+                <div style={{background:"#fff",borderRadius:14,width:"100%",maxWidth:520,maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+                  <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexShrink:0}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>📦 Chi tiết đã nhận {dt.nguon}</div>
+                      <div style={{fontSize:11,color:"#93c5fd",marginTop:2}}>{dtProj.ten} · {items.length} mã</div>
+                    </div>
+                    <button onClick={closeIt} style={{border:"none",background:"rgba(255,255,255,0.12)",color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",lineHeight:1,padding:"6px 10px",borderRadius:8,flexShrink:0}}>✕</button>
+                  </div>
+                  <div style={{padding:"14px 16px",overflowY:"auto",flex:1,background:"#f8fafc"}}>
+                    {items.length===0?(
+                      <div style={{padding:24,textAlign:"center",fontSize:12,color:"#9ca3af"}}>— Không có mã nào —</div>
+                    ):(
+                      <div style={{background:"#fff",borderRadius:10,border:"1px solid #e2e8f0",overflow:"hidden"}}>
+                        <div style={{overflowX:"auto"}}>
+                          <table style={{width:"100%",borderCollapse:"collapse",minWidth:460}}>
+                            <thead>
+                              <tr>
+                                <th style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 6px",textAlign:"center",whiteSpace:"nowrap"}}>STT</th>
+                                <th style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 8px",textAlign:"left",whiteSpace:"nowrap"}}>Mã số</th>
+                                <th style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 8px",textAlign:"left"}}>Tên vật tư</th>
+                                <th style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 8px",textAlign:"center",whiteSpace:"nowrap"}}>Nguồn gốc</th>
+                                <th style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 8px",textAlign:"center",whiteSpace:"nowrap"}}>ĐVT</th>
+                                <th style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 8px",textAlign:"center",whiteSpace:"nowrap"}}>SL đã nhận</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((v,i)=>(
+                                <tr key={v.id||v.ma} style={{background:i%2?"#f9fafb":"#fff"}}>
+                                  <td style={{fontSize:11,color:"#374151",padding:"7px 6px",borderTop:"1px solid #f1f5f9",textAlign:"center"}}>{i+1}</td>
+                                  <td style={{fontSize:10.5,fontWeight:700,color:"#374151",padding:"7px 8px",borderTop:"1px solid #f1f5f9",wordBreak:"break-word"}}>{v.ma}</td>
+                                  <td style={{fontSize:12,color:"#1f2937",fontWeight:600,padding:"7px 8px",borderTop:"1px solid #f1f5f9",wordBreak:"break-word"}}>{v.ten}</td>
+                                  <td style={{fontSize:11,color:"#374151",padding:"7px 8px",borderTop:"1px solid #f1f5f9",textAlign:"center",wordBreak:"break-word"}}>{v.ng||"—"}</td>
+                                  <td style={{fontSize:11,color:"#374151",padding:"7px 8px",borderTop:"1px solid #f1f5f9",textAlign:"center",whiteSpace:"nowrap"}}>{v.dv||"—"}</td>
+                                  <td style={{padding:"7px 8px",borderTop:"1px solid #f1f5f9",textAlign:"center"}}>
+                                    <span style={{fontSize:11,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 8px",whiteSpace:"nowrap"}}>{fmt(v.dnXN)}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{padding:"10px 16px",borderTop:"1px solid #e2e8f0",background:"#fff",flexShrink:0,textAlign:"right"}}>
+                    <button onClick={closeIt} style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"8px 18px",background:"#1d4ed8",color:"#fff"}}>Đóng</button>
+                  </div>
+                </div>
               </div>
               );
             })()}
@@ -9416,6 +9485,10 @@ Bạn có chắc chắn không?`;
       {tab!=="users" && tab!=="bom_mau" && (()=>{
         const daGiao=Math.min((ls||[]).filter(r=>r.loai==="Giao xe").reduce((s,r)=>s+(Number(r.sl)||0),0),soXe);
         const pctGiao=soXe>0?Math.round(daGiao/soXe*100):0;
+        // ✅ Đang ở tab "🏁 Dự Án Đã Hoàn Thành Vật Tư" (tab "bc", trang con "done") — ở CẢ 2
+        // chế độ xem của tab này (danh sách nhiều dự án LẪN xem chi tiết 1 dự án qua "👁️ Xem
+        // chi tiết") đều ẩn 3 khối "Dòng Xe" / "Dự Án" / "Tiến Độ Giao Xe" theo yêu cầu.
+        const dangXemDsHoanThanhVatTu = tab==="bc" && bcSubTab==="done";
         return(
           <div style={{background:"#fff",borderBottom:"1px solid #e4e9f2",padding:"0 10px 14px"}}>
             {/* ── Thao tác nhanh — Ngôn ngữ / Đổi MK / Chữ ký / Đăng xuất — đặt NGAY TRÊN khối
@@ -9464,7 +9537,7 @@ Bạn có chắc chắn không?`;
                 ✅ ẨN HẲN khi đang ở tab "🖼️ Quản Trị CMS", "💬 Góp Ý Kiến - Cải Tiến PM" hoặc
                 "📖 Hướng Dẫn Sử Dụng PM" theo yêu cầu — các tab này không gắn với 1 dòng xe/dự
                 án cụ thể nào, nên 2 ô chọn này không có ý nghĩa và dễ gây hiểu nhầm khi hiển thị. */}
-            {tab!=="cms"&&tab!=="gopy"&&tab!=="huongdan"&&(
+            {tab!=="cms"&&tab!=="gopy"&&tab!=="huongdan"&&!dangXemDsHoanThanhVatTu&&(
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               {/* DÒNG XE */}
               <div onClick={()=>{if(linesPickable.length>1) setLinePickerOpen(true);}} style={{flex:1,minWidth:0,background:"#fff",border:"1px solid #e5e7eb",borderLeft:"3px solid #ec4899",borderRadius:12,padding:"12px",cursor:linesPickable.length>1?"pointer":"default",boxShadow:"0 1px 3px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:10}}>
@@ -9497,7 +9570,7 @@ Bạn có chắc chắn không?`;
                 ✅ Cũng bỏ hẳn khi ở tab "🖼️ Quản Trị CMS", "💬 Góp Ý Kiến - Cải Tiến PM" hoặc
                 "📖 Hướng Dẫn Sử Dụng PM" theo yêu cầu — không chỉ ẩn mà loại khỏi cây hiển thị
                 luôn, vì các tab này không liên quan tới tiến độ giao xe của dự án. */}
-            {tab!=="cms"&&tab!=="gopy"&&tab!=="huongdan"&&(
+            {tab!=="cms"&&tab!=="gopy"&&tab!=="huongdan"&&!dangXemDsHoanThanhVatTu&&(
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12,background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
               {/* Icon dòng xe — hiển thị đúng ảnh/icon theo dòng xe đang chọn (12M / City Bus / Mini Bus) */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:54,height:54,borderRadius:14,overflow:"hidden",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,0.12)",background:(activeLine==="minibus"||activeLine==="12m")?"transparent":(nhanDongXe(activeLine).nen||"#f3f4f6")}}>
