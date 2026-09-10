@@ -3432,6 +3432,7 @@ const CMS_LOAI = [
   {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
   {v:"cot_tuy_bien", l:"🧩 Cột tùy biến", mo:"Thêm TỐI ĐA 5 cột mới vào bảng vật tư (BOM) mà KHÔNG cần sửa code hay chạy SQL — chỉ cần đặt tên, chọn kiểu (chữ/số) và bật hiển thị. Áp dụng riêng theo từng dòng xe. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo."},
   {v:"gop_y", l:"📬 Góp ý người dùng", mo:"Xem toàn bộ góp ý/phản hồi mà người dùng đã gửi từ tab \"💬 Góp Ý Kiến - Cải Tiến PM\"."},
+  {v:"xoa_du_an_log", l:"🗑️ Nhật ký xóa dự án", mo:"Lịch sử các dự án đã bị XÓA ở màn \"Tổng quan\" (nút \"XÓA DA\") — ghi lại người xóa, thời gian xóa, tên dự án, dòng xe, SL xe, ngày khởi tạo, ngày hoàn thành."},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
 
@@ -4373,6 +4374,68 @@ function FeedbackManager({gopYList, setGopYList, dbMarkGopYRead}){
   );
 }
 
+// 🗑️ Nhật ký xóa dự án — hiển thị danh sách các dự án đã bị xóa ở màn "Tổng quan"
+// (nút "XÓA DA", chỉ PHÒNG KH-TH mới xóa được). Dữ liệu lưu chung bảng "cms_content"
+// với loai="xoa_du_an_log" — mo_ta chứa JSON chi tiết {nguoi_xoa, don_vi_xoa, thoi_gian_xoa,
+// ten_du_an, dong_xe, sl_xe, ngay_khoi_tao, ngay_hoan_thanh}.
+function XoaDuAnLogManager({items, setItems, dbDeleteCms}){
+  const logs = (items||[]).filter(x=>x.loai==="xoa_du_an_log")
+    .map(x=>{ let d={}; try{ d=x.mo_ta?JSON.parse(x.mo_ta):{}; }catch{ d={}; } return {...x, d}; })
+    .sort((a,b)=>String(b.d.thoi_gian_xoa||b.updated_at||"").localeCompare(String(a.d.thoi_gian_xoa||a.updated_at||"")));
+
+  const fmtTime=(iso)=>{
+    try{ const dt=new Date(iso); return dt.toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",year:"numeric"}); }
+    catch{ return iso||"—"; }
+  };
+
+  const onDelLog = async(id)=>{
+    if(!window.confirm("Xóa mục nhật ký này?")) return;
+    const ok = await dbDeleteCms(id);
+    if(!ok) return;
+    setItems(list=>list.filter(x=>x.id!==id));
+  };
+
+  return(
+    <div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:14}}>
+        Lịch sử toàn bộ dự án đã bị <b>XÓA</b> ở màn "Tổng quan" (nút "🗑️ XÓA DA") — mới nhất hiện trước.
+      </div>
+      {logs.length===0?(
+        <div style={{textAlign:"center",color:"#9ca3af",fontSize:13,padding:32}}>Chưa có dự án nào bị xóa.</div>
+      ):(
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:760}}>
+            <thead>
+              <tr>
+                {["Người xóa","Thời gian xóa","Tên dự án","Dòng xe","SL xe","Ngày khởi tạo","Ngày hoàn thành",""].map((h,i)=>(
+                  <th key={i} style={{background:"#1d4ed8",color:"#fff",fontSize:10,fontWeight:800,textTransform:"uppercase",padding:"8px 8px",textAlign:i===0||i===2?"left":"center",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((g,i)=>(
+                <tr key={g.id} style={{background:i%2?"#f9fafb":"#fff"}}>
+                  <td style={{fontSize:11.5,fontWeight:700,color:"#0b2545",padding:"8px",borderTop:"1px solid #f1f5f9"}}>{g.d.nguoi_xoa||"—"}{g.d.don_vi_xoa?` (${g.d.don_vi_xoa})`:""}</td>
+                  <td style={{fontSize:11,color:"#374151",padding:"8px",borderTop:"1px solid #f1f5f9",textAlign:"center",whiteSpace:"nowrap"}}>{fmtTime(g.d.thoi_gian_xoa)}</td>
+                  <td style={{fontSize:12,fontWeight:700,color:"#1f2937",padding:"8px",borderTop:"1px solid #f1f5f9",wordBreak:"break-word"}}>{g.d.ten_du_an||"—"}</td>
+                  <td style={{fontSize:11,color:"#374151",padding:"8px",borderTop:"1px solid #f1f5f9",textAlign:"center",whiteSpace:"nowrap"}}>{g.d.dong_xe||"—"}</td>
+                  <td style={{fontSize:11,color:"#374151",padding:"8px",borderTop:"1px solid #f1f5f9",textAlign:"center"}}>{g.d.sl_xe??"—"}</td>
+                  <td style={{fontSize:11,color:"#374151",padding:"8px",borderTop:"1px solid #f1f5f9",textAlign:"center",whiteSpace:"nowrap"}}>{g.d.ngay_khoi_tao||"—"}</td>
+                  <td style={{fontSize:11,color:"#374151",padding:"8px",borderTop:"1px solid #f1f5f9",textAlign:"center",whiteSpace:"nowrap"}}>{g.d.ngay_hoan_thanh||"—"}</td>
+                  <td style={{padding:"8px",borderTop:"1px solid #f1f5f9",textAlign:"center"}}>
+                    <button onClick={()=>onDelLog(g.id)} title="Xóa mục nhật ký này"
+                      style={{border:"none",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:10,padding:"4px 8px",background:"#fee2e2",color:"#dc2626"}}>✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, dbUpsertUser, labelOverrides, setLabelOverrides, dbUpsertLabel, dbDeleteLabel, activeLine, customFieldDefs, setCustomFieldDefs, dbUpsertCustomField, gopYList, setGopYList, dbMarkGopYRead, huongDanList, setHuongDanList, dbUpsertHuongDan, dbDeleteHuongDan}){
   const [subTab, setSubTab] = useState("noi_dung");
   // 📖 "Hướng Dẫn Sử Dụng PM" dùng RIÊNG bảng "huong_dan_pm" (không chung với cms_content)
@@ -4498,6 +4561,8 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
         <CustomFieldManager customFieldDefs={customFieldDefs} setCustomFieldDefs={setCustomFieldDefs} dbUpsertCustomField={dbUpsertCustomField} activeLine={activeLine}/>
       ) : subTab==="gop_y" ? (
         <FeedbackManager gopYList={gopYList} setGopYList={setGopYList} dbMarkGopYRead={dbMarkGopYRead}/>
+      ) : subTab==="xoa_du_an_log" ? (
+        <XoaDuAnLogManager items={items} setItems={setItems} dbDeleteCms={dbDeleteCms}/>
       ) : (<>
 
       <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:12,padding:16,marginBottom:20,boxShadow:"0 1px 6px rgba(15,23,42,0.05)"}}>
@@ -6718,6 +6783,46 @@ export default function App(){
     catch(e){ flash(`⚠️ Lưu trạng thái hoàn thành thất bại: ${e.message}`); }
   };
 
+  // ✅ "XÓA DA" (xóa dự án) ở màn "Tổng quan" (Giai đoạn 2 — Đang thực hiện).
+  // CHỈ tài khoản thuộc đúng đơn vị "PHÒNG KH-TH" mới được thao tác thật sự (xóa vĩnh viễn,
+  // có XÁC NHẬN 2 LẦN). Mọi đơn vị/phòng ban khác (kể cả các đơn vị dùng chung role "khth"
+  // như Phòng KT, Ban CN, Ban LĐNM...) chỉ thấy nút ở dạng CHÌM (mờ) — bấm vào chỉ hiện
+  // thông báo không có quyền, KHÔNG xóa được gì.
+  const coQuyenXoaDA = user?.don_vi==="PHÒNG KH-TH";
+  const xoaDuAnGiaiDoan2=(p)=>{
+    if(!coQuyenXoaDA){
+      alert("Bạn không được quyền thực hiện chức năng này.");
+      return;
+    }
+    if(!window.confirm(`⚠️ XÓA DỰ ÁN "${p.ten}"?\n\nToàn bộ dữ liệu (BOM, lịch sử giao/nhận vật tư, phiếu soạn hàng...) của dự án này sẽ bị xóa và KHÔNG THỂ khôi phục.\n\nBấm OK để tiếp tục.`)) return;
+    if(!window.confirm(`XÁC NHẬN LẦN CUỐI: Xóa VĨNH VIỄN dự án "${p.ten}"?\n\nBấm OK để xóa ngay.`)) return;
+    setProjs(ps=>ps.filter(x=>x.id!==p.id));
+    dbDeleteProj(p.id);
+    // ✅ Ghi Nhật ký xóa dự án (lưu vào "Quản trị CMS" → "🗑️ Nhật ký xóa dự án"):
+    // người xóa, đơn vị, thời gian xóa, tên dự án, dòng xe, SL xe, ngày khởi tạo, ngày hoàn thành.
+    const logId="xoa_du_an_log_"+Date.now();
+    const logRow={
+      id:logId, loai:"xoa_du_an_log",
+      tieu_de:`Xóa dự án: ${p.ten}`,
+      mo_ta:JSON.stringify({
+        nguoi_xoa:user?.ten||user?.id||"—",
+        don_vi_xoa:user?.don_vi||"—",
+        thoi_gian_xoa:new Date().toISOString(),
+        ten_du_an:p.ten||"—",
+        dong_xe:nhanDongXe(activeLine).text||activeLine||"—",
+        sl_xe:p.so_xe??"—",
+        ngay_khoi_tao:p.ngay_khoi_tao||"—",
+        ngay_hoan_thanh:p.ngay_hoan_thanh||"—",
+      }),
+      anh:"", lien_ket:"", thu_tu:0, an_hien:true,
+      updated_at:new Date().toISOString(),
+    };
+    dbUpsertCms(logRow);
+    setCmsItems(list=>[...list, logRow]);
+    flash(`✓ Đã xóa dự án "${p.ten}"`);
+  };
+
+
   // ── Lưu soanDB vào localStorage mỗi khi thay đổi ──
   useEffect(()=>{try{localStorage.setItem("soanDB",JSON.stringify(soanDB));}catch{};},[soanDB]);
 
@@ -8540,6 +8645,16 @@ Bạn có chắc chắn không?`;
                       padding:"7px 12px",cursor:duDieuKien?"pointer":"not-allowed",opacity:duDieuKien?1:0.6,
                       boxShadow:duDieuKien?"0 2px 0 rgba(0,0,0,0.18)":"none",whiteSpace:"nowrap"}}>
                     Hoàn thành
+                  </button>
+                  <button onClick={(e)=>{e.stopPropagation();xoaDuAnGiaiDoan2(p);}}
+                    title={coQuyenXoaDA?"Xóa vĩnh viễn dự án này":""}
+                    style={{flexShrink:0,border:"none",borderRadius:8,fontWeight:800,fontSize:11,
+                      padding:"7px 12px",cursor:"pointer",whiteSpace:"nowrap",
+                      background:coQuyenXoaDA?"#dc2626":"#e5e7eb",
+                      color:coQuyenXoaDA?"#fff":"#9ca3af",
+                      opacity:coQuyenXoaDA?1:0.55,
+                      boxShadow:coQuyenXoaDA?"0 2px 0 rgba(0,0,0,0.18)":"none"}}>
+                    🗑️ XÓA DA
                   </button>
                 </div>
                 );
