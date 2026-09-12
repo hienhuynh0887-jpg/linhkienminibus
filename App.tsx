@@ -6391,10 +6391,21 @@ export default function App(){
     if(!phRes?.length) throw new Error("Supabase không xác nhận lưu được phiếu (khả năng cao do Row Level Security chặn quyền ghi bảng phieu) — kiểm tra lại RLS policy trên Supabase");
     if(ct?.length){
       const {data:ctRes,error:ctErr}=await supabase.from(T("phieu_ct")).upsert(ct).select("id");
+      // ✅ FIX MỚI: nếu ghi "phieu_ct" thất bại (dù có error rõ ràng hay bị RLS chặn âm
+      // thầm), TỰ ĐỘNG XÓA LUÔN dòng "phieu" vừa ghi ở trên (rollback thủ công, vì 2 lệnh
+      // upsert này không nằm trong 1 transaction). Nếu không rollback, dòng "phieu" mồ côi
+      // (có tong nhưng KHÔNG có phieu_ct) vẫn còn trên Supabase — lần tải dữ liệu kế tiếp
+      // (chuyển tab, mở lại app...) sẽ tự động "hồi sinh" lại y hệt phiếu lỗi cũ (0 mã,
+      // 0/0 duyệt) dù người dùng đã thấy báo lỗi và tưởng phiếu đã bị huỷ.
+      if(ctErr||( (ctRes?.length||0)<ct.length )){
+        try{ await supabase.from(T("phieu")).delete().eq("id",phData.id); }
+        catch(e){ console.error("dbSavePhieu: rollback xoá phieu mồ côi thất bại:",e); }
+      }
       if(ctErr) throw new Error("Lỗi lưu chi tiết phiếu: "+ctErr.message);
       if((ctRes?.length||0)<ct.length) throw new Error(`Supabase chỉ lưu được ${ctRes?.length||0}/${ct.length} dòng chi tiết vật tư (khả năng cao do Row Level Security chặn quyền ghi bảng phieu_ct) — kiểm tra lại RLS policy trên bảng phieu_ct. Nếu không sửa, bên nhận sẽ thấy phiếu "${ph.sp}" bị THIẾU MÃ hoặc trống trơn!`);
     }
   };
+
   // ✅ FIX: Bảng "chi tiết giao xe" trước đây KHÔNG lưu lên Supabase — dbAddLS chỉ là hàm
   // rỗng (no-op) do quyết định cũ "không phát sinh thêm dữ liệu" cho MỌI loại lịch sử (tạo
   // mới BOM, xuất kho, duyệt phiếu...). Giờ bật lại RIÊNG cho việc ghi nhận GIAO XE (gọi từ
@@ -7756,6 +7767,7 @@ export default function App(){
     setPhDB(s=>({...s,[pid]:[ph,...(s[pid]||[])]}));
     dbSavePhieu(ph).catch(e=>{
       console.error("dbSavePhieu:",e);
+      alert("❌ GỬI ĐƠN THẤT BẠI — phiếu KHÔNG được lưu lên hệ thống:\n\n"+e.message+"\n\nVui lòng chụp lại màn hình này rồi gửi cho người quản trị Supabase để kiểm tra.");
       flash("❌ LƯU PHIẾU THẤT BẠI: "+e.message);
       // Rollback: gỡ phiếu khỏi local state để không hiển thị "phiếu ma" (có vẻ đã gửi
       // nhưng thực chất chưa lưu được lên Supabase) — tránh trường hợp XƯỞNG HÀN mở lên
@@ -7857,6 +7869,7 @@ Bạn có chắc chắn không?`;
     setPhDB(s=>({...s,[pid]:[ph,...(s[pid]||[])]}));
     dbSavePhieu(ph).catch(e=>{
       console.error("dbSavePhieu:",e);
+      alert("❌ LƯU PHIẾU THẤT BẠI — phiếu KHÔNG được lưu lên hệ thống:\n\n"+e.message+"\n\nVui lòng chụp lại màn hình này rồi gửi cho người quản trị Supabase để kiểm tra.");
       flash("❌ LƯU PHIẾU THẤT BẠI: "+e.message);
       // Rollback: gỡ phiếu khỏi local state để không hiển thị "phiếu ma" (có vẻ đã gửi
       // nhưng thực chất chưa lưu được lên Supabase) — tránh trường hợp XƯỞNG HÀN mở lên
