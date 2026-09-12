@@ -543,31 +543,31 @@ PROJS_DEF.forEach(p=>{initBom[p.id]=[];}); // Không seed — chờ dữ liệu 
 //  USERS & AUTH
 // ═══════════════════════════════════════════════════════════════
 const USERS_DEF = [
-  {id:"admin",  ten:"QUẢN TRỊ VIÊN", pw:"thck2024", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"🏭", mau:"#1d4ed8"},
-  {id:"thck01", ten:"NGUYỄN VĂN AN", pw:"thck01",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"thck02", ten:"TRẦN THỊ BÍCH", pw:"thck02",   role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
-  {id:"xh01",   ten:"LÊ VĂN CƯỜNG",  pw:"xh01",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
-  {id:"xh02",   ten:"PHẠM THỊ DUNG", pw:"xh02",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
-  {id:"xh03",   ten:"HOÀNG VĂN EM",  pw:"xh03",     role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
-  {id:"kho",    ten:"QUẢN LÝ KHO",   pw:"kho2024",  role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"📦", mau:"#0f766e"},
-  {id:"kho01",  ten:"TRẦN VĂN HÙNG", pw:"kho01",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"kho02",  ten:"NGUYỄN THỊ LAN",pw:"kho02",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"kho03",  ten:"LÊ VĂN MINH",   pw:"kho03",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"kho04",  ten:"PHẠM THỊ NGA",  pw:"kho04",    role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
-  {id:"khth",   ten:"PHÒNG KH-TH",  pw:"khth2024", role:"khth",     don_vi:"PHÒNG KH-TH",  avatar:"📋", mau:"#7c3aed"},
+  {id:"admin",  ten:"QUẢN TRỊ VIÊN", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"🏭", mau:"#1d4ed8"},
+  {id:"thck01", ten:"NGUYỄN VĂN AN", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
+  {id:"thck02", ten:"TRẦN THỊ BÍCH", role:"thck",     don_vi:"NHÀ MÁY THCK", avatar:"👤", mau:"#1d4ed8"},
+  {id:"xh01",   ten:"LÊ VĂN CƯỜNG",  role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh02",   ten:"PHẠM THỊ DUNG", role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"xh03",   ten:"HOÀNG VĂN EM",  role:"khth", don_vi:"XƯỞNG HÀN",    avatar:"📋", mau:"#b45309"},
+  {id:"kho",    ten:"QUẢN LÝ KHO",   role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"📦", mau:"#0f766e"},
+  {id:"kho01",  ten:"TRẦN VĂN HÙNG", role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"kho02",  ten:"NGUYỄN THỊ LAN",role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"kho03",  ten:"LÊ VĂN MINH",   role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"kho04",  ten:"PHẠM THỊ NGA",  role:"kho",      don_vi:"KHO VẬT TƯ",   avatar:"🏪", mau:"#0f766e"},
+  {id:"khth",   ten:"PHÒNG KH-TH",  role:"khth",     don_vi:"PHÒNG KH-TH",  avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị "theo dõi tổng thể" — chỉ xem (Vật tư · Phiếu GN · Báo Cáo), không
   // soạn hàng/nhận hàng/quản lý BOM/người dùng. Vai trò suy ra từ donViBaseRole (mặc định "khth").
-  {id:"phongkt01", ten:"NV PHÒNG KT",   pw:"phongkt01", role:"khth", don_vi:"PHÒNG KT",   avatar:"📋", mau:"#7c3aed"},
-  {id:"bancn01",   ten:"NV BAN CN",     pw:"bancn01",   role:"khth", don_vi:"BAN CN",     avatar:"📋", mau:"#7c3aed"},
-  {id:"banldnm01", ten:"NV BAN LĐNM",   pw:"banldnm01", role:"khth", don_vi:"BAN LĐNM",   avatar:"📋", mau:"#7c3aed"},
+  {id:"phongkt01", ten:"NV PHÒNG KT",   role:"khth", don_vi:"PHÒNG KT",   avatar:"📋", mau:"#7c3aed"},
+  {id:"bancn01",   ten:"NV BAN CN",     role:"khth", don_vi:"BAN CN",     avatar:"📋", mau:"#7c3aed"},
+  {id:"banldnm01", ten:"NV BAN LĐNM",   role:"khth", don_vi:"BAN LĐNM",   avatar:"📋", mau:"#7c3aed"},
   // ✅ Các đơn vị chuyên trách riêng từng dòng xe — mỗi đơn vị chỉ Soạn Hàng/Nhận Hàng
   // đúng dòng xe được cấp quyền (xem LINE_QUYEN_DEFAULT). Vai trò suy ra từ quy ước tên
   // (donViBaseRole): "KHO ..." → kho (Soạn Hàng), "XH_..." → xuonghan (Duyệt/Nhận Hàng).
-  {id:"kho_citybus01", ten:"NV KHO CITYBUS",  pw:"citybus01", role:"kho",      don_vi:"KHO CITYBUS", avatar:"📦", mau:"#0fe0a4"},
-  {id:"kho_12m01",     ten:"NV KHO 12M",      pw:"kho12m01",  role:"kho",      don_vi:"KHO 12M",     avatar:"📦", mau:"#2f8fff"},
-  {id:"xh_minibus01",  ten:"NV XƯỞNG MINIBUS",pw:"xhmini01",  role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#ff9a1f"},
-  {id:"xh_citybus01",  ten:"NV XƯỞNG CITYBUS",pw:"xhcity01",  role:"xuonghan", don_vi:"XH_CITYBUS",  avatar:"🚌", mau:"#0fe0a4"},
-  {id:"xh_12_01",      ten:"NV XƯỞNG 12M",    pw:"xh12m01",   role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
+  {id:"kho_citybus01", ten:"NV KHO CITYBUS",  role:"kho",      don_vi:"KHO CITYBUS", avatar:"📦", mau:"#0fe0a4"},
+  {id:"kho_12m01",     ten:"NV KHO 12M",      role:"kho",      don_vi:"KHO 12M",     avatar:"📦", mau:"#2f8fff"},
+  {id:"xh_minibus01",  ten:"NV XƯỞNG MINIBUS",role:"xuonghan", don_vi:"XH_MINIBUS",  avatar:"🚐", mau:"#ff9a1f"},
+  {id:"xh_citybus01",  ten:"NV XƯỞNG CITYBUS",role:"xuonghan", don_vi:"XH_CITYBUS",  avatar:"🚌", mau:"#0fe0a4"},
+  {id:"xh_12_01",      ten:"NV XƯỞNG 12M",    role:"xuonghan", don_vi:"XH_12",       avatar:"🚍", mau:"#2f8fff"},
 ];
 
 // ✅ Tài khoản có quyền QUẢN TRỊ TOÀN HỆ THỐNG (toàn quyền cả 3 dòng xe, thấy tab CMS,
@@ -2113,10 +2113,14 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
   //     để tự chọn dòng muốn theo dõi, rồi mới vào hệ thống chính.
   //   - Đơn vị chưa được cấp dòng xe nào (0 dòng) → vẫn dừng ở màn chọn để hiển thị thông
   //     báo "chưa được cấp quyền" rõ ràng thay vì im lặng chặn truy cập.
-  const handleGateLogin=(e)=>{
+  const handleGateLogin=async(e)=>{
     e.preventDefault();
     if(!uid2){setErr(t.errNoAcc);return;}
-    const u=userList.find(u=>u.id===uid2&&u.pw===pw);
+    // ✅ BẢO MẬT: không còn so sánh mật khẩu ở client. Toàn bộ việc kiểm tra mật khẩu
+    // (đã băm bcrypt) diễn ra trong hàm SECURITY DEFINER "login_user" trên Supabase —
+    // client chỉ nhận về user object nếu đúng mật khẩu, KHÔNG BAO GIỜ nhận hash.
+    const {data:u,error:loginErr}=await supabase.rpc("login_user",{p_id:uid2,p_pw:pw});
+    if(loginErr){console.error("login_user RPC error:",loginErr);setErr("Lỗi hệ thống, vui lòng thử lại!");return;}
     if(!u){setErr(t.errBadPw);return;}
     setErr("");
     setAuthedUser(u);
@@ -2462,13 +2466,13 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
               <button onClick={async()=>{
                 setCpwErr2("");setCpwOk2("");
                 if(!cpwForm2.cur||!cpwForm2.next||!cpwForm2.confirm){setCpwErr2("Vui lòng điền đầy đủ!");return;}
-                if(cpwForm2.cur!==authedUser.pw){setCpwErr2("Mật khẩu hiện tại không đúng!");return;}
                 if(cpwForm2.next.length<4){setCpwErr2("Mật khẩu mới tối thiểu 4 ký tự!");return;}
                 if(cpwForm2.next!==cpwForm2.confirm){setCpwErr2("Mật khẩu mới không khớp!");return;}
-                const updated={...authedUser,pw:cpwForm2.next};
-                setAuthedUser(updated);
-                setUserList(us=>us.map(u=>u.id===authedUser.id?{...u,pw:cpwForm2.next}:u));
-                try{ await supabase.from("users").update({pw:cpwForm2.next}).eq("id",authedUser.id); }catch{}
+                // ✅ BẢO MẬT: xác thực mật khẩu cũ + băm mật khẩu mới đều thực hiện trong RPC
+                // "change_password" trên Supabase (bcrypt), không còn so sánh/lưu plaintext.
+                const {data:ok,error:cpErr}=await supabase.rpc("change_password",{p_id:authedUser.id,p_old_pw:cpwForm2.cur,p_new_pw:cpwForm2.next});
+                if(cpErr){console.error("change_password RPC error:",cpErr);setCpwErr2("Lỗi hệ thống, vui lòng thử lại!");return;}
+                if(!ok){setCpwErr2("Mật khẩu hiện tại không đúng!");return;}
                 setCpwOk2("Đổi mật khẩu thành công!");
                 setTimeout(()=>{setShowCpw2(false);setCpwOk2("");},1500);
               }} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",background:"#65a30d",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
@@ -3043,18 +3047,28 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
   // chủ rồi mới cập nhật state cục bộ + báo "✓ Đã thêm"; nếu thất bại, báo lỗi rõ ràng và KHÔNG
   // thêm vào danh sách, tránh ảo giác "đã tạo xong" trong khi máy chủ chưa hề có bản ghi đó.
   const save=async()=>{
-    if(!form.id.trim()||!form.ten.trim()||!form.pw.trim()){fl("⚠️ Điền đủ thông tin!");return;}
+    // ✅ BẢO MẬT: khi SỬA tài khoản, để trống ô mật khẩu = giữ nguyên mật khẩu cũ (không
+    // bắt buộc nhập lại). Khi TẠO MỚI vẫn bắt buộc có mật khẩu ban đầu.
+    if(!form.id.trim()||!form.ten.trim()||(!editing&&!form.pw.trim())){fl("⚠️ Điền đủ thông tin!");return;}
+    const {pw:newPw,...formNoPw}=form; // ⚠️ KHÔNG gửi trường "pw" xuống bảng "users" nữa
     if(editing){
-      const updated={...(users.find(u=>u.id===editing)||{}),...form};
+      const updated={...(users.find(u=>u.id===editing)||{}),...formNoPw};
       const ok = dbUpsertUser ? await dbUpsertUser(updated) : true;
       if(!ok){ fl("⚠️ Lưu lên máy chủ THẤT BẠI — chưa cập nhật!"); return; }
+      if(newPw&&newPw.trim()){
+        // Băm mật khẩu mới qua RPC "admin_set_password" (bcrypt phía server)
+        const {error:pwErr}=await supabase.rpc("admin_set_password",{p_id:editing,p_new_pw:newPw});
+        if(pwErr){console.error("admin_set_password RPC error:",pwErr);fl("⚠️ Đã lưu thông tin nhưng ĐỔI MẬT KHẨU thất bại!");return;}
+      }
       setUsers(l=>l.map(u=>u.id===editing?updated:u));
       fl("✓ Đã cập nhật");
     } else {
       if(users.find(u=>u.id===form.id)){fl("⚠️ ID đã tồn tại!");return;}
-      const newUser={...form};
+      const newUser={...formNoPw};
       const ok = dbUpsertUser ? await dbUpsertUser(newUser) : true;
       if(!ok){ fl("⚠️ Lưu lên máy chủ THẤT BẠI — tài khoản CHƯA được tạo, vui lòng thử lại!"); return; }
+      const {error:pwErr}=await supabase.rpc("admin_set_password",{p_id:newUser.id,p_new_pw:newPw});
+      if(pwErr){console.error("admin_set_password RPC error:",pwErr);fl("⚠️ Đã tạo tài khoản nhưng ĐẶT MẬT KHẨU thất bại — hãy sửa lại mật khẩu!");}
       setUsers(l=>[...l,newUser]);
       fl("✓ Đã thêm tài khoản");
     }
@@ -3262,8 +3276,8 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             <input value={form.ten} onChange={e=>setForm(f=>({...f,ten:e.target.value}))} style={inp} placeholder="Nguyễn Văn A"/>
           </div>
           <div>
-            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Mật khẩu *</label>
-            <input value={form.pw} onChange={e=>setForm(f=>({...f,pw:e.target.value}))} style={inp} placeholder="Mật khẩu"/>
+            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>{editing?"Đặt lại mật khẩu (để trống nếu không đổi)":"Mật khẩu *"}</label>
+            <input value={form.pw} onChange={e=>setForm(f=>({...f,pw:e.target.value}))} style={inp} placeholder={editing?"Để trống = giữ nguyên":"Mật khẩu"}/>
           </div>
           <div>
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Vai trò</label>
@@ -3374,7 +3388,9 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
                           ?<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#dcfce7",color:"#15803d",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>Online</span>
                           :<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"#f3f4f6",color:"#9ca3af",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:700}}><span style={{width:7,height:7,borderRadius:"50%",background:"#cbd5e1",display:"inline-block"}}/>Offline</span>}
                       </td>
-                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>{"•".repeat(Math.min(u.pw.length,8))}</td>
+                      {/* ✅ BẢO MẬT: mật khẩu (đã băm) không còn được tải về client nên không thể hiển
+                          thị độ dài thật — chỉ hiện chuỗi chấm cố định làm placeholder trực quan. */}
+                      <td style={{padding:"8px 12px",fontFamily:"monospace",fontSize:11,color:"#9ca3af"}}>••••••••</td>
                       <td style={{padding:"8px 12px"}}><button onClick={()=>startEdit(u)} style={{...btn,background:"#fef3c7",color:"#92400e"}}>Sửa</button></td>
                       <td style={{padding:"8px 12px"}}><button onClick={()=>del(u.id)} disabled={u.id===currentUser.id} style={{...btn,background:u.id===currentUser.id?"#f3f4f6":"#fee2e2",color:u.id===currentUser.id?"#9ca3af":"#991b1b"}}>Xóa</button></td>
                     </tr>
@@ -12227,17 +12243,16 @@ Bạn có chắc chắn không?`;
             <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
               <button onClick={()=>{setShowChangePw(false);setCpwForm({cur:"",next:"",confirm:""});setCpwErr("");setCpwOk("");}}
                 style={{border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13,padding:"8px 16px",background:"#f3f4f6",color:"#374151"}}>Hủy</button>
-              <button onClick={()=>{
+              <button onClick={async()=>{
                 setCpwErr("");setCpwOk("");
                 if(!cpwForm.cur||!cpwForm.next||!cpwForm.confirm){setCpwErr("Vui lòng điền đầy đủ!");return;}
-                if(cpwForm.cur!==user.pw){setCpwErr("Mật khẩu hiện tại không đúng!");return;}
                 if(cpwForm.next.length<4){setCpwErr("Mật khẩu mới tối thiểu 4 ký tự!");return;}
                 if(cpwForm.next!==cpwForm.confirm){setCpwErr("Mật khẩu mới không khớp!");return;}
-                // Cập nhật state user + danh sách users
-                const updated={...user,pw:cpwForm.next};
-                setUser(updated);
-                setUsers(us=>us.map(u=>u.id===user.id?{...u,pw:cpwForm.next}:u));
-                dbUpsertUser&&dbUpsertUser({...user,pw:cpwForm.next});
+                // ✅ BẢO MẬT: xác thực mật khẩu cũ + băm mật khẩu mới đều thực hiện trong RPC
+                // "change_password" trên Supabase (bcrypt), không còn so sánh/lưu plaintext.
+                const {data:ok,error:cpErr}=await supabase.rpc("change_password",{p_id:user.id,p_old_pw:cpwForm.cur,p_new_pw:cpwForm.next});
+                if(cpErr){console.error("change_password RPC error:",cpErr);setCpwErr("Lỗi hệ thống, vui lòng thử lại!");return;}
+                if(!ok){setCpwErr("Mật khẩu hiện tại không đúng!");return;}
                 setCpwOk("Đổi mật khẩu thành công!");
                 setCpwForm({cur:"",next:"",confirm:""});
                 setTimeout(()=>{setShowChangePw(false);setCpwOk("");},1500);
