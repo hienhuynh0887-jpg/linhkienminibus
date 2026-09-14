@@ -404,6 +404,145 @@ function IconChatHeart3D({size=30}){ // 💬 GÓP Ý KIẾN - CẢI TIẾN PM
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  🎨 ICON 3D — dùng cho các KHỐI nhóm trong "CMS — Quản lý Nội dung"
+//  (Nội dung hiển thị / Giao diện & Hình ảnh / Tài khoản & Bảo mật /
+//  Tùy biến dữ liệu / Phản hồi & Nhật ký) — cùng phong cách 3D/neon
+//  (nền tròn radial-gradient tối + khối gradient nổi bật + nét sáng trang trí).
+// ═══════════════════════════════════════════════════════════════
+function IconContentStack3D({size=30}){ // 📝 NỘI DUNG HIỂN THỊ
+  const id="ct"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#0e4f4f"/><stop offset="100%" stopColor="#052222"/>
+        </radialGradient>
+        <linearGradient id={id+"cd"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#99f6e4"/><stop offset="100%" stopColor="#0d9488"/>
+        </linearGradient>
+        <linearGradient id={id+"ph"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="9" y="14" width="46" height="36" rx="5" fill={`url(#${id}cd)`} stroke="#052222" strokeWidth="1.2"/>
+      <rect x="14" y="19" width="15" height="13" rx="2" fill={`url(#${id}ph)`}/>
+      <circle cx="18.5" cy="23.5" r="2" fill="#fffbeb"/>
+      <path d="M14.5 31 L20 25.5 L23.5 29 L27.5 24 L28.5 31 Z" fill="#92400e" opacity=".85"/>
+      <line x1="33" y1="21" x2="50" y2="21" stroke="#052222" strokeWidth="2" opacity=".55" strokeLinecap="round"/>
+      <line x1="33" y1="27" x2="50" y2="27" stroke="#052222" strokeWidth="2" opacity=".55" strokeLinecap="round"/>
+      <line x1="14" y1="38" x2="50" y2="38" stroke="#052222" strokeWidth="1.8" opacity=".4" strokeLinecap="round"/>
+      <line x1="14" y1="43" x2="40" y2="43" stroke="#052222" strokeWidth="1.8" opacity=".4" strokeLinecap="round"/>
+      <circle cx="47" cy="17" r="1.6" fill="#99f6e4"/>
+    </svg>
+  );
+}
+
+function IconLayoutDash3D({size=30}){ // 🧭 GIAO DIỆN & HÌNH ẢNH
+  const id="ld"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#581c87"/><stop offset="100%" stopColor="#160726"/>
+        </radialGradient>
+        <linearGradient id={id+"hd"} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#f0abfc"/><stop offset="100%" stopColor="#a855f7"/>
+        </linearGradient>
+        <linearGradient id={id+"sb"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c4b5fd"/><stop offset="100%" stopColor="#7c3aed"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="10" y="13" width="44" height="38" rx="5" fill="#f3e8ff" stroke="#6b21a8" strokeWidth="1.2"/>
+      <rect x="10" y="13" width="44" height="10" rx="5" fill={`url(#${id}hd)`}/>
+      <rect x="10" y="23" width="14" height="28" fill={`url(#${id}sb)`}/>
+      <rect x="29" y="28" width="20" height="6" rx="2" fill="#e9d5ff"/>
+      <rect x="29" y="38" width="20" height="6" rx="2" fill="#e9d5ff"/>
+      <circle cx="47" cy="17" r="1.6" fill="#3b0764"/>
+    </svg>
+  );
+}
+
+function IconShieldKey3D({size=30}){ // 🔐 TÀI KHOẢN & BẢO MẬT
+  const id="sk"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#7c2d12"/><stop offset="100%" stopColor="#1a0805"/>
+        </radialGradient>
+        <linearGradient id={id+"sh"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fdba74"/><stop offset="45%" stopColor="#f97316"/><stop offset="100%" stopColor="#c2410c"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <path d="M32 10 L50 17 V30 C50 43 42 51 32 55 C22 51 14 43 14 30 V17 Z" fill={`url(#${id}sh)`} stroke="#7c2d12" strokeWidth="1.3"/>
+      <circle cx="32" cy="29" r="5.5" fill="#fff7ed"/>
+      <rect x="29.6" y="33" width="4.8" height="10" rx="2.2" fill="#fff7ed"/>
+      <circle cx="16" cy="16" r="1.5" fill="#fed7aa"/>
+    </svg>
+  );
+}
+
+function IconPuzzleTable3D({size=30}){ // 🧩 TÙY BIẾN DỮ LIỆU
+  const id="pt"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#0c4a6e"/><stop offset="100%" stopColor="#03101c"/>
+        </radialGradient>
+        <linearGradient id={id+"tb"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#bae6fd"/><stop offset="100%" stopColor="#0284c7"/>
+        </linearGradient>
+        <linearGradient id={id+"pz"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="10" y="14" width="34" height="34" rx="4" fill={`url(#${id}tb)`} stroke="#0c4a6e" strokeWidth="1.2"/>
+      <line x1="10" y1="25" x2="44" y2="25" stroke="#0c4a6e" strokeWidth="1.4" opacity=".55"/>
+      <line x1="10" y1="36" x2="44" y2="36" stroke="#0c4a6e" strokeWidth="1.4" opacity=".55"/>
+      <line x1="21" y1="14" x2="21" y2="48" stroke="#0c4a6e" strokeWidth="1.4" opacity=".55"/>
+      <line x1="33" y1="14" x2="33" y2="48" stroke="#0c4a6e" strokeWidth="1.4" opacity=".4"/>
+      <path d="M38 30 h9 a3.2 3.2 0 0 1 0 6.4 a3.2 3.2 0 1 0 0 6.4 h-9 v-6.4 a3.2 3.2 0 1 1 0 -6.4 Z" fill={`url(#${id}pz)`} stroke="#92400e" strokeWidth="1"/>
+      <circle cx="16" cy="18" r="1.4" fill="#e0f2fe"/>
+    </svg>
+  );
+}
+
+function IconNotebookBell3D({size=30}){ // 📬 PHẢN HỒI & NHẬT KÝ
+  const id="nb"+Math.random().toString(36).slice(2,8);
+  return(
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{display:"block"}}>
+      <defs>
+        <radialGradient id={id+"bg"} cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#1e3a6b"/><stop offset="100%" stopColor="#0a0e1e"/>
+        </radialGradient>
+        <linearGradient id={id+"nt"} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fef9c3"/><stop offset="100%" stopColor="#fbbf24"/>
+        </linearGradient>
+        <linearGradient id={id+"bl"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fca5a5"/><stop offset="100%" stopColor="#dc2626"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill={`url(#${id}bg)`}/>
+      <rect x="12" y="11" width="30" height="42" rx="4" fill={`url(#${id}nt)`} stroke="#92400e" strokeWidth="1.1"/>
+      <line x1="12" y1="20" x2="42" y2="20" stroke="#92400e" strokeWidth="1.3" opacity=".5"/>
+      <line x1="17" y1="27" x2="37" y2="27" stroke="#92400e" strokeWidth="1.6" opacity=".55" strokeLinecap="round"/>
+      <line x1="17" y1="33" x2="37" y2="33" stroke="#92400e" strokeWidth="1.6" opacity=".55" strokeLinecap="round"/>
+      <line x1="17" y1="39" x2="30" y2="39" stroke="#92400e" strokeWidth="1.6" opacity=".55" strokeLinecap="round"/>
+      <g transform="translate(44,42)">
+        <path d="M0 -9 a7 7 0 0 1 7 7 v3 l2.4 3.6 h-18.8 L-7 1 v-3 a7 7 0 0 1 7 -7 Z" fill={`url(#${id}bl)`} stroke="#7f1d1d" strokeWidth="1"/>
+        <circle cy="8.6" r="2.2" fill={`url(#${id}bl)`}/>
+      </g>
+      <circle cx="18" cy="16" r="1.4" fill="#fffbeb"/>
+    </svg>
+  );
+}
+
 function IconBookGuide3D({size=30}){ // 📖 HƯỚNG DẪN SỬ DỤNG PM
   const id="bg"+Math.random().toString(36).slice(2,8);
   return(
@@ -3552,21 +3691,32 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
 //  🖼️ CMS — Quản lý Nội dung / Banner / Ảnh đại diện (CHỈ admin)
 // ═══════════════════════════════════════════════════════════════
 const CMS_LOAI = [
-  {v:"noi_dung", l:"📝 Nội dung",     mo:"Khối văn bản (tiêu đề + mô tả) hiển thị trong app."},
-  {v:"huong_dan", l:"📖 Hướng Dẫn Sử Dụng PM", mo:"Nội dung hướng dẫn sử dụng các chức năng trong phần mềm — hiển thị cho MỌI tài khoản ở tab \"📖 Hướng Dẫn Sử Dụng PM\". Lưu riêng ở bảng \"huong_dan_pm\" trên Supabase (xem SQL ở comment cạnh khai báo state huongDanList)."},
-  {v:"banner",   l:"🖼️ Banner",       mo:"Ảnh banner kèm tiêu đề, có thể gắn liên kết."},
-  {v:"banner_header", l:"🏭 Banner đầu trang", mo:"Ảnh banner hiển thị ở đầu trang chọn dòng xe (đăng nhập) — thay cho ảnh mặc định. Chỉ cần bật \"Đang áp dụng\" và chọn ảnh, KHÔNG cần sửa code. Nếu có nhiều mục đang áp dụng, mục có \"Thứ tự hiển thị\" nhỏ nhất sẽ được dùng."},
-  {v:"gate_intro", l:"🚪 Khối \"Chọn dòng xe\"", mo:"Khối \"⚡ Truy cập hệ thống chính → Bạn muốn chọn dòng xe nào?\" ở màn hình chọn dòng xe (đăng nhập) — sửa TỪNG dòng chữ, đổi màu riêng từng dòng và đổi ảnh nền cho cả khối."},
-  {v:"layout", l:"🧭 Giao diện Sidebar & Header", mo:"Điều chỉnh kích thước thanh Sidebar (trái) và Header (trên) sau khi đăng nhập, đổi ảnh nền cho Header, và sắp xếp lại thứ tự các tab hiển thị trên Sidebar — KHÔNG cần sửa code."},
-  {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
-  {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
-  {v:"email_mfa", l:"📧 Email & MFA", mo:"Quản lý email nhận mã xác thực (MFA) và bật/tắt bắt buộc xác thực 2 lớp cho từng tài khoản — quản lý tập trung tất cả tài khoản admin/có quyền tại 1 nơi, không cần mở từng tài khoản trong 👥 Người dùng."},
-  {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
-  {v:"cot_tuy_bien", l:"🧩 Cột tùy biến", mo:"Thêm TỐI ĐA 5 cột mới vào bảng vật tư (BOM) mà KHÔNG cần sửa code hay chạy SQL — chỉ cần đặt tên, chọn kiểu (chữ/số) và bật hiển thị. Áp dụng riêng theo từng dòng xe. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo."},
-  {v:"gop_y", l:"📬 Góp ý người dùng", mo:"Xem toàn bộ góp ý/phản hồi mà người dùng đã gửi từ tab \"💬 Góp Ý Kiến - Cải Tiến PM\"."},
-  {v:"xoa_du_an_log", l:"🗑️ Nhật ký xóa dự án", mo:"Lịch sử các dự án đã bị XÓA ở màn \"Tổng quan\" (nút \"XÓA DA\") — ghi lại người xóa, thời gian xóa, tên dự án, dòng xe, SL xe, ngày khởi tạo, ngày hoàn thành."},
+  {v:"noi_dung", l:"📝 Nội dung",     mo:"Khối văn bản (tiêu đề + mô tả) hiển thị trong app.", nhom:"noidung"},
+  {v:"huong_dan", l:"📖 Hướng Dẫn Sử Dụng PM", mo:"Nội dung hướng dẫn sử dụng các chức năng trong phần mềm — hiển thị cho MỌI tài khoản ở tab \"📖 Hướng Dẫn Sử Dụng PM\". Lưu riêng ở bảng \"huong_dan_pm\" trên Supabase (xem SQL ở comment cạnh khai báo state huongDanList).", nhom:"noidung"},
+  {v:"banner",   l:"🖼️ Banner",       mo:"Ảnh banner kèm tiêu đề, có thể gắn liên kết.", nhom:"noidung"},
+  {v:"banner_header", l:"🏭 Banner đầu trang", mo:"Ảnh banner hiển thị ở đầu trang chọn dòng xe (đăng nhập) — thay cho ảnh mặc định. Chỉ cần bật \"Đang áp dụng\" và chọn ảnh, KHÔNG cần sửa code. Nếu có nhiều mục đang áp dụng, mục có \"Thứ tự hiển thị\" nhỏ nhất sẽ được dùng.", nhom:"noidung"},
+  {v:"gate_intro", l:"🚪 Khối \"Chọn dòng xe\"", mo:"Khối \"⚡ Truy cập hệ thống chính → Bạn muốn chọn dòng xe nào?\" ở màn hình chọn dòng xe (đăng nhập) — sửa TỪNG dòng chữ, đổi màu riêng từng dòng và đổi ảnh nền cho cả khối.", nhom:"noidung"},
+  {v:"layout", l:"🧭 Giao diện Sidebar & Header", mo:"Điều chỉnh kích thước thanh Sidebar (trái) và Header (trên) sau khi đăng nhập, đổi ảnh nền cho Header, và sắp xếp lại thứ tự các tab hiển thị trên Sidebar — KHÔNG cần sửa code.", nhom:"giaodien"},
+  {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào.", nhom:"giaodien"},
+  {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập.", nhom:"giaodien"},
+  {v:"email_mfa", l:"📧 Email & MFA", mo:"Quản lý email nhận mã xác thực (MFA) và bật/tắt bắt buộc xác thực 2 lớp cho từng tài khoản — quản lý tập trung tất cả tài khoản admin/có quyền tại 1 nơi, không cần mở từng tài khoản trong 👥 Người dùng.", nhom:"baomat"},
+  {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này.", nhom:"tuybien"},
+  {v:"cot_tuy_bien", l:"🧩 Cột tùy biến", mo:"Thêm TỐI ĐA 5 cột mới vào bảng vật tư (BOM) mà KHÔNG cần sửa code hay chạy SQL — chỉ cần đặt tên, chọn kiểu (chữ/số) và bật hiển thị. Áp dụng riêng theo từng dòng xe. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo.", nhom:"tuybien"},
+  {v:"gop_y", l:"📬 Góp ý người dùng", mo:"Xem toàn bộ góp ý/phản hồi mà người dùng đã gửi từ tab \"💬 Góp Ý Kiến - Cải Tiến PM\".", nhom:"nhatky"},
+  {v:"xoa_du_an_log", l:"🗑️ Nhật ký xóa dự án", mo:"Lịch sử các dự án đã bị XÓA ở màn \"Tổng quan\" (nút \"XÓA DA\") — ghi lại người xóa, thời gian xóa, tên dự án, dòng xe, SL xe, ngày khởi tạo, ngày hoàn thành.", nhom:"nhatky"},
 ];
 const CMS_E0 = {id:"", loai:"noi_dung", tieu_de:"", mo_ta:"", anh:"", lien_ket:"", thu_tu:0, an_hien:true};
+
+// 🎨 Nhóm/khối các mục CMS — mỗi khối có nhãn, mô tả và icon 3D riêng để dễ nhận biết/quản lý.
+// Thứ tự trong mảng này quyết định thứ tự hiển thị các khối trên UI (xem CMS_LOAI ở trên
+// để biết mục nào thuộc khối nào, qua trường "nhom").
+const CMS_NHOM = [
+  {key:"noidung",  l:"Nội dung hiển thị",     mo:"Văn bản, hướng dẫn, banner và khối \"Chọn dòng xe\" hiển thị trong app.", Icon:IconContentStack3D, mau:"#0d9488", bg:"#f0fdfa", border:"#99f6e4"},
+  {key:"giaodien", l:"Giao diện & Hình ảnh",  mo:"Bố cục Sidebar/Header và ảnh đại diện (mẫu + tài khoản).",              Icon:IconLayoutDash3D,   mau:"#7c3aed", bg:"#faf5ff", border:"#e9d5ff"},
+  {key:"baomat",   l:"Tài khoản & Bảo mật",   mo:"Email nhận mã xác thực (MFA) và bắt buộc 2 lớp cho từng tài khoản.",   Icon:IconShieldKey3D,    mau:"#c2410c", bg:"#fff7ed", border:"#fed7aa"},
+  {key:"tuybien",  l:"Tùy biến dữ liệu",      mo:"Đổi nhãn hiển thị và thêm cột tùy biến cho bảng vật tư (BOM).",        Icon:IconPuzzleTable3D,  mau:"#0284c7", bg:"#f0f9ff", border:"#bae6fd"},
+  {key:"nhatky",   l:"Phản hồi & Nhật ký",    mo:"Góp ý của người dùng và lịch sử xóa dự án.",                          Icon:IconNotebookBell3D, mau:"#b45309", bg:"#fffbeb", border:"#fde68a"},
+];
 
 // ═══════════════════════════════════════════════════════════════
 // 🚪 KHỐI "CHỌN DÒNG XE" (màn hình đăng nhập độc lập) — ✅ Gộp 5 dòng chữ (tiêu đề +
@@ -4736,23 +4886,42 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
       <div style={{fontSize:18,fontWeight:800,color:"#0b2545",marginBottom:4}}>🖼️ CMS — Quản lý Nội dung</div>
       <div style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Chỉ tài khoản <b>admin</b> nhìn thấy và chỉnh sửa được khu vực này.</div>
 
-      {/* Chọn loại nội dung */}
-      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-        {CMS_LOAI.map(o=>{
-          const soChuaXem = o.v==="gop_y" ? (gopYList||[]).filter(g=>!g.da_xem).length : 0;
-          return (
-          <div key={o.v} onClick={()=>{setSubTab(o.v); setForm({...CMS_E0, loai:o.v}); setEditing(false);}}
-            style={{position:"relative",padding:"9px 16px",borderRadius:9,cursor:"pointer",fontWeight:700,fontSize:13,
-              background:subTab===o.v?"#0b2545":"#f1f5f9", color:subTab===o.v?"#fff":"#374151",
-              border:subTab===o.v?"2px solid #0b2545":"2px solid transparent"}}>
-            {o.l}
-            {soChuaXem>0 && (
-              <span style={{position:"absolute",top:-7,right:-7,minWidth:18,height:18,borderRadius:9,background:"#dc2626",color:"#fff",
-                fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}>
-                {soChuaXem>99?"99+":soChuaXem}
-              </span>
-            )}
-          </div>
+      {/* ── Chọn loại nội dung — phân theo KHỐI (mỗi khối có icon 3D + nhãn + mô tả riêng) để
+          dễ nhận biết/quản lý thay vì 1 dãy nút phẳng dài như trước. ── */}
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+        {CMS_NHOM.map(nh=>{
+          const mucTrongNhom=CMS_LOAI.filter(o=>o.nhom===nh.key);
+          if(mucTrongNhom.length===0)return null;
+          const dangONhom=mucTrongNhom.some(o=>o.v===subTab);
+          return(
+            <div key={nh.key} style={{background:nh.bg,border:`1.5px solid ${dangONhom?nh.mau:nh.border}`,borderRadius:14,padding:"12px 12px 12px 10px",boxShadow:dangONhom?`0 0 0 1px ${nh.mau}22`:"none"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <nh.Icon size={26}/>
+                <div style={{minWidth:0}}>
+                  <div style={{fontWeight:800,fontSize:12.5,color:nh.mau}}>{nh.l}</div>
+                  <div style={{fontSize:10,color:"#6b7280",lineHeight:1.3}}>{nh.mo}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {mucTrongNhom.map(o=>{
+                  const soChuaXem = o.v==="gop_y" ? (gopYList||[]).filter(g=>!g.da_xem).length : 0;
+                  return (
+                  <div key={o.v} onClick={()=>{setSubTab(o.v); setForm({...CMS_E0, loai:o.v}); setEditing(false);}}
+                    style={{position:"relative",padding:"8px 14px",borderRadius:9,cursor:"pointer",fontWeight:700,fontSize:12.5,
+                      background:subTab===o.v?nh.mau:"#fff", color:subTab===o.v?"#fff":"#374151",
+                      border:subTab===o.v?`2px solid ${nh.mau}`:"1.5px solid #e5e7eb"}}>
+                    {o.l}
+                    {soChuaXem>0 && (
+                      <span style={{position:"absolute",top:-7,right:-7,minWidth:18,height:18,borderRadius:9,background:"#dc2626",color:"#fff",
+                        fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}>
+                        {soChuaXem>99?"99+":soChuaXem}
+                      </span>
+                    )}
+                  </div>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
