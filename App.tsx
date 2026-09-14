@@ -616,8 +616,10 @@ const TABS_ALL = [
 const TABS_THCK     = TABS_ALL.filter(([k])=>!["users","duyet","bom_mau"].includes(k));
 const TABS_XUONGHAN = TABS_ALL.filter(([k])=>!["users"].includes(k));
 const TABS_KHO      = TABS_ALL.filter(([k])=>!["duyet","bom_mau","users"].includes(k));
-// KHTH: chỉ xem — bỏ hẳn các tab thao tác (Soạn Hàng, Duyệt Đơn, BOM Mẫu, Người dùng)
-const TABS_KHTH     = TABS_ALL.filter(([k])=>!["soan","duyet","bom_mau","users"].includes(k));
+// ✅ [Cập nhật] KHTH: trước đây "chỉ xem" (bỏ hẳn Soạn Hàng/Duyệt/BOM Mẫu) — nay đã được
+// NÂNG QUYỀN ngang với "XƯỞNG HÀN" tổng thể: thấy đủ mọi tab nghiệp vụ, chỉ vẫn ẩn
+// "👥 Người dùng" (quản lý tài khoản vẫn chỉ dành riêng cho admin/is_admin).
+const TABS_KHTH     = TABS_ALL.filter(([k])=>!["users"].includes(k));
 
 // ✅ Danh sách khoá (key) của các bộ tab theo từng VAI TRÒ — dùng làm "mặc định" cho
 // bảng "Phân quyền chức năng theo đơn vị" (xem TAB_QUYEN_DEFAULT bên dưới) khi 1 đơn vị
@@ -1900,12 +1902,12 @@ const baseRoleOfDonViName = (dv) => {
 // vị" để bớt/thêm cho đúng nhiệm vụ thực tế đã phân công).
 const TAB_QUYEN_DEFAULT = {
   "NHÀ MÁY THCK": TABS_THCK_KEYS,
-  // ✅ "XƯỞNG HÀN" (xh01/xh02/xh03, role "khth" — CHỈ XEM, không thao tác) được xem TẤT CẢ
-  // các tab nghiệp vụ (📦 Vật tư/📋 Soạn Hàng/✅ Nhận Hàng/📄 Phiếu GN/📈 Báo Cáo/🗂️ BOM Mẫu),
-  // CHỈ ẩn "👥 Người dùng" — riêng cho đơn vị này (khác với Phòng KT, Ban CN, Ban LĐNM,
-  // PHÒNG KH-TH vẫn giữ nguyên TABS_KHTH_KEYS — chỉ 3 tab xem). Vì role vẫn là "khth" nên
-  // các nút thao tác (thêm vật tư, import...) bên trong từng tab vẫn ẩn theo isKHTH — đây là
-  // XEM ĐƯỢC MỌI TAB để theo dõi, không phải được thao tác.
+  // ✅ [Cập nhật] Toàn bộ nhóm role "khth" (XƯỞNG HÀN tổng thể xh01/02/03, PHÒNG KH-TH,
+  // Phòng KT, Ban CN, Ban LĐNM) giờ ĐÃ được xem đủ mọi tab nghiệp vụ (📦 Vật tư/📋 Soạn
+  // Hàng/✅ Kiểm Tra Xác Nhận/📄 Phiếu GN/📈 Báo Cáo/🗂️ BOM Mẫu), chỉ ẩn "👥 Người dùng"
+  // (quản lý tài khoản vẫn dành riêng cho admin/is_admin) — TABS_KHTH_KEYS giờ tương đương
+  // TABS_XUONGHAN_KEYS. Nút Thêm/Sửa/Xoá/Import trong tab 📦 Vật tư cũng đã được mở (biến
+  // isKHTH trước đây từng ẩn các nút này đã được gỡ bỏ, xem khối render tab "ds").
   // (Các đơn vị chuyên trách thật sự duyệt/nhận hàng theo dòng xe là "XH_MINIBUS",
   // "XH_CITYBUS", "XH_12" bên dưới — vẫn giữ nguyên đầy đủ chức năng.)
   "XƯỞNG HÀN":    TABS_XUONGHAN_KEYS,
@@ -2001,6 +2003,15 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
   const [cpwShow2, setCpwShow2] = useState({cur:false,next:false,confirm:false});
   const [cpwErr2, setCpwErr2] = useState("");
   const [cpwOk2, setCpwOk2] = useState("");
+  // ✅ MFA (xác thực 2 lớp qua email OTP) — dùng thẳng supabase.auth.signInWithOtp/verifyOtp
+  // của Supabase (email OTP có sẵn, KHÔNG cần dịch vụ gửi email ngoài / API key riêng).
+  // Chỉ áp dụng cho tài khoản có cờ mfa_required=true (admin + tài khoản được cấp quyền
+  // thêm/sửa/xoá — xem cột "Bắt buộc MFA" trong bảng 👥 Người dùng).
+  const [mfaPendingUser, setMfaPendingUser] = useState(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaErr, setMfaErr] = useState("");
+  const [mfaInfo, setMfaInfo] = useState("");
+  const [mfaSending, setMfaSending] = useState(false);
   const {lang} = useLang();
   const t = LOGIN_I18N[lang];
 
@@ -2113,6 +2124,25 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
   //     để tự chọn dòng muốn theo dõi, rồi mới vào hệ thống chính.
   //   - Đơn vị chưa được cấp dòng xe nào (0 dòng) → vẫn dừng ở màn chọn để hiển thị thông
   //     báo "chưa được cấp quyền" rõ ràng thay vì im lặng chặn truy cập.
+  // ✅ Tách phần "hoàn tất đăng nhập" (điều hướng theo đơn vị/quyền) ra hàm riêng để
+  // dùng chung cho cả luồng đăng nhập thường VÀ luồng sau khi xác thực MFA thành công.
+  const completeLogin=(u)=>{
+    setAuthedUser(u);
+    const allowed=getAllowedLines(u);
+    const directEntry=getDirectEntry(u.don_vi);
+    if(directEntry){
+      setActiveLine(directEntry.line);
+      onLogin(u, userList, {openNewProject:false, line:directEntry.line, directTab:directEntry.tab});
+      return;
+    }
+    if(allowed.length===1){
+      setActiveLine(allowed[0]);
+      onLogin(u, userList, {openNewProject:false, line:allowed[0]});
+      return;
+    }
+    goStep("select");
+  };
+
   const handleGateLogin=async(e)=>{
     e.preventDefault();
     if(!uid2){setErr(t.errNoAcc);return;}
@@ -2123,27 +2153,46 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
     if(loginErr){console.error("login_user RPC error:",loginErr);setErr("Lỗi hệ thống, vui lòng thử lại!");return;}
     if(!u){setErr(t.errBadPw);return;}
     setErr("");
-    setAuthedUser(u);
-    const allowed=getAllowedLines(u);
-    const directEntry=getDirectEntry(u.don_vi);
-    if(directEntry){
-      // ✅ Đơn vị chuyên trách (NHÀ MÁY THCK/KHO VẬT TƯ/KHO CITYBUS/KHO 12M/XH_MINIBUS/
-      // XH_CITYBUS/XH_12) → BẮT BUỘC vào thẳng đúng tab VÀ đúng dòng xe cố định của mình,
-      // không qua màn chọn dòng xe lẫn Tổng Quan/Danh mục dự án, không phụ thuộc thứ tự
-      // bảng phân quyền đã lưu trên Supabase.
-      setActiveLine(directEntry.line);
-      onLogin(u, userList, {openNewProject:false, line:directEntry.line, directTab:directEntry.tab});
+    // ✅ MFA: tài khoản admin / có quyền thêm-sửa-xoá (mfa_required=true) phải xác thực
+    // thêm mã OTP gửi qua email trước khi được coi là đăng nhập xong. Luôn ép buộc MFA cho
+    // 2 tài khoản admin đặc biệt (admin/xh04) dù cột mfa_required trong DB có bị thiếu.
+    if(u.mfa_required || isAdminAccount(u)){
+      if(!u.email){
+        setErr("Tài khoản này bắt buộc xác thực 2 lớp (MFA) nhưng CHƯA có email — vui lòng liên hệ Quản trị viên để bổ sung email trong mục 👥 Người dùng.");
+        return;
+      }
+      setMfaPendingUser(u); setMfaCode(""); setMfaErr(""); setMfaInfo(""); setMfaSending(true);
+      const {error:otpErr}=await supabase.auth.signInWithOtp({email:u.email, options:{shouldCreateUser:true}});
+      setMfaSending(false);
+      if(otpErr){ console.error("signInWithOtp error:",otpErr); setErr("Không gửi được mã xác thực về email, vui lòng thử lại!"); setMfaPendingUser(null); return; }
+      setStep("mfa");
       return;
     }
-    if(allowed.length===1){
-      // ✅ Đơn vị 1-dòng-xe khác (đơn vị tuỳ chỉnh thêm sau này, chưa có trong bảng
-      // DIRECT_ENTRY_TAB_BY_DON_VI ở trên) → vẫn vào thẳng Hệ thống chính theo vai trò,
-      // KHÔNG truyền statusId (statusId:"inprogress" dẫn nhầm vào màn "Tổng Quan").
-      setActiveLine(allowed[0]);
-      onLogin(u, userList, {openNewProject:false, line:allowed[0]});
-      return;
-    }
-    goStep("select");
+    completeLogin(u);
+  };
+
+  // Gửi lại mã OTP (khi hết hạn/chưa nhận được email)
+  const resendMfaCode=async()=>{
+    if(!mfaPendingUser?.email) return;
+    setMfaSending(true); setMfaErr(""); setMfaInfo("");
+    const {error}=await supabase.auth.signInWithOtp({email:mfaPendingUser.email, options:{shouldCreateUser:true}});
+    setMfaSending(false);
+    if(error){ setMfaErr("Gửi lại mã thất bại, vui lòng thử lại sau."); return; }
+    setMfaInfo("Đã gửi lại mã mới về email của bạn.");
+  };
+
+  // Xác minh mã OTP vừa nhập — đúng thì hoàn tất đăng nhập như bình thường.
+  const verifyMfaCode=async()=>{
+    if(!mfaCode.trim()){ setMfaErr("Vui lòng nhập mã xác thực!"); return; }
+    setMfaErr(""); setMfaInfo("");
+    const {error}=await supabase.auth.verifyOtp({email:mfaPendingUser.email, token:mfaCode.trim(), type:"email"});
+    if(error){ setMfaErr("Mã xác thực không đúng hoặc đã hết hạn!"); return; }
+    // App không dùng phiên đăng nhập của Supabase Auth ở bất kỳ đâu khác — đăng xuất
+    // ngay khỏi phiên này để không lẫn với cơ chế đăng nhập nội bộ (bảng users) của app.
+    try{ await supabase.auth.signOut(); }catch{}
+    const u=mfaPendingUser;
+    setMfaPendingUser(null); setMfaCode("");
+    completeLogin(u);
   };
 
   // ── Bước 2: Chọn dòng xe ──
@@ -2259,6 +2308,61 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
                 <button type="submit" className="gate-submit">Đăng nhập →</button>
               </form>
 
+              <div className="gate-foot">KIM LONG MOTOR HUẾ &nbsp;·&nbsp; HỆ THỐNG NỘI BỘ &nbsp;·&nbsp; V1.0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════════ BƯỚC MFA: xác thực mã OTP gửi về email ════════════════
+  if(step==="mfa"){
+    return(
+      <div className="kl-select-login kl-gate">
+        <style>{KL_LOGIN_CSS}</style>
+        <div className="gate-grid">
+          <div className="gate-visual">
+            <div className="gate-visual-inner">
+              <div className="gate-visual-content">
+                <div className="gate-visual-eyebrow">Kim Long Motor · Huế</div>
+                <h2 className="gate-visual-title">Xác thực<br/>2 lớp (MFA)</h2>
+                <p className="gate-visual-sub">Tài khoản của bạn có quyền quản trị/chỉnh sửa nên cần xác thực thêm để bảo vệ hệ thống.</p>
+              </div>
+            </div>
+          </div>
+          <div className="gate-form-panel">
+            <div className="gate-box">
+              <div className="gate-eyebrow">Bước xác thực bổ sung</div>
+              <h1 className="gate-title">Nhập mã xác thực</h1>
+              <p className="gate-sub">
+                Mã gồm 6 số vừa được gửi tới email{" "}
+                <b>{mfaPendingUser?.email}</b>. Mã có hiệu lực trong ít phút.
+              </p>
+              <form onSubmit={e=>{e.preventDefault();verifyMfaCode();}}>
+                <div className="field field-icon">
+                  <label>Mã xác thực</label>
+                  <div className="input-wrap">
+                    <input type="text" inputMode="numeric" maxLength={8} value={mfaCode}
+                      onChange={e=>{setMfaCode(e.target.value);setMfaErr("");}}
+                      placeholder="••••••" autoComplete="one-time-code" autoFocus required
+                      style={{letterSpacing:4,fontWeight:700,fontSize:18}}/>
+                  </div>
+                </div>
+                {mfaErr && <div className="gate-err">⚠️ {mfaErr}</div>}
+                {mfaInfo && <div className="gate-err" style={{background:"#ecfdf5",color:"#065f46",borderColor:"#a7f3d0"}}>✓ {mfaInfo}</div>}
+                <button type="submit" className="gate-submit" disabled={mfaSending}>Xác nhận →</button>
+              </form>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:14,fontSize:12.5}}>
+                <button type="button" onClick={resendMfaCode} disabled={mfaSending}
+                  style={{background:"none",border:"none",color:"#1d4ed8",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  {mfaSending?"Đang gửi...":"Gửi lại mã"}
+                </button>
+                <button type="button" onClick={()=>{setMfaPendingUser(null);setMfaCode("");setMfaErr("");setMfaInfo("");setStep("gate");}}
+                  style={{background:"none",border:"none",color:"#6b7280",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  ← Quay lại đăng nhập
+                </button>
+              </div>
               <div className="gate-foot">KIM LONG MOTOR HUẾ &nbsp;·&nbsp; HỆ THỐNG NỘI BỘ &nbsp;·&nbsp; V1.0</div>
             </div>
           </div>
@@ -2729,7 +2833,7 @@ function DeleteDeptModal({modal,onClose,onConfirm}){
 
 function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, lockOtherXH, lineQuyen, setLineQuyen, dbUpsertQuyenDongXe, tabQuyen, setTabQuyen, dbUpsertQuyenChucNang}){
   const {t} = useLang();
-  const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});
+  const [form, setForm]   = useState({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false,email:"",mfa_required:false});
   const [editing,setEdit] = useState(null);
   const [flash2, setFlash2]= useState("");
   // ── State cho giao diện gọn (accordion) + tìm kiếm ──
@@ -3072,7 +3176,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
       setUsers(l=>[...l,newUser]);
       fl("✓ Đã thêm tài khoản");
     }
-    setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});setEdit(null);
+    setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false,email:"",mfa_required:false});setEdit(null);
   };
   const del=id=>{
     if(id===currentUser.id){fl("⚠️ Không thể xóa tài khoản đang dùng!");return;}
@@ -3082,7 +3186,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
     fl("✓ Đã xóa");
   };
   const startEdit=u=>{setForm({...u});setEdit(u.id);setAddOpen(true);};
-  const resetForm=()=>{setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false});setEdit(null);};
+  const resetForm=()=>{setForm({id:"",ten:"",pw:"",role:"xuonghan",don_vi:"XƯỞNG HÀN",avatar:"🔧",is_admin:false,email:"",mfa_required:false});setEdit(null);};
 
   // Coi là "Online" nếu last_active trong vòng 45s gần nhất (heartbeat gửi mỗi 20s)
   const ONLINE_MS=45000;
@@ -3280,6 +3384,17 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
             <input value={form.pw} onChange={e=>setForm(f=>({...f,pw:e.target.value}))} style={inp} placeholder={editing?"Để trống = giữ nguyên":"Mật khẩu"}/>
           </div>
           <div>
+            {/* ✅ MFA: cần email để gửi mã OTP xác thực 2 lớp khi bật "Bắt buộc MFA" bên dưới. */}
+            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Email (dùng để gửi mã MFA)</label>
+            <input type="email" value={form.email||""} onChange={e=>setForm(f=>({...f,email:e.target.value.trim()}))} style={inp} placeholder="ten@congty.com"/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6,paddingTop:18}}>
+            <input id="mfa_required_chk" type="checkbox" checked={!!form.mfa_required} onChange={e=>setForm(f=>({...f,mfa_required:e.target.checked}))} style={{width:16,height:16}}/>
+            <label htmlFor="mfa_required_chk" style={{fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer"}}>
+              🔐 Bắt buộc xác thực 2 lớp (MFA)
+            </label>
+          </div>
+          <div>
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:3}}>Vai trò</label>
             <select
               value={customDepts.includes(form.don_vi)?`${form.role}::${form.don_vi}`:form.role}
@@ -3309,7 +3424,7 @@ function UsersPanel({currentUser, users, setUsers, dbUpsertUser, dbDeleteUser, l
           </div>
         </div>
         <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,padding:"9px 12px",background:form.is_admin?"#fef3c7":"#f8fafc",border:form.is_admin?"1.5px solid #f59e0b":"1.5px solid #e5e7eb",borderRadius:8,cursor:"pointer",width:"fit-content"}}>
-          <input type="checkbox" checked={!!form.is_admin} onChange={e=>setForm(f=>({...f,is_admin:e.target.checked}))} style={{width:16,height:16,cursor:"pointer"}}/>
+          <input type="checkbox" checked={!!form.is_admin} onChange={e=>setForm(f=>({...f,is_admin:e.target.checked,mfa_required:e.target.checked?true:f.mfa_required}))} style={{width:16,height:16,cursor:"pointer"}}/>
           <span style={{fontSize:12.5,fontWeight:700,color:"#92400e"}}>🛡️ Cấp quyền Quản trị viên (Admin — toàn quyền cả 3 dòng xe, thấy tab CMS &amp; Người dùng)</span>
         </label>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -3445,6 +3560,7 @@ const CMS_LOAI = [
   {v:"layout", l:"🧭 Giao diện Sidebar & Header", mo:"Điều chỉnh kích thước thanh Sidebar (trái) và Header (trên) sau khi đăng nhập, đổi ảnh nền cho Header, và sắp xếp lại thứ tự các tab hiển thị trên Sidebar — KHÔNG cần sửa code."},
   {v:"avatar",   l:"👤 Ảnh đại diện (mẫu)", mo:"Kho ảnh đại diện MẪU dùng chung, chưa gắn cho tài khoản cụ thể nào."},
   {v:"tai_khoan", l:"📸 Ảnh đại diện Tài khoản", mo:"Tải và gắn TRỰC TIẾP 1 ảnh đại diện thật cho từng tài khoản đăng nhập — ảnh này sẽ hiện ngay ở góc phải thanh header (cạnh chuông thông báo) khi tài khoản đó đăng nhập."},
+  {v:"email_mfa", l:"📧 Email & MFA", mo:"Quản lý email nhận mã xác thực (MFA) và bật/tắt bắt buộc xác thực 2 lớp cho từng tài khoản — quản lý tập trung tất cả tài khoản admin/có quyền tại 1 nơi, không cần mở từng tài khoản trong 👥 Người dùng."},
   {v:"nhan", l:"🏷️ Nhãn / Tên cột", mo:"Đổi chữ hiển thị (Việt/Trung) của bất kỳ nhãn nào trong app — vd tên cột BOM (\"ĐM/1XE\", \"Vị trí\"...) — mà KHÔNG cần sửa code. Import Excel cũng tự nhận diện tên cột theo nhãn mới này."},
   {v:"cot_tuy_bien", l:"🧩 Cột tùy biến", mo:"Thêm TỐI ĐA 5 cột mới vào bảng vật tư (BOM) mà KHÔNG cần sửa code hay chạy SQL — chỉ cần đặt tên, chọn kiểu (chữ/số) và bật hiển thị. Áp dụng riêng theo từng dòng xe. Cột sẽ tự hiện ở Form Thêm/Sửa, bảng danh sách, Import Excel và Xuất báo cáo."},
   {v:"gop_y", l:"📬 Góp ý người dùng", mo:"Xem toàn bộ góp ý/phản hồi mà người dùng đã gửi từ tab \"💬 Góp Ý Kiến - Cải Tiến PM\"."},
@@ -3991,6 +4107,88 @@ function AccountAvatarManager({users, setUsers, dbUpsertUser}){
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  📧 AccountEmailMfaManager — quản lý TẬP TRUNG email nhận mã MFA + bật/tắt bắt buộc
+//  xác thực 2 lớp cho từng tài khoản, ngay trong "Quản Trị CMS" (thay vì phải mở từng
+//  tài khoản trong 👥 Người dùng). Dùng lại nguyên field "email"/"mfa_required" đã có
+//  sẵn trên bảng "users" (xem mfa_setup.sql) — không cần bảng/cột mới nào khác.
+// ═══════════════════════════════════════════════════════════════
+function AccountEmailMfaManager({users, setUsers, dbUpsertUser}){
+  const [q, setQ] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const [drafts, setDrafts] = useState({}); // {id:{email,mfa_required}} — thay đổi CHƯA lưu
+  const btn={border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,padding:"7px 14px"};
+  const inp={padding:"7px 10px",border:"1.5px solid #c7d2fe",borderRadius:7,fontSize:12.5,outline:"none",fontFamily:"inherit",background:"#f8fafc",width:"100%",boxSizing:"border-box"};
+
+  const list = (users||[]).filter(u=>{
+    const s=q.trim().toLowerCase();
+    if(!s) return true;
+    return u.ten.toLowerCase().includes(s) || u.id.toLowerCase().includes(s) || (u.don_vi||"").toLowerCase().includes(s);
+  }).sort((a,b)=> (b.mfa_required?1:0)-(a.mfa_required?1:0) || a.ten.localeCompare(b.ten));
+
+  const getDraft = (u) => drafts[u.id] || {email:u.email||"", mfa_required:!!u.mfa_required};
+  const setDraft = (id, patch) => setDrafts(d=>({...d, [id]:{...getDraft({id,email:"",mfa_required:false}), ...(d[id]||{}), ...patch}}));
+
+  const save = async(u)=>{
+    const draft = getDraft(u);
+    const email = (draft.email||"").trim();
+    if(draft.mfa_required && !email){
+      alert(`⚠️ Tài khoản "${u.ten}" cần có email trước khi bật "Bắt buộc MFA" — nếu không sẽ không đăng nhập được!`);
+      return;
+    }
+    setBusyId(u.id);
+    const updated = {...u, email, mfa_required:!!draft.mfa_required};
+    const ok = await dbUpsertUser(updated);
+    setBusyId("");
+    if(!ok){ alert("⚠️ Lưu thất bại, vui lòng thử lại!"); return; }
+    setUsers(list=>list.map(x=>x.id===u.id?updated:x));
+    setDrafts(d=>{ const n={...d}; delete n[u.id]; return n; });
+  };
+
+  return(
+    <div>
+      <div style={{fontSize:12,color:"#6b7280",marginBottom:14,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:"10px 12px"}}>
+        📧 Nhập email cho từng tài khoản để hệ thống gửi mã xác thực (MFA) khi đăng nhập, và tick <b>"🔐 Bắt buộc MFA"</b> cho tài khoản cần bảo vệ thêm (admin, tài khoản có quyền thêm/sửa/xoá...). Tài khoản đã bật MFA nhưng CHƯA có email sẽ bị chặn đăng nhập kèm cảnh báo.
+      </div>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔎 Tìm theo tên / ID / đơn vị..."
+        style={{width:"100%",padding:"9px 12px",border:"1.5px solid #c7d2fe",borderRadius:8,fontSize:13,marginBottom:14,boxSizing:"border-box",outline:"none",fontFamily:"inherit"}}/>
+      <div style={{display:"grid",gap:8}}>
+        {list.length===0 && <div style={{textAlign:"center",color:"#9ca3af",fontSize:13,padding:24}}>Không tìm thấy tài khoản.</div>}
+        {list.map(u=>{
+          const draft = getDraft(u);
+          const changed = draft.email!==(u.email||"") || !!draft.mfa_required!==!!u.mfa_required;
+          const missingEmail = u.mfa_required && !u.email;
+          return (
+            <div key={u.id} style={{display:"flex",alignItems:"center",gap:10,background:missingEmail?"#fef2f2":"#fff",border:missingEmail?"1.5px solid #fecaca":"1.5px solid #e5e7eb",borderRadius:10,padding:10,flexWrap:"wrap"}}>
+              <div style={{width:40,height:40,borderRadius:"50%",overflow:"hidden",flexShrink:0,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,border:"1.5px solid #e5e7eb"}}>
+                {isImgAvatar(u.avatar) ? <img src={u.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : (u.avatar||"👤")}
+              </div>
+              <div style={{minWidth:110}}>
+                <div style={{fontWeight:700,fontSize:12.5,color:"#0b2545"}}>{u.ten}{isAdminAccount(u)&&" 🛡️"}</div>
+                <div style={{fontSize:10.5,color:"#9ca3af",fontFamily:"monospace"}}>{u.id} · {u.don_vi}</div>
+              </div>
+              <div style={{flex:1,minWidth:180}}>
+                <input type="email" value={draft.email} onChange={e=>setDraft(u.id,{email:e.target.value})}
+                  placeholder="ten@congty.com" style={inp}/>
+              </div>
+              <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",whiteSpace:"nowrap"}}>
+                <input type="checkbox" checked={!!draft.mfa_required} onChange={e=>setDraft(u.id,{mfa_required:e.target.checked})} style={{width:15,height:15,cursor:"pointer"}}/>
+                <span style={{fontSize:11.5,fontWeight:700,color:"#374151"}}>🔐 Bắt buộc MFA</span>
+              </label>
+              {missingEmail && !changed && <span style={{fontSize:11,fontWeight:700,color:"#dc2626"}}>⚠️ Thiếu email!</span>}
+              {changed && (
+                <button onClick={()=>save(u)} disabled={busyId===u.id} style={{...btn,background:"#0b2545",color:"#fff",opacity:busyId===u.id?.6:1}}>
+                  {busyId===u.id?"Đang lưu...":"💾 Lưu"}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -4571,6 +4769,8 @@ function CmsPanel({items, setItems, dbUpsertCms, dbDeleteCms, users, setUsers, d
         <AppLayoutManager items={items} setItems={setItems} dbUpsertCms={dbUpsertCms} dbDeleteCms={dbDeleteCms}/>
       ) : subTab==="tai_khoan" ? (
         <AccountAvatarManager users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
+      ) : subTab==="email_mfa" ? (
+        <AccountEmailMfaManager users={users} setUsers={setUsers} dbUpsertUser={dbUpsertUser}/>
       ) : subTab==="nhan" ? (
         <LabelManager labelOverrides={labelOverrides} setLabelOverrides={setLabelOverrides} dbUpsertLabel={dbUpsertLabel} dbDeleteLabel={dbDeleteLabel} activeLine={activeLine}/>
       ) : subTab==="cot_tuy_bien" ? (
@@ -8802,7 +9002,12 @@ Bạn có chắc chắn không?`;
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
-                  const maConThieuNg=tongMa-maDaNhanNg;
+                  // ✅ FIX: tách riêng "Giao thiếu" (ĐÃ từng giao một phần, XH đã duyệt >0, nhưng
+                  // vẫn còn thiếu — v.giaoThieu) khỏi "Chưa nhận" (CHƯA từng giao gì — v.chuaSoan
+                  // hoặc đã gửi nhưng XH chưa duyệt). Trước đây "SL thiếu" = tongMa-maDaNhanNg gộp
+                  // chung cả 2 nhóm, khiến mã "chưa giao" bị hiện nhầm vào mục "Thiếu SL".
+                  const maGiaoThieuNg=itemsNg.filter(v=>v.giaoThieu).length;
+                  const maChuaNhanNg=tongMa-maDaNhanNg-maGiaoThieuNg;
                   return(
                     <div key={nguon} style={{flex:"1 1 160px",minWidth:150,borderRadius:10,overflow:"hidden",border:`1.5px solid ${bd}`}}>
                       <div style={{padding:"8px 10px",background:bgLight,display:"flex",alignItems:"center",gap:6}}>
@@ -8819,7 +9024,11 @@ Bạn có chắc chắn không?`;
                         </div>
                         <div onClick={()=>setTqVtOpen(s=>s.nguon===nguon&&s.field==="thieu"?{nguon:"",field:""}:{nguon,field:"thieu"})}
                           style={{display:"flex",justifyContent:"space-between",fontSize:11,cursor:"pointer",padding:"3px 4px",borderRadius:6,background:tqVtOpen.nguon===nguon&&tqVtOpen.field==="thieu"?"#fef2f2":"transparent"}}>
-                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maConThieuNg>0?"#dc2626":"#16a34a",textDecoration:"underline"}}>{fmt(maConThieuNg)}</b>
+                          <span style={{color:"#6b7280"}}>SL thiếu</span><b style={{color:maGiaoThieuNg>0?"#dc2626":"#16a34a",textDecoration:"underline"}}>{fmt(maGiaoThieuNg)}</b>
+                        </div>
+                        <div onClick={()=>setTqVtOpen(s=>s.nguon===nguon&&s.field==="chuanhan"?{nguon:"",field:""}:{nguon,field:"chuanhan"})}
+                          style={{display:"flex",justifyContent:"space-between",fontSize:11,cursor:"pointer",padding:"3px 4px",borderRadius:6,background:tqVtOpen.nguon===nguon&&tqVtOpen.field==="chuanhan"?"#fef2f2":"transparent"}}>
+                          <span style={{color:"#6b7280"}}>SL chưa nhận</span><b style={{color:maChuaNhanNg>0?"#dc2626":"#16a34a",textDecoration:"underline"}}>{fmt(maChuaNhanNg)}</b>
                         </div>
                       </div>
                     </div>
@@ -8844,8 +9053,14 @@ Bạn có chắc chắn không?`;
               </div>
               {tqVtOpen.nguon&&(()=>{
                 const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===tqVtOpen.nguon);
-                const rows=tqVtOpen.field==="done"?itemsNg.filter(v=>v.done):itemsNg.filter(v=>!v.done);
-                const tieuDe=`${tqVtOpen.nguon} · ${tqVtOpen.field==="done"?"Đã nhận":"Còn thiếu"} (${rows.length})`;
+                // ✅ FIX: "thieu" = ĐÃ từng giao một phần nhưng còn thiếu (v.giaoThieu — không
+                // gồm mã chưa từng giao gì); "chuanhan" = phần còn lại chưa nhận đủ nhưng
+                // KHÔNG thuộc giaoThieu (chưa soạn/gửi hoặc đang chờ duyệt).
+                const rows=tqVtOpen.field==="done"?itemsNg.filter(v=>v.done)
+                  :tqVtOpen.field==="thieu"?itemsNg.filter(v=>v.giaoThieu)
+                  :itemsNg.filter(v=>!v.done&&!v.giaoThieu);
+                const tieuDeNhan=tqVtOpen.field==="done"?"Đã nhận":tqVtOpen.field==="thieu"?"Giao thiếu":"Chưa nhận";
+                const tieuDe=`${tqVtOpen.nguon} · ${tieuDeNhan} (${rows.length})`;
                 const vtCols="30px 70px 170px 64px 80px 80px 62px";
                 return(
                 <div style={{margin:"0 16px 16px",border:"1.5px solid #e5e7eb",borderRadius:10,overflow:"hidden"}}>
@@ -8872,10 +9087,10 @@ Bạn có chắc chắn không?`;
                           <span style={{fontSize:10.5,color:"#374151"}}>{fmt(v.dm)}</span>
                           <span style={{fontSize:10.5,color:"#374151",wordBreak:"break-word"}}>{v.vt||"—"}</span>
                           <span style={{fontSize:10.5,color:"#374151",wordBreak:"break-word"}}>{v.ng||"—"}</span>
-                          {tqVtOpen.field==="thieu"?(
-                            <span style={{fontSize:10,fontWeight:800,color:"#dc2626",background:"#fee2e2",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.ct)}</span>
-                          ):(
+                          {tqVtOpen.field==="done"?(
                             <span style={{fontSize:10,fontWeight:800,color:"#16a34a",background:"#dcfce7",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.dn)}</span>
+                          ):(
+                            <span style={{fontSize:10,fontWeight:800,color:"#dc2626",background:"#fee2e2",borderRadius:8,padding:"2px 6px",whiteSpace:"nowrap",textAlign:"center"}}>{fmt(v.ct)}</span>
                           )}
                         </div>
                       ))}
@@ -8901,8 +9116,10 @@ Bạn có chắc chắn không?`;
                           <td style="color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                         </tr>`).join("");
                         const daNhanNg=itemsNg.filter(v=>v.done).length;
-                        await xuatPDF(`<h2>📋 Chi tiết vật tư ${tqVtOpen.nguon} — ${tqVtOpen.field==="thieu"?"Còn thiếu":"Đã nhận"} (${rows.length} mã)</h2>
-                          <p class="sub">🚌 ${proj.icon||""} ${proj.ten} · ${itemsNg.length} mã · Đã nhận ${daNhanNg} · Còn thiếu ${itemsNg.length-daNhanNg}</p>
+                        const giaoThieuNgPdf=itemsNg.filter(v=>v.giaoThieu).length;
+                        const chuaNhanNgPdf=itemsNg.length-daNhanNg-giaoThieuNgPdf;
+                        await xuatPDF(`<h2>📋 Chi tiết vật tư ${tqVtOpen.nguon} — ${tieuDeNhan} (${rows.length} mã)</h2>
+                          <p class="sub">🚌 ${proj.icon||""} ${proj.ten} · ${itemsNg.length} mã · Đã nhận ${daNhanNg} · Giao thiếu ${giaoThieuNgPdf} · Chưa nhận ${chuaNhanNgPdf}</p>
                           <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Vị trí</th><th>Cần</th><th>Đã nhận</th><th>Còn thiếu</th></tr></thead><tbody>${rowsHtml}</tbody></table>`,
                           `VatTu_${tqVtOpen.nguon}_${tqVtOpen.field}`);
                       }catch(e){
@@ -8923,7 +9140,7 @@ Bạn có chắc chắn không?`;
                           "Định mức":v.dm,
                           "Vị trí":v.vt,
                           "Nguồn gốc":v.ng,
-                          [tqVtOpen.field==="thieu"?"SL thiếu":"SL đã nhận"]: tqVtOpen.field==="thieu"?(v.ct||0):(v.dn||0)
+                          [tqVtOpen.field==="done"?"SL đã nhận":"SL thiếu"]: tqVtOpen.field==="done"?(v.dn||0):(v.ct||0)
                         }));
                         await xuatExcel(rows2, `VatTu_${tqVtOpen.nguon}_${tqVtOpen.field}`, tieuDe);
                       }catch(e){
@@ -9281,7 +9498,12 @@ Bạn có chắc chắn không?`;
   const isTHCK    = role==="thck";
   const isXH      = role==="xuonghan";
   const isKHO     = role==="kho";
-  const isKHTH    = role==="khth";       // Vai trò mới — CHỈ XEM, không thao tác
+  const isKHTH    = role==="khth";       // Nhóm PHÒNG KH-TH/Phòng KT/Ban CN/Ban LĐNM/XH tổng thể — ĐÃ được cấp quyền Thêm/Sửa/Xoá vật tư (chỉ còn dùng để hiển thị màu/nhãn riêng, KHÔNG còn chặn thao tác)
+  // ✅ Nhóm role "khth" giờ cũng được thao tác trong tab "✅ Kiểm Tra Xác Nhận" (duyệt/xác
+  // nhận phiếu) và "🗂️ Tạo BOM Mẫu" — dùng biến RIÊNG này thay vì đổi thẳng isXH, để KHÔNG
+  // ảnh hưởng tới các quyền vẫn còn giữ nguyên chỉ dành cho "xuonghan" (nút "+ Thêm mới"
+  // nhanh và "🗑️ Xoá Bom" trong tab 📦 Vật tư).
+  const canApprove = isXH || isKHTH;
   // ✅ Bộ tab hiển thị = giao giữa (a) chức năng đã cấp cho ĐƠN VỊ của tài khoản (bảng
   // "Phân quyền chức năng theo đơn vị" — tabQuyen, mặc định theo TAB_QUYEN_DEFAULT nếu
   // Admin chưa tuỳ chỉnh) và (b) thứ tự/nhãn chuẩn của TABS_ALL. Nhờ vậy mỗi đơn vị chỉ
@@ -9866,8 +10088,11 @@ Bạn có chắc chắn không?`;
                   </button>
                 )}
               </div>
-              {!isKHTH&&<button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 10px",fontSize:13,border:"1px solid #bbf7d0",width:"100%",justifyContent:"center"}}>📊 Import Excel</button>}
-              {!isKHTH&&<button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>}
+              {/* ✅ Nâng cấp: nhóm vai trò "khth" (PHÒNG KH-TH, Phòng KT, Ban CN, Ban LĐNM, XH
+                  theo dõi tổng thể) trước đây CHỈ XEM — nay được cấp quyền Thêm/Sửa/Xoá/Import
+                  giống các vai trò khác, nên bỏ điều kiện !isKHTH từng chặn 2 nút dưới đây. */}
+              <button onClick={()=>{importPidRef.current=pid;setShowXlsImport(true);}} style={{...btn,background:"#f0fdf4",color:"#065f46",padding:"7px 10px",fontSize:13,border:"1px solid #bbf7d0",width:"100%",justifyContent:"center"}}>📊 Import Excel</button>
+              <button onClick={()=>setShowImport(true)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"7px 10px",fontSize:13,border:"1px solid #bfdbfe",width:"100%",justifyContent:"center"}}>➕ Thêm vật tư</button>
               {isXH&&<button onClick={()=>{setCur({...E0,ng:DMS[0]||""});setModal("add");}} style={{...btn,background:mauP,color:"#fff",padding:"7px 10px",fontSize:13,width:"100%",justifyContent:"center",gridColumn:"1 / -1"}}>+ Thêm mới</button>}
             </div>
 
@@ -9905,12 +10130,12 @@ Bạn có chắc chắn không?`;
                 const is12m=activeLine==="12m";
                 const cfList=getEnabledCustomFields();
                 const cfColsPx=cfList.map(()=>" 90px").join("");
-                const vtCols=`44px 100px minmax(200px,1fr) 100px 90px 70px 60px 70px 90px 110px 60px${is12m?" 110px 80px 120px 80px 90px":""}${cfColsPx}${!isKHTH?" 80px":""}`;
-                const vtMinWidth=994+(is12m?480:0)+cfList.length*90+(!isKHTH?90:0);
+                const vtCols=`44px 100px minmax(200px,1fr) 100px 90px 70px 60px 70px 90px 110px 60px${is12m?" 110px 80px 120px 80px 90px":""}${cfColsPx} 80px`;
+                const vtMinWidth=994+(is12m?480:0)+cfList.length*90+90;
                 const vtHeaders=[t("thSTT"),t("thMa"),t("thTen"),t("thNguonGoc"),t("lbVT"),"JIG",t("thDVT"),t("thDM"),t("thCanNhan"),t("thGhiChu"),"Ảnh",
                   ...(is12m?["Check GH29Y","Phân xưởng","DxRxD(mm)","Trạm/Xí","TN XH"]:[]),
                   ...cfList.map(f=>f.label),
-                  ...(!isKHTH?["Thao tác"]:[])];
+                  ...["Thao tác"]];
                 return(
                 // ✅ Bảng cuộn CẢ 4 HƯỚNG (lên/xuống/trái/phải) thay vì hiện hết toàn bộ mã ra
                 // dài vô hạn: khung ngoài (overflowX) cho cuộn NGANG khi nhiều cột, khung trong
@@ -9953,12 +10178,10 @@ Bạn có chắc chắn không?`;
                       {cfList.map(f=>(
                         <div key={f.slot} style={{padding:"8px 8px",textAlign:"center",wordBreak:"break-word"}}>{v.tuy_bien?.[f.slot]||"—"}</div>
                       ))}
-                      {!isKHTH&&(
-                        <div style={{padding:"6px 6px",display:"flex",gap:4,justifyContent:"center"}}>
-                          <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"4px 7px",fontSize:11}}>✏️</button>
-                          <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"4px 7px",fontSize:11}}>🗑️</button>
-                        </div>
-                      )}
+                      <div style={{padding:"6px 6px",display:"flex",gap:4,justifyContent:"center"}}>
+                        <button onClick={()=>{setCur({...E0,...v});setModal("edit");}} style={{...btn,background:"#fef3c7",color:"#92400e",padding:"4px 7px",fontSize:11}}>✏️</button>
+                        <button onClick={()=>del(v)} style={{...btn,background:"#fee2e2",color:"#991b1b",padding:"4px 7px",fontSize:11}}>🗑️</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -10274,7 +10497,7 @@ Bạn có chắc chắn không?`;
 
 
         {/* ── DUYỆT ĐƠN HÀNG (XH) ── */}
-        {tab==="duyet"&&isXH&&(()=>{
+        {tab==="duyet"&&canApprove&&(()=>{
           // Chỉ lấy phiếu của dự án đang chọn (pid) — mỗi dự án chỉ thấy phiếu duyệt của dự án đó
           const allPh=(phDB[pid]||[]).map(ph=>({...ph,projId:pid}));
           const choXN=allPh.filter(ph=>ph.tt==="Chờ xác nhận");
@@ -10593,7 +10816,7 @@ Bạn có chắc chắn không?`;
                         </div>
                         <div style={{display:"flex",gap:6}}>
                           <button onClick={()=>setViewPh(ph)} style={{...btn,background:"#eff6ff",color:"#1d4ed8",padding:"4px 11px",fontSize:11}}>Xem</button>
-                          {isXH&&ph.tt!=="Đã xác nhận"&&<button onClick={()=>xacNhan(ph.id,pid)} style={{...btn,background:"#d1fae5",color:"#065f46",padding:"4px 11px",fontSize:11}}>✓ Xác nhận</button>}
+                          {canApprove&&ph.tt!=="Đã xác nhận"&&<button onClick={()=>xacNhan(ph.id,pid)} style={{...btn,background:"#d1fae5",color:"#065f46",padding:"4px 11px",fontSize:11}}>✓ Xác nhận</button>}
                         </div>
                       </div>
                       {ph.gc&&<div style={{fontSize:11,color:"#6b7280",marginTop:4}}>💬 {ph.gc}</div>}
@@ -10859,9 +11082,17 @@ Bạn có chắc chắn không?`;
                   const itemsNg=th.filter(v=>(v.ng||"").trim().toUpperCase()===nguon);
                   const tongMa=itemsNg.length;
                   const maDaNhanNg=itemsNg.filter(v=>v.done).length;
-                  const maConThieuNg=tongMa-maDaNhanNg;
-                  const filterMode=bcBlockOpen[nguon]||""; // ""(đóng) · "done"(Đã nhận) · "thieu"(Còn thiếu)
-                  const itemsFiltered=filterMode==="done"?itemsNg.filter(v=>v.done):filterMode==="thieu"?itemsNg.filter(v=>!v.done):[];
+                  // ✅ FIX: tách riêng "Giao thiếu" (ĐÃ giao một phần, XH duyệt >0, còn thiếu —
+                  // v.giaoThieu) khỏi "Chưa nhận" (CHƯA từng giao gì / đang chờ duyệt). Trước đây
+                  // "Còn thiếu" = tongMa-maDaNhanNg gộp chung 2 nhóm, khiến mã "chưa giao" (chưa
+                  // soạn lần nào) cũng bị hiện nhầm vào thẻ "Còn thiếu" (SL thiếu).
+                  const maGiaoThieuNg=itemsNg.filter(v=>v.giaoThieu).length;
+                  const maChuaNhanNg=tongMa-maDaNhanNg-maGiaoThieuNg;
+                  const filterMode=bcBlockOpen[nguon]||""; // ""(đóng) · "done"(Đã nhận) · "thieu"(Giao thiếu) · "chuanhan"(Chưa nhận)
+                  const itemsFiltered=filterMode==="done"?itemsNg.filter(v=>v.done)
+                    :filterMode==="thieu"?itemsNg.filter(v=>v.giaoThieu)
+                    :filterMode==="chuanhan"?itemsNg.filter(v=>!v.done&&!v.giaoThieu)
+                    :[];
                   const nhomNg={};itemsFiltered.forEach(v=>{const k=v.vt||"(Chưa có vị trí)";if(!nhomNg[k])nhomNg[k]=[];nhomNg[k].push(v);});
                   const chonLoc=mode=>setBcBlockOpen(s=>({...s,[nguon]:s[nguon]===mode?"":mode}));
                   return(
@@ -10881,22 +11112,52 @@ Bạn có chắc chắn không?`;
                             <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Đã nhận</div>
                             <div style={{fontSize:9,fontWeight:700,color:"#16a34a",marginTop:2}}>{filterMode==="done"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
                           </div>
-                          <div onClick={()=>chonLoc("thieu")} style={{flex:1,textAlign:"center",background:filterMode==="thieu"?"#fee2e2":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="thieu"?"1.5px solid #dc2626":"1.5px solid transparent"}}>
-                            <div style={{fontWeight:800,fontSize:18,color:maConThieuNg>0?"#dc2626":"#16a34a"}}>{maConThieuNg}</div>
-                            <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Còn thiếu</div>
-                            <div style={{fontSize:9,fontWeight:700,color:"#dc2626",marginTop:2}}>{filterMode==="thieu"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
+                          <div onClick={()=>chonLoc("thieu")} style={{flex:1,textAlign:"center",background:filterMode==="thieu"?"#fef3c7":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="thieu"?"1.5px solid #b45309":"1.5px solid transparent"}}>
+                            <div style={{fontWeight:800,fontSize:18,color:maGiaoThieuNg>0?"#b45309":"#16a34a"}}>{maGiaoThieuNg}</div>
+                            <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Giao thiếu</div>
+                            <div style={{fontSize:9,fontWeight:700,color:"#b45309",marginTop:2}}>{filterMode==="thieu"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
+                          </div>
+                          <div onClick={()=>chonLoc("chuanhan")} style={{flex:1,textAlign:"center",background:filterMode==="chuanhan"?"#fee2e2":"#fff",borderRadius:8,padding:"8px 6px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:"pointer",userSelect:"none",border:filterMode==="chuanhan"?"1.5px solid #dc2626":"1.5px solid transparent"}}>
+                            <div style={{fontWeight:800,fontSize:18,color:maChuaNhanNg>0?"#dc2626":"#16a34a"}}>{maChuaNhanNg}</div>
+                            <div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Chưa nhận</div>
+                            <div style={{fontSize:9,fontWeight:700,color:"#dc2626",marginTop:2}}>{filterMode==="chuanhan"?"▲ Thu gọn":"▼ Xem chi tiết"}</div>
                           </div>
                         </div>
+                        {/* 🚨 Gửi cảnh báo khẩn cấp riêng cho từng nhóm — "Giao thiếu" (đã giao 1 phần
+                            nhưng chưa đủ) và "Chưa nhận" (chưa soạn/gửi hoặc đang chờ duyệt). Tách
+                            riêng 2 nút vì đây là 2 tình trạng khác nhau, cần nội dung cảnh báo khác nhau. */}
+                        {(maGiaoThieuNg>0||maChuaNhanNg>0)&&(
+                          <div style={{display:"flex",gap:8}}>
+                            {maGiaoThieuNg>0&&(
+                              <button onClick={()=>{
+                                  const itemsCanhBao=itemsNg.filter(v=>v.giaoThieu).map(v=>({ma:v.ma,ten:v.ten,dv:v.dv,can:v.cn,daGiao:v.dn,conThieu:v.ct}));
+                                  setKhanCapModal({items:itemsCanhBao});
+                                }}
+                                style={{flex:1,border:"1.5px solid #fde68a",background:"#fffbeb",color:"#b45309",borderRadius:10,padding:"9px 4px",fontSize:11,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,fontFamily:"inherit"}}>
+                                🚨 Báo Giao thiếu ({maGiaoThieuNg})
+                              </button>
+                            )}
+                            {maChuaNhanNg>0&&(
+                              <button onClick={()=>{
+                                  const itemsCanhBao=itemsNg.filter(v=>!v.done&&!v.giaoThieu).map(v=>({ma:v.ma,ten:v.ten,dv:v.dv,can:v.cn,daGiao:v.dn,conThieu:v.ct}));
+                                  setKhanCapModal({items:itemsCanhBao});
+                                }}
+                                style={{flex:1,border:"1.5px solid #fecaca",background:"#fef2f2",color:"#b91c1c",borderRadius:10,padding:"9px 4px",fontSize:11,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,fontFamily:"inherit"}}>
+                                🚨 Báo Chưa nhận ({maChuaNhanNg})
+                              </button>
+                            )}
+                          </div>
+                        )}
                         <div style={{display:"flex",justifyContent:"flex-end"}}>
                           {(()=>{
                             // Khi đã chọn ô (Đã nhận / Còn thiếu) thì chỉ xuất đúng danh sách đang hiển thị (itemsFiltered).
                             // Khi chưa chọn ô nào (đóng) thì xuất toàn bộ nguồn (itemsNg) như trước.
                             const dataXuat=filterMode?itemsFiltered:itemsNg;
-                            const nhanXuat=filterMode==="done"?`Đã nhận (${dataXuat.length} mã)`:filterMode==="thieu"?`Còn thiếu (${dataXuat.length} mã)`:`Toàn bộ (${dataXuat.length} mã)`;
+                            const nhanXuat=filterMode==="done"?`Đã nhận (${dataXuat.length} mã)`:filterMode==="thieu"?`Giao thiếu (${dataXuat.length} mã)`:filterMode==="chuanhan"?`Chưa nhận (${dataXuat.length} mã)`:`Toàn bộ (${dataXuat.length} mã)`;
                             return(
                           <ExportBar
                             shareTitle={`📋 Chi tiết vật tư ${nguon} — ${proj.ten} — ${nhanXuat}`}
-                            shareText={`${nguon} — ${nhanXuat}: đã nhận ${maDaNhanNg}, còn thiếu ${maConThieuNg}`}
+                            shareText={`${nguon} — ${nhanXuat}: đã nhận ${maDaNhanNg}, giao thiếu ${maGiaoThieuNg}, chưa nhận ${maChuaNhanNg}`}
                             onExcel={()=>xuatExcel(
                               dataXuat.map(v=>({
                                 "STT":v.stt,"Mã số":v.ma,"Tên vật tư":v.ten,"ĐVT":v.dv,
@@ -10917,7 +11178,7 @@ Bạn có chắc chắn không?`;
                                 <td style="color:${v.ct>0?"#dc2626":"#16a34a"}">${fmt(v.ct)}</td>
                               </tr>`).join("");
                               xuatPDF(`<h2>📋 Chi tiết vật tư ${nguon} — ${nhanXuat}</h2>
-                                <p class="sub">${proj.icon} ${proj.ten} · ${tongMa} mã · Đã nhận ${maDaNhanNg} · Còn thiếu ${maConThieuNg}</p>
+                                <p class="sub">${proj.icon} ${proj.ten} · ${tongMa} mã · Đã nhận ${maDaNhanNg} · Giao thiếu ${maGiaoThieuNg} · Chưa nhận ${maChuaNhanNg}</p>
                                 <table><thead><tr><th>STT</th><th>Mã số</th><th>Tên vật tư</th><th>ĐVT</th><th>Vị trí</th><th>Cần</th><th>Đã nhận</th><th>Còn thiếu</th></tr></thead><tbody>${rowsHtml}</tbody></table>`,
                                 `ChiTietVatTu_${nguon}_${filterMode||"TatCa"}_${proj.ten}`);
                             }}
@@ -10928,8 +11189,8 @@ Bạn có chắc chắn không?`;
                       </div>
                       {filterMode&&(
                         <div style={{padding:10,display:"flex",flexDirection:"column",gap:8}}>
-                          <div style={{fontSize:11,fontWeight:700,color:filterMode==="done"?"#16a34a":"#dc2626",padding:"2px 4px"}}>
-                            {filterMode==="done"?`✅ Danh sách Đã nhận (${itemsFiltered.length} mã)`:`📉 Danh sách Còn thiếu (${itemsFiltered.length} mã)`}
+                          <div style={{fontSize:11,fontWeight:700,color:filterMode==="done"?"#16a34a":filterMode==="thieu"?"#b45309":"#dc2626",padding:"2px 4px"}}>
+                            {filterMode==="done"?`✅ Danh sách Đã nhận (${itemsFiltered.length} mã)`:filterMode==="thieu"?`🚚 Danh sách Giao thiếu (${itemsFiltered.length} mã)`:`⏰ Danh sách Chưa nhận (${itemsFiltered.length} mã)`}
                           </div>
                           {itemsFiltered.length===0?(
                             <div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>— Không có mã nào —</div>
@@ -11169,7 +11430,7 @@ Bạn có chắc chắn không?`;
         })()}
 
         {/* ── NGƯỜI DÙNG — chỉ Xưởng Hàn ── */}
-        {tab==="bom_mau"&&isXH&&(()=>{
+        {tab==="bom_mau"&&canApprove&&(()=>{
           const activeLoai = bomMauLoaiList.find(l=>l.id===bmTab) || bomMauLoaiList[0] || {id:bmTab,ten:bmTab,icon:"🗂️",mau:"#4338ca"};
           const activeBom = getBomMauRows(bmTab);
           const setActiveBom = updater=>setBomMauRows(bmTab, updater);
@@ -11829,7 +12090,7 @@ Bạn có chắc chắn không?`;
             <div style={{overflowX:"auto",marginBottom:14}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:"#1d4ed8"}}>
-                  {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoLuong"),editPh?"":isXH?t("thSLThucNhan"):"",editPh?"":t("thSLThieu"),editPh?t("thXoa"):t("thDuyet"),editPh?null:t("thNguoiDuyet")].filter(h=>h!==null&&h!=="").map(h=><th key={h} style={{padding:"8px 10px",textAlign:[t("thSoLuong"),t("thSLThucNhan"),t("thSLThieu")].includes(h)?"right":"left",fontWeight:800,color:"#fff",whiteSpace:"nowrap"}}>{h}</th>)}
+                  {[t("thSTT"),t("thMa"),t("thTen"),t("thDVT"),t("thSoLuong"),editPh?"":canApprove?t("thSLThucNhan"):"",editPh?"":t("thSLThieu"),editPh?t("thXoa"):t("thDuyet"),editPh?null:t("thNguoiDuyet")].filter(h=>h!==null&&h!=="").map(h=><th key={h} style={{padding:"8px 10px",textAlign:[t("thSoLuong"),t("thSLThucNhan"),t("thSLThieu")].includes(h)?"right":"left",fontWeight:800,color:"#fff",whiteSpace:"nowrap"}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {(editPh?editPh.ct:freshVP.ct||[]).map((c,i)=>(
@@ -11845,7 +12106,7 @@ Bạn có chắc chắn không?`;
                           :fmt(c.sl)}
                       </td>
                       {/* SL Thực nhận — chỉ hiện khi xem (không editPh) */}
-                      {!editPh&&isXH&&(
+                      {!editPh&&canApprove&&(
                         <td style={{padding:"7px 10px",textAlign:"right"}}>
                           {c.ok
                             ?<span style={{fontWeight:700,color:"#1d4ed8"}}>{fmt(c.sl_thuc_nhan??c.sl)}</span>
@@ -11876,7 +12137,7 @@ Bạn có chắc chắn không?`;
                                   <span style={{background:"#fef3c7",color:"#92400e",borderRadius:6,padding:"2px 6px",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>Thiếu {fmt(c.sl_thieu)} → Soạn lại</span>
                                 </div>
                               :<span style={{color:"#16a34a",fontSize:16}}>✅</span>)
-                            :isXH?<button onClick={()=>{
+                            :canApprove?<button onClick={()=>{
                                 const slThuc=slThucEdit[c.id]!==undefined?slThucEdit[c.id]:(c.sl_thuc_nhan??c.sl);
                                 duyetCt(freshVP.id,c.id,slThuc,freshVP.pid||freshVP.projId);
                                 setSlThucEdit(s=>{const n={...s};delete n[c.id];return n;});
@@ -11892,7 +12153,7 @@ Bạn có chắc chắn không?`;
                     <td colSpan={editPh?3:4} style={{padding:"8px 10px",fontWeight:700}}>Tổng cộng</td>
                     <td style={{padding:"8px 10px",fontWeight:700,textAlign:"center"}}>{editPh?editPh.ct.length:freshVP.tong} chủng loại</td>
                     <td style={{padding:"8px 10px",fontWeight:700,color:"#16a34a",textAlign:"right"}}>{fmt((editPh?editPh.ct:freshVP.ct||[]).reduce((s,c)=>s+c.sl,0))}</td>
-                    {!editPh&&isXH&&<td style={{padding:"8px 10px",fontWeight:700,color:"#1d4ed8",textAlign:"right"}}>{fmt((freshVP.ct||[]).reduce((s,c)=>s+(c.sl_thuc_nhan??c.sl),0))}</td>}
+                    {!editPh&&canApprove&&<td style={{padding:"8px 10px",fontWeight:700,color:"#1d4ed8",textAlign:"right"}}>{fmt((freshVP.ct||[]).reduce((s,c)=>s+(c.sl_thuc_nhan??c.sl),0))}</td>}
                     {!editPh&&<td style={{padding:"8px 10px",fontWeight:700,color:"#dc2626",textAlign:"right"}}>{(()=>{const t=(freshVP.ct||[]).reduce((s,c)=>s+Math.max(0,(c.sl||0)-(c.sl_thuc_nhan??c.sl)),0);return t>0?`⚠️ ${fmt(t)}`:"—";})()}</td>}
                     <td style={{padding:"8px 10px",textAlign:"center",fontSize:11,color:"#6b7280"}}>{editPh?"":((freshVP.ct||[]).filter(c=>c.ok).length+"/"+(freshVP.ct||[]).length+" duyệt")}</td>
                   </tr>
@@ -11925,7 +12186,7 @@ Bạn có chắc chắn không?`;
                     <div style={{fontWeight:700,fontSize:13,color:all?"#065f46":"#92400e"}}>{all?"✅ XƯỞNG HÀN đã duyệt toàn bộ":`⏳ Còn ${ct.length-dd} mã chưa duyệt`}</div>
                     <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Bên nhận: <b style={{color:"#1d4ed8"}}>XƯỞNG HÀN</b> · {dd}/{ct.length} đã duyệt</div>
                   </div>
-                  {!all&&ct.length>0&&isXH&&<button onClick={()=>duyetAll(freshVP.id,freshVP.pid||freshVP.projId)} style={{...btn,background:"#1d4ed8",color:"#fff",padding:"10px 22px",fontSize:13,fontWeight:700}}>✓ Duyệt tất cả</button>}
+                  {!all&&ct.length>0&&canApprove&&<button onClick={()=>duyetAll(freshVP.id,freshVP.pid||freshVP.projId)} style={{...btn,background:"#1d4ed8",color:"#fff",padding:"10px 22px",fontSize:13,fontWeight:700}}>✓ Duyệt tất cả</button>}
                   {all&&<div style={{background:"#16a34a",color:"#fff",borderRadius:8,padding:"8px 18px",fontSize:13,fontWeight:700}}>✅ Hoàn tất giao nhận</div>}
                 </div>
               );
@@ -11983,7 +12244,7 @@ Bạn có chắc chắn không?`;
                     {dangChiaSe?"⏳ Đang tạo ảnh...":"📤 Chia sẻ"}
                   </button>
                   {(isTHCK||isKHO)&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>setEditPh({...freshVP,ct:[...(freshVP.ct||[])]})} style={{...btn,background:"#f59e0b",color:"#fff",padding:"8px 16px",fontSize:13}}>✏️ Sửa phiếu</button>}
-                  {isXH&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>{xacNhan(freshVP.id);setViewPh(null);}} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 16px",fontSize:13}}>✓ Xác nhận</button>}
+                  {canApprove&&freshVP.tt!=="Đã xác nhận"&&<button onClick={()=>{xacNhan(freshVP.id);setViewPh(null);}} style={{...btn,background:"#16a34a",color:"#fff",padding:"8px 16px",fontSize:13}}>✓ Xác nhận</button>}
                   <button onClick={()=>{setViewPh(null);setEditPh(null);setSlThucEdit({});}} style={{...btn,background:"#2563eb",color:"#fff",padding:"8px 16px",fontSize:13}}>Đóng</button>
                 </>
               )}
