@@ -2292,21 +2292,9 @@ function LoginScreen({onLogin, resume, onLogout, allUsers, headerBannerUrl, gate
     if(loginErr){console.error("login_user RPC error:",loginErr);setErr("Lỗi hệ thống, vui lòng thử lại!");return;}
     if(!u){setErr(t.errBadPw);return;}
     setErr("");
-    // ✅ MFA: tài khoản admin / có quyền thêm-sửa-xoá (mfa_required=true) phải xác thực
-    // thêm mã OTP gửi qua email trước khi được coi là đăng nhập xong. Luôn ép buộc MFA cho
-    // 2 tài khoản admin đặc biệt (admin/xh04) dù cột mfa_required trong DB có bị thiếu.
-    if(u.mfa_required || isAdminAccount(u)){
-      if(!u.email){
-        setErr("Tài khoản này bắt buộc xác thực 2 lớp (MFA) nhưng CHƯA có email — vui lòng liên hệ Quản trị viên để bổ sung email trong mục 👥 Người dùng.");
-        return;
-      }
-      setMfaPendingUser(u); setMfaCode(""); setMfaErr(""); setMfaInfo(""); setMfaSending(true);
-      const {error:otpErr}=await supabase.auth.signInWithOtp({email:u.email, options:{shouldCreateUser:true}});
-      setMfaSending(false);
-      if(otpErr){ console.error("signInWithOtp error:",otpErr); setErr("Không gửi được mã xác thực về email, vui lòng thử lại!"); setMfaPendingUser(null); return; }
-      setStep("mfa");
-      return;
-    }
+    // ❌ ĐÃ TẮT MFA (xác thực 2 lớp qua email OTP) theo yêu cầu — đăng nhập đúng mật khẩu
+    // là vào thẳng hệ thống, không còn gửi/yêu cầu mã xác thực email nữa, bất kể cờ
+    // mfa_required trong DB hay tài khoản có phải admin/xh04 hay không.
     completeLogin(u);
   };
 
@@ -3826,6 +3814,81 @@ const readImageAsBase64 = (file, opts) => new Promise((resolve, reject) => {
     img.src = url;
   }catch(e){ readRaw(); }
 });
+// ═══════════════════════════════════════════════════════════════
+// 🗄️ TỐI ƯU EGRESS — Avatar: upload lên Supabase STORAGE thay vì lưu base64 trực tiếp
+// trong cột "avatar" của bảng "users". Lý do đổi: base64 nặng hơn ảnh gốc ~33%, và cột
+// này được tải lại NGUYÊN VĂN mỗi lần poll dữ liệu users (kể cả khi ảnh không hề đổi) —
+// đây là 1 nguồn chính gây vượt quota "Egress" của Supabase. Lưu URL (chỉ ~70 ký tự)
+// thay vì base64 (có thể vài trăm KB) giúp giảm gần như toàn bộ egress phát sinh từ đây.
+// ⚠️ YÊU CẦU 1 LẦN DUY NHẤT: phải tạo sẵn bucket Storage tên "avatars" trên Supabase
+// (Dashboard → Storage → New bucket → đặt tên đúng "avatars" → bật "Public bucket").
+// Nếu bucket chưa tồn tại, hàm uploadAvatarToStorage bên dưới sẽ báo lỗi rõ ràng.
+// ═══════════════════════════════════════════════════════════════
+
+// Nén ảnh qua canvas rồi trả về Blob (thay vì chuỗi base64) — dùng logic giảm dần chất
+// lượng JPEG giống hệt readImageAsBase64 ở trên, chỉ khác bước cuối xuất ra Blob để upload.
+const compressImageToBlob = (file, opts) => new Promise((resolve, reject) => {
+  if(!file) return resolve(null);
+  const MAX_DIM     = (opts&&opts.maxDim)      || 480;
+  const MAX_BYTES   = (opts&&opts.maxBytes)    || 150*1024;
+  const MIN_QUALITY = (opts&&opts.minQuality)  || 0.5;
+  try{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let {width, height} = img;
+      if(width>MAX_DIM || height>MAX_DIM){
+        const scale = MAX_DIM/Math.max(width,height);
+        width = Math.round(width*scale); height = Math.round(height*scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      let quality = 0.85;
+      const step = () => {
+        canvas.toBlob((blob)=>{
+          if(!blob){ reject(new Error("Không nén được ảnh")); return; }
+          if(blob.size > MAX_BYTES && quality > MIN_QUALITY){
+            quality = Math.round((quality-0.1)*100)/100;
+            step();
+          } else {
+            resolve(blob);
+          }
+        }, "image/jpeg", quality);
+      };
+      step();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Không đọc được ảnh")); };
+    img.src = url;
+  }catch(e){ reject(e); }
+});
+
+// Nén ảnh + upload lên bucket "avatars" (upsert theo tên file = userId) rồi trả về URL
+// public. isImgAvatar() ở trên đã coi mọi chuỗi bắt đầu "http" là ảnh thật, nên URL trả
+// về từ đây tương thích ngay với toàn bộ UI hiển thị avatar hiện có, không cần sửa gì thêm.
+const uploadAvatarToStorage = async (file, userId, opts) => {
+  const blob = await compressImageToBlob(file, opts);
+  if(!blob) return "";
+  // Thêm timestamp vào tên file để phá cache trình duyệt/CDN mỗi khi đổi ảnh mới — nếu
+  // giữ nguyên tên cũ, ảnh mới có thể không hiển thị ngay do trình duyệt dùng lại cache cũ.
+  const path = `${userId}-${Date.now()}.jpg`;
+  const {error: upErr} = await supabase.storage.from("avatars").upload(path, blob, {
+    contentType: "image/jpeg",
+    upsert: true,
+  });
+  if(upErr){
+    throw new Error(
+      upErr.message?.includes("Bucket not found")
+        ? "Chưa tạo bucket Storage \"avatars\" trên Supabase — vào Dashboard → Storage → New bucket → đặt tên đúng \"avatars\" → bật Public bucket."
+        : upErr.message
+    );
+  }
+  const {data} = supabase.storage.from("avatars").getPublicUrl(path);
+  return data?.publicUrl || "";
+};
+
 // Ước lượng dung lượng hiển thị (KB) từ 1 chuỗi base64 data URL — dùng để báo cho admin
 // biết ảnh đã nén còn bao nhiêu KB sau khi chọn, ở những chỗ upload cần minh bạch dung lượng
 // (VD banner Header — ảnh tải lại ở mọi trang nên cần kiểm soát kỹ).
@@ -4209,13 +4272,16 @@ function AccountAvatarManager({users, setUsers, dbUpsertUser}){
     if(!file) return;
     setBusyId(u.id);
     try{
-      const b64 = await readImageAsBase64(file);
-      if(!b64){ setBusyId(""); return; }
-      const updated = {...u, avatar:b64};
+      // ✅ TỐI ƯU EGRESS: upload lên Supabase Storage (bucket "avatars"), lưu URL vào
+      // cột "avatar" thay vì lưu base64 trực tiếp — xem giải thích chi tiết tại khai báo
+      // hàm uploadAvatarToStorage ở trên.
+      const url = await uploadAvatarToStorage(file, u.id);
+      if(!url){ setBusyId(""); return; }
+      const updated = {...u, avatar:url};
       const ok = await dbUpsertUser(updated);
       if(ok) setUsers(list=>list.map(x=>x.id===u.id?updated:x));
     }catch(err){
-      alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+      alert("⚠️ Không tải được ảnh lên: "+(err.message||"lỗi không xác định"));
     }
     setBusyId("");
   };
@@ -6370,7 +6436,13 @@ export default function App(){
     // giúp nhận thay đổi mới nhất từ người dùng khác mà không làm mất dữ liệu đang
     // gõ dở trên các form khác trong lúc tải.
     if(!user) return;
-    const pollTimer=setInterval(load,10000);
+    // ✅ FIX EGRESS: trước đây 10 giây/lần — mỗi lần tải lại TOÀN BỘ ~15 bảng (users,
+    // projects, bom_items, phieu, phieu_ct, lich_su, bom_mau...) cho MỌI người dùng đang
+    // mở app, kể cả khi không ai sửa gì. Với nhiều người dùng mở app cùng lúc, việc này
+    // gây ra lượng egress rất lớn (Supabase tính phí/giới hạn theo GB dữ liệu tải ra).
+    // Giãn lên 60 giây để giảm ~6 lần số lượt tải lại mà vẫn đủ "gần thời gian thực" cho
+    // nhu cầu thực tế của app (đồng bộ dữ liệu giữa các trạm/nhân viên).
+    const pollTimer=setInterval(load,60000);
     return ()=>clearInterval(pollTimer);
   },[user,activeLine]);
 
@@ -6441,11 +6513,14 @@ export default function App(){
         .then(({error})=>{if(error) console.error("heartbeat last_active:",error.message);});
     };
     beat();
-    const iv=setInterval(beat,20000);
+    // ✅ FIX EGRESS: giãn 20s → 30s, giảm bớt số lượt request lặp lại không cần thiết
+    // (payload mỗi lần rất nhỏ nên không phải nguồn egress chính, nhưng vẫn nên giãn ra
+    // cùng đợt tối ưu để giảm tổng số request/tháng).
+    const iv=setInterval(beat,30000);
     return ()=>clearInterval(iv);
   },[user?.id]);
 
-  // Polling: mỗi 15s, lấy last_active của toàn bộ user để suy ra ai đang online
+  // Polling: mỗi 30s, lấy last_active của toàn bộ user để suy ra ai đang online
   useEffect(()=>{
     if(!user?.id) return;
     const poll=()=>{
@@ -6458,7 +6533,9 @@ export default function App(){
       });
     };
     poll();
-    const iv=setInterval(poll,15000);
+    // ✅ FIX EGRESS: giãn 15s → 30s (chỉ lấy 2 cột id/last_active nên payload đã nhỏ sẵn,
+    // giãn thêm để giảm tổng số request/tháng, cùng đợt tối ưu egress với pollTimer chính).
+    const iv=setInterval(poll,30000);
     return ()=>clearInterval(iv);
   },[user?.id]);
 
@@ -6882,9 +6959,12 @@ export default function App(){
     if(!file) return;
     setAvatarUploading(true);
     try{
-      const b64=await readImageAsBase64(file,{maxDim:240,maxBytes:35*1024,minQuality:0.3});
-      if(!b64){ setAvatarUploading(false); return; }
-      const updated={...user,avatar:b64};
+      // ✅ TỐI ƯU EGRESS: upload lên Supabase Storage (bucket "avatars"), lưu URL vào
+      // cột "avatar" thay vì lưu base64 trực tiếp — xem giải thích chi tiết tại khai báo
+      // hàm uploadAvatarToStorage ở trên.
+      const url=await uploadAvatarToStorage(file,user.id,{maxDim:240,maxBytes:35*1024,minQuality:0.3});
+      if(!url){ setAvatarUploading(false); return; }
+      const updated={...user,avatar:url};
       const ok=await dbUpsertUser(updated);
       if(ok){
         setUser(updated); // ✅ cập nhật avatar header của CHÍNH mình ngay lập tức
@@ -6894,7 +6974,7 @@ export default function App(){
         flash("✓ Đã cập nhật ảnh đại diện");
       }
     }catch(err){
-      alert("⚠️ Không đọc được ảnh: "+(err.message||"lỗi không xác định"));
+      alert("⚠️ Không tải được ảnh lên: "+(err.message||"lỗi không xác định"));
     }
     setAvatarUploading(false);
   };
