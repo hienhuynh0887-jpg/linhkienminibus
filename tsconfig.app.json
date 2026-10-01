@@ -19,5 +19,5 @@
     "strict": false,
     "allowJs": true
   },
-  "include": ["."]
+  "include": ["src"]
 }
