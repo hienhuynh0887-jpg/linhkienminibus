@@ -1,39 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { supabase } from "./supabaseClient";
+import { readImageAsBase64, estimateBase64KB } from "./panels";
 
 // 🎨 NỀN THANH SIDEBAR — TÁCH BIỆT HOÀN TOÀN với Header.
-// Lưu thành 1 dòng CMS RIÊNG (id cố định SIDEBAR_BG_ID, loai:"app_layout"), KHÔNG đụng tới
-// dòng "app_layout_main" của Header. Màu/kiểu nền đóng gói JSON trong "mo_ta", ảnh nền ở cột "anh".
-export const SIDEBAR_BG_ID = "app_sidebar_bg";
-export const SIDEBAR_BG_DEFAULT_CSS = "linear-gradient(180deg,#062C67 0%,#031D46 100%)";
+// Lưu 1 dòng riêng trong bảng "cms_content" (id SIDEBAR_BG_ID), KHÔNG đụng tới dòng
+// "app_layout_main" của Header. Màu/kiểu nền lưu JSON ở "mo_ta", ảnh nền ở cột "anh".
+const SIDEBAR_BG_ID = "app_sidebar_bg";
+const DEFAULT_CSS = "linear-gradient(180deg,#062C67 0%,#031D46 100%)";
 const DEFAULTS = { mode: "gradient", color1: "#062C67", color2: "#031D46" };
+const EVT = "sidebar-bg-changed";
+const HEADING = "🧭 Giao diện Sidebar & Header";
 
-// Trả về { css, hasImage } cho App dùng trực tiếp ở style.background của Sidebar.
-export function readSidebarBg(cmsItems: any[]) {
-  const it = (cmsItems || []).find((x) => x.loai === "app_layout" && x.id === SIDEBAR_BG_ID);
-  if (!it || !it.an_hien) return { css: SIDEBAR_BG_DEFAULT_CSS, hasImage: false };
-  if (it.anh) return { css: `url("${it.anh}") center / cover no-repeat`, hasImage: true };
+function rowToCss(row: any): string {
+  if (!row || !row.an_hien) return DEFAULT_CSS;
+  if (row.anh) return `url("${row.anh}") center / cover no-repeat`;
   let p: any = {};
-  try { p = it.mo_ta ? JSON.parse(it.mo_ta) : {}; } catch { p = {}; }
+  try { p = row.mo_ta ? JSON.parse(row.mo_ta) : {}; } catch { p = {}; }
   const m = { ...DEFAULTS, ...p };
-  const css = m.mode === "solid" ? m.color1 : `linear-gradient(180deg,${m.color1} 0%,${m.color2} 100%)`;
-  return { css, hasImage: false };
+  return m.mode === "solid" ? m.color1 : `linear-gradient(180deg,${m.color1} 0%,${m.color2} 100%)`;
 }
 
-export function SidebarBgManager({ items, setItems, dbUpsertCms, readImageAsBase64, estimateBase64KB }: any) {
-  const existing = items.find((x: any) => x.loai === "app_layout" && x.id === SIDEBAR_BG_ID);
-  const [form, setForm] = useState<any>(() => {
-    let p: any = {};
-    try { p = existing?.mo_ta ? JSON.parse(existing.mo_ta) : {}; } catch { p = {}; }
-    return { ...DEFAULTS, ...p, img: existing?.anh || "", an_hien: existing?.an_hien ?? false };
-  });
+function applyCss(row: any) {
+  let el = document.getElementById("kl-sidebar-bg-style") as HTMLStyleElement | null;
+  if (!el) { el = document.createElement("style"); el.id = "kl-sidebar-bg-style"; document.head.appendChild(el); }
+  el.textContent = `.kl-sidebar-desktop{background:${rowToCss(row)} !important;}`;
+}
+
+async function fetchRow() {
+  try {
+    const { data } = await supabase.from("cms_content").select("*").eq("id", SIDEBAR_BG_ID).maybeSingle();
+    return data || null;
+  } catch { return null; }
+}
+
+function SidebarBgManager() {
+  const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState("");
 
+  useEffect(() => {
+    fetchRow().then((row: any) => {
+      let p: any = {};
+      try { p = row?.mo_ta ? JSON.parse(row.mo_ta) : {}; } catch { p = {}; }
+      setForm({ ...DEFAULTS, ...p, img: row?.anh || "", an_hien: row?.an_hien ?? false });
+    });
+  }, []);
+
+  if (!form) return null;
+
   const lbl: any = { display: "block", fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 4 };
   const btn: any = { border: "none", borderRadius: 7, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, padding: "8px 16px" };
   const seg = (on: boolean): any => ({ ...btn, padding: "7px 12px", background: on ? "#1d4ed8" : "#f1f5f9", color: on ? "#fff" : "#374151" });
-
   const preview = form.img
     ? `url("${form.img}") center / cover no-repeat`
     : form.mode === "solid" ? form.color1
@@ -44,7 +63,7 @@ export function SidebarBgManager({ items, setItems, dbUpsertCms, readImageAsBase
     if (!file) return;
     setBusy(true);
     try {
-      const b64 = await readImageAsBase64(file, { maxBytes: 450 * 1024 });
+      const b64 = await (readImageAsBase64 as any)(file, { maxBytes: 450 * 1024 });
       setForm((f: any) => ({ ...f, img: b64 }));
     } catch (err: any) {
       alert("⚠️ Không đọc được ảnh: " + (err.message || "lỗi không xác định"));
@@ -59,11 +78,10 @@ export function SidebarBgManager({ items, setItems, dbUpsertCms, readImageAsBase
       mo_ta: JSON.stringify(rest), anh: img || "", lien_ket: "", thu_tu: 0, an_hien,
       updated_at: new Date().toISOString(),
     };
-    const done = await dbUpsertCms(row);
+    const { error } = await supabase.from("cms_content").upsert(row, { onConflict: "id" });
     setSaving(false);
-    if (!done) return;
-    setItems((list: any[]) => list.some((x) => x.id === SIDEBAR_BG_ID)
-      ? list.map((x) => (x.id === SIDEBAR_BG_ID ? row : x)) : [...list, row]);
+    if (error) { alert("⚠️ Lưu thất bại: " + error.message); return; }
+    window.dispatchEvent(new CustomEvent(EVT, { detail: row }));
     setOk("✅ Đã lưu — áp dụng ngay cho Sidebar.");
     setTimeout(() => setOk(""), 3000);
   };
@@ -79,12 +97,10 @@ export function SidebarBgManager({ items, setItems, dbUpsertCms, readImageAsBase
       <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
         Chọn màu hoặc tải ảnh làm nền riêng cho Sidebar (trái) — không ảnh hưởng Header.
       </div>
-
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         <button style={seg(form.mode === "solid")} onClick={() => setForm((f: any) => ({ ...f, mode: "solid" }))}>Màu đơn</button>
         <button style={seg(form.mode === "gradient")} onClick={() => setForm((f: any) => ({ ...f, mode: "gradient" }))}>Chuyển màu</button>
       </div>
-
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 12 }}>
         <div>
           <label style={lbl}>{form.mode === "solid" ? "Màu nền" : "Màu trên"}</label>
@@ -99,28 +115,24 @@ export function SidebarBgManager({ items, setItems, dbUpsertCms, readImageAsBase
           </div>
         )}
       </div>
-
       <div style={{ marginBottom: 12 }}>
         <label style={lbl}>Ảnh nền Sidebar (không bắt buộc — có ảnh sẽ ưu tiên hơn màu)</label>
         <input type="file" accept="image/*" onChange={onPick} disabled={busy} />
         {busy && <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 4 }}>⏳ Đang nén ảnh...</div>}
         {form.img && (
           <div style={{ marginTop: 6, fontSize: 11, color: "#16a34a" }}>
-            ✅ Đã nén còn ~{estimateBase64KB(form.img)}KB{" "}
+            ✅ Đã nén còn ~{(estimateBase64KB as any)(form.img)}KB{" "}
             <button onClick={() => setForm((f: any) => ({ ...f, img: "" }))}
               style={{ ...btn, padding: "3px 8px", background: "#dc2626", color: "#fff", fontSize: 11 }}>✕ Xoá ảnh</button>
           </div>
         )}
       </div>
-
       <label style={lbl}>Xem trước Sidebar</label>
       <div style={{ width: 92, height: 180, borderRadius: 8, background: preview, marginBottom: 12, border: "1.5px solid #e5e7eb" }} />
-
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: 12 }}>
         <input type="checkbox" checked={!!form.an_hien} onChange={(e) => setForm((f: any) => ({ ...f, an_hien: e.target.checked }))} />
         Đang áp dụng (tắt = quay về nền mặc định)
       </label>
-
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button onClick={onSave} disabled={saving || busy} style={{ ...btn, background: "#0b2545", color: "#fff" }}>
           {saving ? "Đang lưu..." : "💾 Lưu"}
@@ -130,4 +142,44 @@ export function SidebarBgManager({ items, setItems, dbUpsertCms, readImageAsBase
       </div>
     </div>
   );
+}
+
+// Cầu nối: (1) áp nền Sidebar từ DB, (2) tự chèn khối quản trị vào ngay dưới khối
+// "Giao diện Sidebar & Header" trong CMS — không phải sửa App.tsx / panels.tsx.
+export function initSidebarBg() {
+  let loaded = false;
+  const load = async () => { applyCss(await fetchRow()); loaded = true; };
+  load();
+  window.addEventListener(EVT, (e: any) => applyCss(e.detail));
+
+  let host: HTMLDivElement | null = null;
+  let root: any = null;
+  const cleanup = () => {
+    if (root) { root.unmount(); root = null; }
+    if (host) { host.remove(); host = null; }
+  };
+
+  const scan = () => {
+    // Sidebar vừa xuất hiện sau đăng nhập → nạp lại nền (phòng khi lần nạp đầu bị chặn trước đăng nhập)
+    if (document.querySelector(".kl-sidebar-desktop") && !loaded) load();
+
+    const heading = Array.from(document.querySelectorAll("div")).find(
+      (d) => d.childElementCount === 0 && d.textContent === HEADING
+    );
+    const card = heading?.parentElement;
+    if (!card || !card.parentElement || !card.querySelector('input[type="number"]')) { cleanup(); return; }
+    if (host && host.isConnected && host.previousElementSibling === card) return;
+    cleanup();
+    host = document.createElement("div");
+    card.after(host);
+    root = createRoot(host);
+    root.render(<SidebarBgManager />);
+  };
+
+  let pending = false;
+  new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    setTimeout(() => { pending = false; scan(); }, 150);
+  }).observe(document.body, { childList: true, subtree: true });
 }
