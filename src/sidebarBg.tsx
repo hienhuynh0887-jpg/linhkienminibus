@@ -10,7 +10,6 @@ const SIDEBAR_BG_ID = "app_sidebar_bg";
 const DEFAULT_CSS = "linear-gradient(180deg,#062C67 0%,#031D46 100%)";
 const DEFAULTS = { mode: "gradient", color1: "#062C67", color2: "#031D46" };
 const EVT = "sidebar-bg-changed";
-const HEADING = "🧭 Giao diện Sidebar & Header";
 
 function rowToCss(row: any): string {
   if (!row || !row.an_hien) return DEFAULT_CSS;
@@ -144,42 +143,69 @@ function SidebarBgManager() {
   );
 }
 
-// Cầu nối: (1) áp nền Sidebar từ DB, (2) tự chèn khối quản trị vào ngay dưới khối
-// "Giao diện Sidebar & Header" trong CMS — không phải sửa App.tsx / panels.tsx.
+// Nút nổi + hộp thoại quản trị: chỉ hiện khi đang ở trang "CMS — Quản lý Nội dung".
+const VIS_EVT = "kl-cms-visible";
+function SidebarBgFloating() {
+  const [visible, setVisible] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const h = (e: any) => { setVisible(!!e.detail); if (!e.detail) setOpen(false); };
+    window.addEventListener(VIS_EVT, h);
+    return () => window.removeEventListener(VIS_EVT, h);
+  }, []);
+  if (!visible) return null;
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        style={{ position: "fixed", right: 12, bottom: 96, zIndex: 99998, border: "none", borderRadius: 24,
+          padding: "12px 16px", background: "#7c3aed", color: "#fff", fontWeight: 800, fontSize: 13,
+          boxShadow: "0 4px 14px rgba(0,0,0,0.3)", cursor: "pointer", fontFamily: "inherit" }}>
+        🎨 Nền Sidebar
+      </button>
+      {open && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 99999, background: "rgba(0,0,0,0.55)", overflowY: "auto", padding: 12 }}>
+          <div style={{ maxWidth: 520, margin: "0 auto" }}>
+            <button onClick={() => setOpen(false)}
+              style={{ display: "block", marginLeft: "auto", marginBottom: 8, border: "none", borderRadius: 7, padding: "8px 14px",
+                background: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕ Đóng</button>
+            <SidebarBgManager />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Cầu nối: (1) áp nền Sidebar từ DB, (2) hiện nút nổi "Nền Sidebar" khi admin mở trang CMS
+// — không phải sửa App.tsx / panels.tsx.
 export function initSidebarBg() {
   let loaded = false;
   const load = async () => { applyCss(await fetchRow()); loaded = true; };
   load();
   window.addEventListener(EVT, (e: any) => applyCss(e.detail));
 
-  let host: HTMLDivElement | null = null;
-  let root: any = null;
-  const cleanup = () => {
-    if (root) { root.unmount(); root = null; }
-    if (host) { host.remove(); host = null; }
-  };
+  const host = document.createElement("div");
+  host.id = "kl-sidebar-bg-host";
+  document.body.appendChild(host);
+  createRoot(host).render(<SidebarBgFloating />);
 
+  let last: boolean | null = null;
   const scan = () => {
-    // Sidebar vừa xuất hiện sau đăng nhập → nạp lại nền (phòng khi lần nạp đầu bị chặn trước đăng nhập)
-    if (document.querySelector(".kl-sidebar-desktop") && !loaded) load();
-
-    const heading = Array.from(document.querySelectorAll("div")).find(
-      (d) => d.childElementCount === 0 && d.textContent === HEADING
-    );
-    const card = heading?.parentElement;
-    if (!card || !card.parentElement || !card.querySelector('input[type="number"]')) { cleanup(); return; }
-    if (host && host.isConnected && host.previousElementSibling === card) return;
-    cleanup();
-    host = document.createElement("div");
-    card.after(host);
-    root = createRoot(host);
-    root.render(<SidebarBgManager />);
+    try {
+      if (document.querySelector(".kl-sidebar-desktop") && !loaded) load();
+      const onCms = (document.body.textContent || "").includes("Quản lý Nội dung");
+      if (onCms !== last) {
+        last = onCms;
+        window.dispatchEvent(new CustomEvent(VIS_EVT, { detail: onCms }));
+      }
+    } catch { /* bỏ qua */ }
   };
 
   let pending = false;
   new MutationObserver(() => {
     if (pending) return;
     pending = true;
-    setTimeout(() => { pending = false; scan(); }, 150);
+    setTimeout(() => { pending = false; scan(); }, 300);
   }).observe(document.body, { childList: true, subtree: true });
+  scan();
 }
